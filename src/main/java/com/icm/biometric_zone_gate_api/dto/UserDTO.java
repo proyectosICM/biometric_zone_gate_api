@@ -5,6 +5,7 @@ import lombok.Data;
 import java.util.List;
 import java.util.Map;
 
+// Registro y Gestion de usuarios usuarios
 @Data
 public class UserDTO {
     private String userId;

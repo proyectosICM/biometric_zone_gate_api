@@ -2,6 +2,7 @@ package com.icm.biometric_zone_gate_api.dto;
 
 import lombok.Data;
 
+// Configuración del dispositivo (SET_DEVICE_SETTING)
 @Data
 public class DeviceSettingDTO {
     private String deviceName;

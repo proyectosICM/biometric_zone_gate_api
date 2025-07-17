@@ -14,9 +14,8 @@ import java.time.LocalDateTime;
 @Table(name = "devices")
 public class DeviceModel {
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id", nullable = false)
-    private Long id;
+    private String id;
     private String model;
     private String firmwareVersion;
     private String name;
