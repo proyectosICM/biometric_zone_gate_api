@@ -22,6 +22,16 @@ public class DeviceController {
                 .orElse(ResponseEntity.notFound().build());
     }
 
+    // POST /api/v1/devices/{id}/settings/send
+    @PostMapping("/{id}/settings/send")
+    public ResponseEntity<String> sendSettingToDevice(
+            @PathVariable Long id,
+            @RequestBody DeviceSettingDTO settingDTO) {
+
+        String response = deviceService.sendDeviceSetting(id, settingDTO);
+        return ResponseEntity.ok(response);
+    }
+
     // POST /api/v1/devices
     @PostMapping
     public ResponseEntity<DeviceDTO> createDevice(@RequestBody DeviceDTO deviceDTO) {
@@ -56,15 +66,5 @@ public class DeviceController {
         } catch (IllegalArgumentException e) {
             return ResponseEntity.notFound().build();
         }
-    }
-
-    // POST /api/v1/devices/{id}/settings/send
-    @PostMapping("/{id}/settings/send")
-    public ResponseEntity<String> sendSettingToDevice(
-            @PathVariable Long id,
-            @RequestBody DeviceSettingDTO settingDTO) {
-
-        String response = deviceService.sendDeviceSetting(id, settingDTO);
-        return ResponseEntity.ok(response);
     }
 }
