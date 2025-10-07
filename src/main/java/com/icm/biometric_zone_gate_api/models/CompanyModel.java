@@ -13,7 +13,7 @@ import java.time.ZonedDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 @Entity
-@Table(name = "company")
+@Table(name = "companies")
 public class CompanyModel {
     @Id
     @Column(unique = true, nullable = false)

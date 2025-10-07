@@ -1,8 +1,10 @@
 package com.icm.biometric_zone_gate_api.controllers;
 
 import com.icm.biometric_zone_gate_api.models.DeviceModel;
+import com.icm.biometric_zone_gate_api.models.UserModel;
 import com.icm.biometric_zone_gate_api.services.DeviceService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -51,5 +53,33 @@ public class DeviceController {
         return deviceService.deleteDevice(id)
                 ? ResponseEntity.noContent().build()
                 : ResponseEntity.notFound().build();
+    }
+
+    @GetMapping("/{id}/sync-users")
+    public ResponseEntity<String> syncUsers(@PathVariable Long id) {
+        try {
+            deviceService.syncUsersFromDevice(id);
+            return ResponseEntity.ok("User list requested from device.");
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
+        }
+    }
+
+    @PostMapping("/{id}/push-user")
+    public ResponseEntity<String> pushUser(@PathVariable Long id, @RequestBody UserModel user) {
+        deviceService.pushUserToDevice(id, user);
+        return ResponseEntity.ok("User sent to device.");
+    }
+
+    @DeleteMapping("/{id}/users/{userId}")
+    public ResponseEntity<String> deleteUser(@PathVariable Long id, @PathVariable Long userId) {
+        deviceService.removeUserFromDevice(id, userId);
+        return ResponseEntity.ok("User deleted from device.");
+    }
+
+    @DeleteMapping("/{id}/users")
+    public ResponseEntity<String> clearAll(@PathVariable Long id) {
+        deviceService.clearAllDeviceUsers(id);
+        return ResponseEntity.ok("All users cleared from device.");
     }
 }

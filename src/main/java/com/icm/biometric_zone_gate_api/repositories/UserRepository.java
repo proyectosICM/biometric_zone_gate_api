@@ -1,10 +1,21 @@
 package com.icm.biometric_zone_gate_api.repositories;
 
 import com.icm.biometric_zone_gate_api.models.UserModel;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
+import java.util.Optional;
+
 @Repository
 public interface UserRepository extends JpaRepository<UserModel, Long> {
-    UserModel findByEmail(String email);
+    Optional<UserModel> findByEmail(String email);
+
+    Optional<UserModel> findByUsernameAndPassword(String username, String password);
+
+    List<UserModel> findByCompanyId(Long id);
+
+    Page<UserModel> findByCompanyId(Long id, Pageable pageable);
 }

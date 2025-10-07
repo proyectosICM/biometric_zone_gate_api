@@ -1,7 +1,10 @@
 package com.icm.biometric_zone_gate_api.services;
 
+import com.icm.biometric_zone_gate_api.config.DeviceConnectionManager;
 import com.icm.biometric_zone_gate_api.models.DeviceModel;
+import com.icm.biometric_zone_gate_api.models.UserModel;
 import com.icm.biometric_zone_gate_api.repositories.DeviceRepository;
+import com.icm.biometric_zone_gate_api.websocket.DeviceWebSocketClient;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -13,6 +16,7 @@ import java.util.Optional;
 public class DeviceService {
 
     private final DeviceRepository deviceRepository;
+    private final DeviceConnectionManager connectionManager;
 
     public DeviceModel createDevice(DeviceModel device) {
         return deviceRepository.save(device);
@@ -53,5 +57,32 @@ public class DeviceService {
             return true;
         }
         return false;
+    }
+
+    public void syncUsersFromDevice(Long deviceId) {
+        DeviceWebSocketClient client = connectionManager.getClient(deviceId);
+        if (client == null) {
+            throw new IllegalStateException("Device not connected or not found.");
+        }
+
+        client.requestUserList();
+    }
+
+    public void pushUserToDevice(Long deviceId, UserModel user) {
+        DeviceWebSocketClient client = connectionManager.getClient(deviceId);
+        if (client == null) throw new IllegalStateException("Device not connected.");
+        client.sendUserToDevice(user);
+    }
+
+    public void removeUserFromDevice(Long deviceId, Long userId) {
+        DeviceWebSocketClient client = connectionManager.getClient(deviceId);
+        if (client == null) throw new IllegalStateException("Device not connected.");
+        client.deleteUserFromDevice(userId);
+    }
+
+    public void clearAllDeviceUsers(Long deviceId) {
+        DeviceWebSocketClient client = connectionManager.getClient(deviceId);
+        if (client == null) throw new IllegalStateException("Device not connected.");
+        client.clearAllUsers();
     }
 }

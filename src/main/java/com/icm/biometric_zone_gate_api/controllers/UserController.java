@@ -3,6 +3,10 @@ package com.icm.biometric_zone_gate_api.controllers;
 import com.icm.biometric_zone_gate_api.models.UserModel;
 import com.icm.biometric_zone_gate_api.services.UserService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -14,12 +18,6 @@ import java.util.List;
 public class UserController {
 
     private final UserService userService;
-
-    @PostMapping
-    public ResponseEntity<UserModel> createUser(@RequestBody UserModel user) {
-        UserModel savedUser = userService.createUser(user);
-        return ResponseEntity.ok(savedUser);
-    }
 
     @GetMapping
     public ResponseEntity<List<UserModel>> getAllUsers() {
@@ -33,11 +31,10 @@ public class UserController {
                 .orElse(ResponseEntity.notFound().build());
     }
 
-    @GetMapping("/email/{email}")
-    public ResponseEntity<UserModel> getUserByEmail(@PathVariable String email) {
-        return userService.getUserByEmail(email)
-                .map(ResponseEntity::ok)
-                .orElse(ResponseEntity.notFound().build());
+    @PostMapping
+    public ResponseEntity<UserModel> createUser(@RequestBody UserModel user) {
+        UserModel savedUser = userService.createUser(user);
+        return ResponseEntity.ok(savedUser);
     }
 
     @PutMapping("/{id}")
@@ -52,5 +49,50 @@ public class UserController {
         return userService.deleteUser(id)
                 ? ResponseEntity.noContent().build()
                 : ResponseEntity.notFound().build();
+    }
+
+    @GetMapping("/email/{email}")
+    public ResponseEntity<UserModel> getUserByEmail(@PathVariable String email) {
+        return userService.getUserByEmail(email)
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
+    }
+
+    @GetMapping("/login")
+    public ResponseEntity<UserModel> getUserByUsernameAndPassword(
+            @RequestParam String username,
+            @RequestParam String password
+    ) {
+        return userService.getUserByUsernameAndPassword(username, password)
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
+    }
+
+    @GetMapping("/company/{companyId}")
+    public ResponseEntity<List<UserModel>> getUsersByCompanyId(@PathVariable Long companyId) {
+        return ResponseEntity.ok(userService.getUsersByCompanyId(companyId));
+    }
+
+    @GetMapping("/company/{companyId}/page")
+    public ResponseEntity<Page<UserModel>> getUsersByCompanyIdPaged(
+            @PathVariable Long companyId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(required = false) String sortBy,
+            @RequestParam(defaultValue = "asc") String direction
+    ) {
+        Pageable pageable;
+        if (sortBy != null && !sortBy.isEmpty()) {
+            pageable = PageRequest.of(
+                    page,
+                    size,
+                    direction.equalsIgnoreCase("desc")
+                            ? Sort.by(sortBy).descending()
+                            : Sort.by(sortBy).ascending()
+            );
+        } else {
+            pageable = PageRequest.of(page, size);
+        }
+        return ResponseEntity.ok(userService.getUsersByCompanyId(companyId, pageable));
     }
 }

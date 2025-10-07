@@ -22,7 +22,15 @@ public class UserModel {
 
     private String name;
 
+    @Column(unique = true)
     private String email;
+
+    @Column(unique = true)
+    private String username;
+
+    private String password;
+
+    private String cardNumber;
 
     @ManyToOne
     @JoinColumn(name = "company_id", nullable = false)

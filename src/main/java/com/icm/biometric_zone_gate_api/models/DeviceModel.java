@@ -13,20 +13,20 @@ import java.time.ZonedDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 @Entity
-@Table(name = "users")
+@Table(name = "devices")
 public class DeviceModel {
     @Id
     @Column(unique = true, nullable = false)
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    private String sn;
+    private String sn; // serial number
 
     private String name;
 
-    private String host;
+    private String host; // ip or host
 
-    private String port;
+    private String port; // port conection
 
     private boolean pushEnabled;
 

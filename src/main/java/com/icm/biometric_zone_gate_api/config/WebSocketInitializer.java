@@ -1,6 +1,5 @@
 package com.icm.biometric_zone_gate_api.config;
 
-import com.icm.biometric_zone_gate_api.websocket.DeviceWebSocketClient;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
@@ -9,15 +8,11 @@ import org.springframework.stereotype.Component;
 @RequiredArgsConstructor
 public class WebSocketInitializer {
 
-    private final DeviceWebSocketClient deviceWebSocketClient;
+    private final DeviceConnectionManager connectionManager;
 
     @PostConstruct
     public void init() {
-        try {
-            // Cambia la IP por la de tu dispositivo
-            deviceWebSocketClient.connect("192.168.1.100");
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+        System.out.println("Initializing WebSocket connections to devices...");
+        connectionManager.connectAllDevices();
     }
 }
