@@ -145,7 +145,7 @@ public class DeviceWebSocketClient {
 
         DeviceModel device = deviceRepository.findBySn(sn).orElse(new DeviceModel());
         device.setSn(sn);
-        device.setLanguage(language);
+        //device.setLanguage(language);
         device.setHost(host);
         device.setPort("7788");
 
@@ -377,7 +377,6 @@ public class DeviceWebSocketClient {
                 user.getId(),
                 user.getName(),
                 user.getPassword() != null ? user.getPassword() : "",
-                user.getCardNumber() != null ? user.getCardNumber() : "",
                 0 // privilegio normal (ajusta según tu caso)
         );
 

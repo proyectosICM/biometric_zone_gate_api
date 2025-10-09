@@ -8,6 +8,7 @@ import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.ZonedDateTime;
+import java.util.List;
 
 @Data
 @NoArgsConstructor
@@ -28,21 +29,42 @@ public class DeviceModel {
 
     private String port; // port conection
 
-    private boolean pushEnabled;
+    // NOTE: Change to Enum
+    // Language code (0=English, 9=Spanish, etc.)
+    private int language;
 
-    private String language;
-
+    // Volume level (0–10)
     private int volume;
 
-    private boolean antiPassback;
+    // Anti-passback mode (0=disabled, 1=host inside, 2=host outside)
+    private int antiPassback;
 
-    private int sleepTimeMinutes;
+    // Sleep enabled (true=sleep mode active)
+    private boolean sleepEnabled;
 
-    private String verificationMode;
+    // NOTE: Change to ENUM
+    /**
+     * Verification mode (0–4)
+     * 0: FP or Card or Pwd
+     * 1: Card + FP
+     * 2: Pwd + FP
+     * 3: Card + FP + Pwd
+     * 4: Card + Pwd
+     */
+    private int verificationMode;
 
-    private String oldAdminPassword;
+    // Number of fingerprints per user (1–10, default 3)
+    private int userFpNum;
 
-    private String newAdminPassword;
+    // Reverify time (0–255 minutes)
+    private int reverifyTime;
+
+    // Log hint threshold (when remaining logs < loghint, device warns)
+    private int logHint;
+
+    // NOTE: revisar
+    // Push enabled (custom, not from protocol)
+    private boolean pushEnabled;
 
     @ManyToOne
     @JoinColumn(name = "company_id", nullable = false)

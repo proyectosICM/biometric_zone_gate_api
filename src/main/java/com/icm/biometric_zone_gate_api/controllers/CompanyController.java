@@ -13,7 +13,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@RequestMapping("/companies")
+@RequestMapping("/api/companies")
 @RequiredArgsConstructor
 public class CompanyController {
 
@@ -24,7 +24,7 @@ public class CompanyController {
         return ResponseEntity.ok(companyService.getAllCompanies());
     }
 
-    @GetMapping
+    @GetMapping("/page")
     public ResponseEntity<Page<CompanyModel>> getAllCompanies(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,

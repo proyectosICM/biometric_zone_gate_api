@@ -20,6 +20,10 @@ public class UserService {
         return userRepository.findAll();
     }
 
+    public Page<UserModel> getAllUsers(Pageable pageable) {
+        return userRepository.findAll(pageable);
+    }
+
     public Optional<UserModel> getUserById(Long id) {
         return userRepository.findById(id);
     }
@@ -32,6 +36,9 @@ public class UserService {
         return userRepository.findById(id).map(user -> {
             user.setName(updatedUser.getName());
             user.setEmail(updatedUser.getEmail());
+            user.setUsername(updatedUser.getUsername());
+            user.setAdminLevel(updatedUser.getAdminLevel());
+            user.setEnabled(updatedUser.getEnabled());
             return userRepository.save(user);
         });
     }

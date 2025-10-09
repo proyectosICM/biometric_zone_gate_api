@@ -26,7 +26,7 @@ public class UserModel {
     // ID assigned by the biometric device
     @Column(unique = true)
     private Integer enrollId;
-
+    
     private String name;
 
     @Column(unique = true)

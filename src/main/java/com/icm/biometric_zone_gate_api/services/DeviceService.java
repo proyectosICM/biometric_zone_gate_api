@@ -6,6 +6,8 @@ import com.icm.biometric_zone_gate_api.models.UserModel;
 import com.icm.biometric_zone_gate_api.repositories.DeviceRepository;
 import com.icm.biometric_zone_gate_api.websocket.DeviceWebSocketClient;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -26,6 +28,10 @@ public class DeviceService {
         return deviceRepository.findAll();
     }
 
+    public Page<DeviceModel> getAllDevices(Pageable pageable) {
+        return deviceRepository.findAll(pageable);
+    }
+
     public Optional<DeviceModel> getDeviceById(Long id) {
         return deviceRepository.findById(id);
     }
@@ -42,11 +48,7 @@ public class DeviceService {
             device.setPushEnabled(updatedDevice.isPushEnabled());
             device.setLanguage(updatedDevice.getLanguage());
             device.setVolume(updatedDevice.getVolume());
-            device.setAntiPassback(updatedDevice.isAntiPassback());
-            device.setSleepTimeMinutes(updatedDevice.getSleepTimeMinutes());
             device.setVerificationMode(updatedDevice.getVerificationMode());
-            device.setOldAdminPassword(updatedDevice.getOldAdminPassword());
-            device.setNewAdminPassword(updatedDevice.getNewAdminPassword());
             return deviceRepository.save(device);
         });
     }
@@ -57,6 +59,14 @@ public class DeviceService {
             return true;
         }
         return false;
+    }
+
+    public List<DeviceModel> listByCompany(Long companyId) {
+        return deviceRepository.findByCompanyId(companyId);
+    }
+
+    public Page<DeviceModel> listByCompanyPaginated(Long companyId, Pageable pageable) {
+        return deviceRepository.findByCompanyId(companyId, pageable);
     }
 
     public void syncUsersFromDevice(Long deviceId) {

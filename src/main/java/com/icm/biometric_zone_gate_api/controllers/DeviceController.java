@@ -4,6 +4,10 @@ import com.icm.biometric_zone_gate_api.models.DeviceModel;
 import com.icm.biometric_zone_gate_api.models.UserModel;
 import com.icm.biometric_zone_gate_api.services.DeviceService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -11,7 +15,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@RequestMapping("/devices")
+@RequestMapping("/api/devices")
 @RequiredArgsConstructor
 public class DeviceController {
 
@@ -25,6 +29,29 @@ public class DeviceController {
     @GetMapping
     public ResponseEntity<List<DeviceModel>> getAllDevices() {
         return ResponseEntity.ok(deviceService.getAllDevices());
+    }
+
+    @GetMapping("/page")
+    public ResponseEntity<Page<DeviceModel>> getAllDevices(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(required = false) String sortBy,
+            @RequestParam(defaultValue = "asc") String direction
+    ) {
+        Pageable pageable;
+        if (sortBy != null && !sortBy.isEmpty()) {
+            pageable = PageRequest.of(
+                    page,
+                    size,
+                    direction.equalsIgnoreCase("desc")
+                            ? Sort.by(sortBy).descending()
+                            : Sort.by(sortBy).ascending()
+            );
+        } else {
+            pageable = PageRequest.of(page, size);
+        }
+
+        return ResponseEntity.ok(deviceService.getAllDevices(pageable));
     }
 
     @GetMapping("/{id}")
@@ -81,5 +108,35 @@ public class DeviceController {
     public ResponseEntity<String> clearAll(@PathVariable Long id) {
         deviceService.clearAllDeviceUsers(id);
         return ResponseEntity.ok("All users cleared from device.");
+    }
+
+    @GetMapping("/company/{companyId}")
+    public ResponseEntity<List<DeviceModel>> listByCompany(@PathVariable Long companyId) {
+        return ResponseEntity.ok(deviceService.listByCompany(companyId));
+    }
+
+    @GetMapping("/company/{companyId}/page")
+    public ResponseEntity<Page<DeviceModel>> listByCompanyPaginated(
+            @PathVariable Long companyId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(required = false) String sortBy,
+            @RequestParam(defaultValue = "asc") String direction
+    ) {
+        Pageable pageable;
+
+        if (sortBy != null && !sortBy.isEmpty()) {
+            pageable = PageRequest.of(
+                    page,
+                    size,
+                    direction.equalsIgnoreCase("desc")
+                            ? Sort.by(sortBy).descending()
+                            : Sort.by(sortBy).ascending()
+            );
+        } else {
+            pageable = PageRequest.of(page, size);
+        }
+
+        return ResponseEntity.ok(deviceService.listByCompanyPaginated(companyId, pageable));
     }
 }
