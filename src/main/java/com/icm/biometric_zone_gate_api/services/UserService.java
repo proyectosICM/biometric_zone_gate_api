@@ -39,6 +39,7 @@ public class UserService {
             user.setUsername(updatedUser.getUsername());
             user.setAdminLevel(updatedUser.getAdminLevel());
             user.setEnabled(updatedUser.getEnabled());
+            user.setCompany(updatedUser.getCompany());
             return userRepository.save(user);
         });
     }

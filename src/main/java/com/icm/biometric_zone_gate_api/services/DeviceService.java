@@ -49,6 +49,7 @@ public class DeviceService {
             device.setLanguage(updatedDevice.getLanguage());
             device.setVolume(updatedDevice.getVolume());
             device.setVerificationMode(updatedDevice.getVerificationMode());
+            device.setCompany(updatedDevice.getCompany());
             return deviceRepository.save(device);
         });
     }
