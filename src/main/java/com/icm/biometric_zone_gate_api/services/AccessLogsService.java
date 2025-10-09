@@ -4,6 +4,8 @@ import com.icm.biometric_zone_gate_api.enums.AccessType;
 import com.icm.biometric_zone_gate_api.models.AccessLogsModel;
 import com.icm.biometric_zone_gate_api.repositories.AccessLogsRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -15,42 +17,22 @@ public class AccessLogsService {
 
     private final AccessLogsRepository accessLogsRepository;
 
-    // Crear log de acceso
-    public AccessLogsModel createLog(AccessLogsModel log) {
-        return accessLogsRepository.save(log);
-    }
-
-    // Listar todos los logs
     public List<AccessLogsModel> getAllLogs() {
         return accessLogsRepository.findAll();
     }
 
-    // Buscar log por ID
+    public Page<AccessLogsModel> getAllLogs(Pageable pageable) {
+        return accessLogsRepository.findAll(pageable);
+    }
+
     public Optional<AccessLogsModel> getLogById(Long id) {
         return accessLogsRepository.findById(id);
     }
 
-    // Buscar logs por usuario
-    public List<AccessLogsModel> getLogsByUser(Long userId) {
-        return accessLogsRepository.findByUserId(userId);
+    public AccessLogsModel createLog(AccessLogsModel log) {
+        return accessLogsRepository.save(log);
     }
 
-    // Buscar logs por dispositivo
-    public List<AccessLogsModel> getLogsByDevice(Long deviceId) {
-        return accessLogsRepository.findByDeviceId(deviceId);
-    }
-
-    // Buscar logs por empresa
-    public List<AccessLogsModel> getLogsByCompany(Long companyId) {
-        return accessLogsRepository.findByCompanyId(companyId);
-    }
-
-    // Buscar logs por tipo de acción
-    public List<AccessLogsModel> getLogsByAction(AccessType action) {
-        return accessLogsRepository.findByAction(action);
-    }
-
-    // Eliminar log
     public boolean deleteLog(Long id) {
         if (accessLogsRepository.existsById(id)) {
             accessLogsRepository.deleteById(id);
@@ -58,4 +40,37 @@ public class AccessLogsService {
         }
         return false;
     }
+
+    public List<AccessLogsModel> getLogsByUser(Long userId) {
+        return accessLogsRepository.findByUserId(userId);
+    }
+
+    public Page<AccessLogsModel> getLogsByUser(Long userId, Pageable pageable) {
+        return accessLogsRepository.findByUserId(userId, pageable);
+    }
+
+    public List<AccessLogsModel> getLogsByDevice(Long deviceId) {
+        return accessLogsRepository.findByDeviceId(deviceId);
+    }
+
+    public Page<AccessLogsModel> getLogsByDevice(Long deviceId, Pageable pageable) {
+        return accessLogsRepository.findByDeviceId(deviceId, pageable);
+    }
+
+    public List<AccessLogsModel> getLogsByCompany(Long companyId) {
+        return accessLogsRepository.findByCompanyId(companyId);
+    }
+
+    public Page<AccessLogsModel> getLogsByCompany(Long companyId, Pageable pageable) {
+        return accessLogsRepository.findByCompanyId(companyId, pageable);
+    }
+
+    public List<AccessLogsModel> getLogsByAction(AccessType action) {
+        return accessLogsRepository.findByAction(action);
+    }
+
+    public Page<AccessLogsModel> getLogsByAction(AccessType action, Pageable pageable) {
+        return accessLogsRepository.findByAction(action, pageable);
+    }
+
 }

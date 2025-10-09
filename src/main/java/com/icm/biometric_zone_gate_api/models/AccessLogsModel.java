@@ -20,6 +20,25 @@ public class AccessLogsModel {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Column(nullable = false)
+    private ZonedDateTime entryTime;
+
+    @Column
+    private ZonedDateTime exitTime;
+
+    @Column
+    private Long durationSeconds;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "event_type_id", nullable = false)
+    private EventTypeModel eventType;
+
+    @Column(nullable = false)
+    private Boolean correctEpp;
+
+    @Column(nullable = false)
+    private Boolean success;
+
     @ManyToOne
     @JoinColumn(name = "user_id", nullable = false)
     private UserModel user;

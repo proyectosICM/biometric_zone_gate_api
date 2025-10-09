@@ -12,6 +12,7 @@ import lombok.NoArgsConstructor;
 @Table(name = "user_credentials")
 public class UserCredentialModel {
     @Id
+    @Column(unique = true, nullable = false)
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
