@@ -8,6 +8,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
+import java.time.*;
 import java.util.List;
 import java.util.Optional;
 
@@ -31,6 +32,13 @@ public class AccessLogsService {
 
     public AccessLogsModel createLog(AccessLogsModel log) {
         return accessLogsRepository.save(log);
+    }
+
+    public Optional<AccessLogsModel> updateObservation(Long id, String observation) {
+        return accessLogsRepository.findById(id).map(log -> {
+            log.setObservation(observation);
+            return accessLogsRepository.save(log);
+        });
     }
 
     public boolean deleteLog(Long id) {
@@ -71,6 +79,12 @@ public class AccessLogsService {
 
     public Page<AccessLogsModel> getLogsByAction(AccessType action, Pageable pageable) {
         return accessLogsRepository.findByAction(action, pageable);
+    }
+
+    public long countLogsByDeviceAndDay(Long deviceId, LocalDate date) {
+        ZonedDateTime startOfDay = date.atStartOfDay(ZoneId.systemDefault());
+        ZonedDateTime endOfDay = date.atTime(LocalTime.MAX).atZone(ZoneId.systemDefault());
+        return accessLogsRepository.countByDeviceAndDay(deviceId, startOfDay, endOfDay);
     }
 
 }

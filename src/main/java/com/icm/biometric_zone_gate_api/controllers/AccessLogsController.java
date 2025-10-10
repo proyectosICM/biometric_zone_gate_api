@@ -8,10 +8,13 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDate;
 import java.util.List;
+import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/access-logs")
@@ -51,6 +54,17 @@ public class AccessLogsController {
     @PostMapping
     public ResponseEntity<AccessLogsModel> createLog(@RequestBody AccessLogsModel log) {
         return ResponseEntity.ok(accessLogsService.createLog(log));
+    }
+
+    @PutMapping("/{id}/observation")
+    public ResponseEntity<AccessLogsModel> updateObservation(
+            @PathVariable Long id,
+            @RequestParam String observation) {
+
+        Optional<AccessLogsModel> updatedLog = accessLogsService.updateObservation(id, observation);
+        return updatedLog
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
     }
 
     @DeleteMapping("/{id}")
@@ -146,5 +160,14 @@ public class AccessLogsController {
                 : PageRequest.of(page, size);
 
         return ResponseEntity.ok(accessLogsService.getLogsByAction(action, pageable));
+    }
+
+    @GetMapping("/device/{deviceId}/count")
+    public ResponseEntity<Long> countLogsByDeviceAndDay(
+            @PathVariable Long deviceId,
+            @RequestParam("date") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
+
+        long count = accessLogsService.countLogsByDeviceAndDay(deviceId, date);
+        return ResponseEntity.ok(count);
     }
 }

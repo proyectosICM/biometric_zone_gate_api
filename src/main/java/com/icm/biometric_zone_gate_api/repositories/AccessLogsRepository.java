@@ -5,8 +5,12 @@ import com.icm.biometric_zone_gate_api.models.AccessLogsModel;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.time.LocalDateTime;
+import java.time.ZonedDateTime;
 import java.util.List;
 
 @Repository
@@ -27,4 +31,11 @@ public interface AccessLogsRepository extends JpaRepository<AccessLogsModel, Lon
     List<AccessLogsModel> findByAction(AccessType action);
 
     Page<AccessLogsModel> findByAction(AccessType action, Pageable pageable);
+
+    @Query("SELECT COUNT(a) FROM AccessLogsModel a WHERE a.device.id = :deviceId AND a.entryTime BETWEEN :startOfDay AND :endOfDay")
+    long countByDeviceAndDay(
+            @Param("deviceId") Long deviceId,
+            @Param("startOfDay") ZonedDateTime startOfDay,
+            @Param("endOfDay") ZonedDateTime endOfDay
+    );
 }
