@@ -170,4 +170,9 @@ public class AccessLogsController {
         long count = accessLogsService.countLogsByDeviceAndDay(deviceId, date);
         return ResponseEntity.ok(count);
     }
+
+    @GetMapping("/device/{deviceId}/latest")
+    public List<AccessLogsModel> getLatestLogsTodayByDevice(@PathVariable Long deviceId) {
+        return accessLogsService.getLatest4LogsByDeviceToday(deviceId);
+    }
 }

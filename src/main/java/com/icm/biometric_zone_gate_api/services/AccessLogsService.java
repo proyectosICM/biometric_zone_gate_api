@@ -5,7 +5,9 @@ import com.icm.biometric_zone_gate_api.models.AccessLogsModel;
 import com.icm.biometric_zone_gate_api.repositories.AccessLogsRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
 import java.time.*;
@@ -87,4 +89,16 @@ public class AccessLogsService {
         return accessLogsRepository.countByDeviceAndDay(deviceId, startOfDay, endOfDay);
     }
 
+
+    public List<AccessLogsModel> getLatest4LogsByDeviceToday(Long deviceId) {
+        ZonedDateTime now = ZonedDateTime.now(ZoneId.systemDefault());
+        ZonedDateTime startOfDay = now.toLocalDate().atStartOfDay(ZoneId.systemDefault());
+        ZonedDateTime endOfDay = now.toLocalDate().atTime(LocalTime.MAX).atZone(ZoneId.systemDefault());
+
+        PageRequest top4 = PageRequest.of(0, 4, Sort.by(Sort.Direction.DESC, "entryTime"));
+
+        return accessLogsRepository
+                .findByDeviceIdAndEntryTimeBetween(deviceId, startOfDay, endOfDay, top4)
+                .getContent();
+    }
 }

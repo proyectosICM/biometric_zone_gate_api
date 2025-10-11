@@ -38,4 +38,11 @@ public interface AccessLogsRepository extends JpaRepository<AccessLogsModel, Lon
             @Param("startOfDay") ZonedDateTime startOfDay,
             @Param("endOfDay") ZonedDateTime endOfDay
     );
+
+    Page<AccessLogsModel> findByDeviceIdAndEntryTimeBetween(
+            Long deviceId,
+            ZonedDateTime startOfDay,
+            ZonedDateTime endOfDay,
+            Pageable pageable
+    );
 }
