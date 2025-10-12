@@ -1,7 +1,7 @@
 package com.icm.biometric_zone_gate_api.controllers;
 
 import com.icm.biometric_zone_gate_api.dto.DeviceUserAccessDTO;
-import com.icm.biometric_zone_gate_api.mapper.DeviceUserAccessMapper;
+import com.icm.biometric_zone_gate_api.mappers.DeviceUserAccessMapper;
 import com.icm.biometric_zone_gate_api.models.DeviceUserAccessModel;
 import com.icm.biometric_zone_gate_api.services.DeviceUserAccessService;
 import lombok.RequiredArgsConstructor;
