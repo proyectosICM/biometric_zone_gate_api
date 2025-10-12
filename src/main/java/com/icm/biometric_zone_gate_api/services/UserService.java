@@ -67,6 +67,10 @@ public class UserService {
         return false;
     }
 
+    public Optional<UserModel> findByUsername(String username) {
+        return userRepository.findByUsername(username);
+    }
+
     public Optional<UserModel> getUserByEmail(String email) {
         return userRepository.findByEmail(email);
     }
