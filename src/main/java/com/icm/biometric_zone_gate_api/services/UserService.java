@@ -45,6 +45,10 @@ public class UserService {
             user.setEnabled(updatedUser.getEnabled());
             user.setCompany(updatedUser.getCompany());
 
+            if (updatedUser.getRole() != null) {
+                user.setRole(updatedUser.getRole());
+            }
+
             if (updatedUser.getUsername() != null && !updatedUser.getUsername().isEmpty()) {
                 user.setUsername(updatedUser.getUsername());
             }
