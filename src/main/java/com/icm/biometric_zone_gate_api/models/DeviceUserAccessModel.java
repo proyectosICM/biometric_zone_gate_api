@@ -1,5 +1,6 @@
 package com.icm.biometric_zone_gate_api.models;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -22,11 +23,13 @@ public class DeviceUserAccessModel {
     // Usuario registrado en el dispositivo
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
+    @JsonIgnoreProperties({"devicesAccess", "credentials"})
     private UserModel user;
 
     // Dispositivo donde está registrado
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "device_id", nullable = false)
+    @JsonIgnoreProperties({"devicesAccess", "credentials"})
     private DeviceModel device;
 
     // weekzone del protocolo (zona horaria semanal)
