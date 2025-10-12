@@ -86,7 +86,23 @@ public class DeviceUserAccessController {
 
     @GetMapping("/user/{userId}/paged")
     public ResponseEntity<Page<DeviceUserAccessModel>> getByUserIdPaged(
-            @PathVariable Long userId, Pageable pageable) {
+            @PathVariable Long userId, @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(required = false) String sortBy,
+            @RequestParam(defaultValue = "asc") String direction) {
+        Pageable pageable;
+        if (sortBy != null && !sortBy.isEmpty()) {
+            pageable = PageRequest.of(
+                    page,
+                    size,
+                    direction.equalsIgnoreCase("desc")
+                            ? Sort.by(sortBy).descending()
+                            : Sort.by(sortBy).ascending()
+            );
+        } else {
+            pageable = PageRequest.of(page, size);
+        }
+
         return ResponseEntity.ok(deviceUserAccessService.findByUserId(userId, pageable));
     }
 
@@ -97,7 +113,23 @@ public class DeviceUserAccessController {
 
     @GetMapping("/device/{deviceId}/paged")
     public ResponseEntity<Page<DeviceUserAccessModel>> getByDeviceIdPaged(
-            @PathVariable Long deviceId, Pageable pageable) {
+            @PathVariable Long deviceId, @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(required = false) String sortBy,
+            @RequestParam(defaultValue = "asc") String direction) {
+        Pageable pageable;
+        if (sortBy != null && !sortBy.isEmpty()) {
+            pageable = PageRequest.of(
+                    page,
+                    size,
+                    direction.equalsIgnoreCase("desc")
+                            ? Sort.by(sortBy).descending()
+                            : Sort.by(sortBy).ascending()
+            );
+        } else {
+            pageable = PageRequest.of(page, size);
+        }
+
         return ResponseEntity.ok(deviceUserAccessService.findByDeviceId(deviceId, pageable));
     }
 
@@ -114,7 +146,23 @@ public class DeviceUserAccessController {
 
     @GetMapping("/group/{groupNumber}/paged")
     public ResponseEntity<Page<DeviceUserAccessModel>> getByGroupNumberPaged(
-            @PathVariable Integer groupNumber, Pageable pageable) {
+            @PathVariable Integer groupNumber, @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(required = false) String sortBy,
+            @RequestParam(defaultValue = "asc") String direction) {
+        Pageable pageable;
+        if (sortBy != null && !sortBy.isEmpty()) {
+            pageable = PageRequest.of(
+                    page,
+                    size,
+                    direction.equalsIgnoreCase("desc")
+                            ? Sort.by(sortBy).descending()
+                            : Sort.by(sortBy).ascending()
+            );
+        } else {
+            pageable = PageRequest.of(page, size);
+        }
+
         return ResponseEntity.ok(deviceUserAccessService.findByGroupNumber(groupNumber, pageable));
     }
 
@@ -124,7 +172,23 @@ public class DeviceUserAccessController {
     }
 
     @GetMapping("/enabled/paged")
-    public ResponseEntity<Page<DeviceUserAccessModel>> getEnabledPaged(Pageable pageable) {
+    public ResponseEntity<Page<DeviceUserAccessModel>> getEnabledPaged(@RequestParam(defaultValue = "0") int page,
+                                                                       @RequestParam(defaultValue = "10") int size,
+                                                                       @RequestParam(required = false) String sortBy,
+                                                                       @RequestParam(defaultValue = "asc") String direction) {
+        Pageable pageable;
+        if (sortBy != null && !sortBy.isEmpty()) {
+            pageable = PageRequest.of(
+                    page,
+                    size,
+                    direction.equalsIgnoreCase("desc")
+                            ? Sort.by(sortBy).descending()
+                            : Sort.by(sortBy).ascending()
+            );
+        } else {
+            pageable = PageRequest.of(page, size);
+        }
+
         return ResponseEntity.ok(deviceUserAccessService.findByEnabledTrue(pageable));
     }
 
