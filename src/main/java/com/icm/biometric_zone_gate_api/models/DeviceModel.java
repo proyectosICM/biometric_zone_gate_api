@@ -1,5 +1,6 @@
 package com.icm.biometric_zone_gate_api.models;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -8,6 +9,7 @@ import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.ZonedDateTime;
+import java.util.ArrayList;
 import java.util.List;
 
 @Data
@@ -69,6 +71,10 @@ public class DeviceModel {
     @ManyToOne
     @JoinColumn(name = "company_id", nullable = false)
     private CompanyModel company;
+
+    @JsonIgnore
+    @OneToMany(mappedBy = "device", cascade = CascadeType.ALL)
+    private List<DeviceUserAccessModel> deviceUsers = new ArrayList<>();
 
     @Column(nullable = false, updatable = false)
     @CreationTimestamp
