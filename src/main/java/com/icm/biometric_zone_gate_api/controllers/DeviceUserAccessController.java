@@ -1,5 +1,7 @@
 package com.icm.biometric_zone_gate_api.controllers;
 
+import com.icm.biometric_zone_gate_api.dto.DeviceUserAccessDTO;
+import com.icm.biometric_zone_gate_api.mapper.DeviceUserAccessMapper;
 import com.icm.biometric_zone_gate_api.models.DeviceUserAccessModel;
 import com.icm.biometric_zone_gate_api.services.DeviceUserAccessService;
 import lombok.RequiredArgsConstructor;
@@ -23,48 +25,45 @@ public class DeviceUserAccessController {
     // CRUD BÁSICO
     // =========================
     @GetMapping("/{id}")
-    public ResponseEntity<DeviceUserAccessModel> getById(@PathVariable Long id) {
+    public ResponseEntity<DeviceUserAccessDTO> getById(@PathVariable Long id) {
         return deviceUserAccessService.findById(id)
+                .map(DeviceUserAccessMapper::toDTO)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
     }
 
     @GetMapping
-    public ResponseEntity<List<DeviceUserAccessModel>> getAll() {
+    public ResponseEntity<List<DeviceUserAccessDTO>> getAll() {
         return ResponseEntity.ok(deviceUserAccessService.findAll());
     }
 
     @GetMapping("/paged")
-    public ResponseEntity<Page<DeviceUserAccessModel>> getAllPaged(@RequestParam(defaultValue = "0") int page,
-                                                                   @RequestParam(defaultValue = "10") int size,
-                                                                   @RequestParam(required = false) String sortBy,
-                                                                   @RequestParam(defaultValue = "asc") String direction) {
-        Pageable pageable;
-        if (sortBy != null && !sortBy.isEmpty()) {
-            pageable = PageRequest.of(
-                    page,
-                    size,
-                    direction.equalsIgnoreCase("desc")
-                            ? Sort.by(sortBy).descending()
-                            : Sort.by(sortBy).ascending()
-            );
-        } else {
-            pageable = PageRequest.of(page, size);
-        }
+    public ResponseEntity<Page<DeviceUserAccessDTO>> getAllPaged(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(required = false) String sortBy,
+            @RequestParam(defaultValue = "asc") String direction) {
+
+        Pageable pageable = (sortBy != null && !sortBy.isEmpty()) ?
+                PageRequest.of(page, size, direction.equalsIgnoreCase("desc") ? Sort.by(sortBy).descending() : Sort.by(sortBy).ascending()) :
+                PageRequest.of(page, size);
 
         return ResponseEntity.ok(deviceUserAccessService.findAll(pageable));
     }
 
     @PostMapping
-    public ResponseEntity<DeviceUserAccessModel> create(@RequestBody DeviceUserAccessModel access) {
-        return ResponseEntity.ok(deviceUserAccessService.save(access));
+    public ResponseEntity<DeviceUserAccessDTO> create(@RequestBody DeviceUserAccessDTO dto) {
+        DeviceUserAccessModel entity = DeviceUserAccessMapper.toEntity(dto);
+        DeviceUserAccessModel saved = deviceUserAccessService.save(entity);
+        return ResponseEntity.ok(DeviceUserAccessMapper.toDTO(saved));
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<DeviceUserAccessModel> update(
-            @PathVariable Long id,
-            @RequestBody DeviceUserAccessModel updatedAccess) {
-        return deviceUserAccessService.update(id, updatedAccess)
+    public ResponseEntity<DeviceUserAccessDTO> update(@PathVariable Long id,
+                                                      @RequestBody DeviceUserAccessDTO dto) {
+        DeviceUserAccessModel updatedEntity = DeviceUserAccessMapper.toEntity(dto);
+        return deviceUserAccessService.update(id, updatedEntity)
+                .map(DeviceUserAccessMapper::toDTO)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
     }
@@ -78,131 +77,104 @@ public class DeviceUserAccessController {
     // =========================
     // FILTROS PERSONALIZADOS
     // =========================
-
     @GetMapping("/user/{userId}")
-    public ResponseEntity<List<DeviceUserAccessModel>> getByUserId(@PathVariable Long userId) {
+    public ResponseEntity<List<DeviceUserAccessDTO>> getByUserId(@PathVariable Long userId) {
         return ResponseEntity.ok(deviceUserAccessService.findByUserId(userId));
     }
 
     @GetMapping("/user/{userId}/paged")
-    public ResponseEntity<Page<DeviceUserAccessModel>> getByUserIdPaged(
-            @PathVariable Long userId, @RequestParam(defaultValue = "0") int page,
+    public ResponseEntity<Page<DeviceUserAccessDTO>> getByUserIdPaged(
+            @PathVariable Long userId,
+            @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
             @RequestParam(required = false) String sortBy,
             @RequestParam(defaultValue = "asc") String direction) {
-        Pageable pageable;
-        if (sortBy != null && !sortBy.isEmpty()) {
-            pageable = PageRequest.of(
-                    page,
-                    size,
-                    direction.equalsIgnoreCase("desc")
-                            ? Sort.by(sortBy).descending()
-                            : Sort.by(sortBy).ascending()
-            );
-        } else {
-            pageable = PageRequest.of(page, size);
-        }
+
+        Pageable pageable = (sortBy != null && !sortBy.isEmpty()) ?
+                PageRequest.of(page, size, direction.equalsIgnoreCase("desc") ? Sort.by(sortBy).descending() : Sort.by(sortBy).ascending()) :
+                PageRequest.of(page, size);
 
         return ResponseEntity.ok(deviceUserAccessService.findByUserId(userId, pageable));
     }
 
     @GetMapping("/device/{deviceId}")
-    public ResponseEntity<List<DeviceUserAccessModel>> getByDeviceId(@PathVariable Long deviceId) {
+    public ResponseEntity<List<DeviceUserAccessDTO>> getByDeviceId(@PathVariable Long deviceId) {
         return ResponseEntity.ok(deviceUserAccessService.findByDeviceId(deviceId));
     }
 
     @GetMapping("/device/{deviceId}/paged")
-    public ResponseEntity<Page<DeviceUserAccessModel>> getByDeviceIdPaged(
-            @PathVariable Long deviceId, @RequestParam(defaultValue = "0") int page,
+    public ResponseEntity<Page<DeviceUserAccessDTO>> getByDeviceIdPaged(
+            @PathVariable Long deviceId,
+            @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
             @RequestParam(required = false) String sortBy,
             @RequestParam(defaultValue = "asc") String direction) {
-        Pageable pageable;
-        if (sortBy != null && !sortBy.isEmpty()) {
-            pageable = PageRequest.of(
-                    page,
-                    size,
-                    direction.equalsIgnoreCase("desc")
-                            ? Sort.by(sortBy).descending()
-                            : Sort.by(sortBy).ascending()
-            );
-        } else {
-            pageable = PageRequest.of(page, size);
-        }
+
+        Pageable pageable = (sortBy != null && !sortBy.isEmpty()) ?
+                PageRequest.of(page, size, direction.equalsIgnoreCase("desc") ? Sort.by(sortBy).descending() : Sort.by(sortBy).ascending()) :
+                PageRequest.of(page, size);
 
         return ResponseEntity.ok(deviceUserAccessService.findByDeviceId(deviceId, pageable));
     }
 
     @GetMapping("/device/{deviceId}/enabled")
-    public ResponseEntity<Page<DeviceUserAccessModel>> getByDeviceIdAndEnabledTrue(
+    public ResponseEntity<Page<DeviceUserAccessDTO>> getByDeviceIdAndEnabledTrue(
             @PathVariable Long deviceId, Pageable pageable) {
         return ResponseEntity.ok(deviceUserAccessService.findByDeviceIdAndEnabledTrue(deviceId, pageable));
     }
 
     @GetMapping("/group/{groupNumber}")
-    public ResponseEntity<List<DeviceUserAccessModel>> getByGroupNumber(@PathVariable Integer groupNumber) {
+    public ResponseEntity<List<DeviceUserAccessDTO>> getByGroupNumber(@PathVariable Integer groupNumber) {
         return ResponseEntity.ok(deviceUserAccessService.findByGroupNumber(groupNumber));
     }
 
     @GetMapping("/group/{groupNumber}/paged")
-    public ResponseEntity<Page<DeviceUserAccessModel>> getByGroupNumberPaged(
-            @PathVariable Integer groupNumber, @RequestParam(defaultValue = "0") int page,
+    public ResponseEntity<Page<DeviceUserAccessDTO>> getByGroupNumberPaged(
+            @PathVariable Integer groupNumber,
+            @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
             @RequestParam(required = false) String sortBy,
             @RequestParam(defaultValue = "asc") String direction) {
-        Pageable pageable;
-        if (sortBy != null && !sortBy.isEmpty()) {
-            pageable = PageRequest.of(
-                    page,
-                    size,
-                    direction.equalsIgnoreCase("desc")
-                            ? Sort.by(sortBy).descending()
-                            : Sort.by(sortBy).ascending()
-            );
-        } else {
-            pageable = PageRequest.of(page, size);
-        }
+
+        Pageable pageable = (sortBy != null && !sortBy.isEmpty()) ?
+                PageRequest.of(page, size, direction.equalsIgnoreCase("desc") ? Sort.by(sortBy).descending() : Sort.by(sortBy).ascending()) :
+                PageRequest.of(page, size);
 
         return ResponseEntity.ok(deviceUserAccessService.findByGroupNumber(groupNumber, pageable));
     }
 
     @GetMapping("/enabled")
-    public ResponseEntity<List<DeviceUserAccessModel>> getEnabled() {
+    public ResponseEntity<List<DeviceUserAccessDTO>> getEnabled() {
         return ResponseEntity.ok(deviceUserAccessService.findByEnabledTrue());
     }
 
     @GetMapping("/enabled/paged")
-    public ResponseEntity<Page<DeviceUserAccessModel>> getEnabledPaged(@RequestParam(defaultValue = "0") int page,
-                                                                       @RequestParam(defaultValue = "10") int size,
-                                                                       @RequestParam(required = false) String sortBy,
-                                                                       @RequestParam(defaultValue = "asc") String direction) {
-        Pageable pageable;
-        if (sortBy != null && !sortBy.isEmpty()) {
-            pageable = PageRequest.of(
-                    page,
-                    size,
-                    direction.equalsIgnoreCase("desc")
-                            ? Sort.by(sortBy).descending()
-                            : Sort.by(sortBy).ascending()
-            );
-        } else {
-            pageable = PageRequest.of(page, size);
-        }
+    public ResponseEntity<Page<DeviceUserAccessDTO>> getEnabledPaged(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(required = false) String sortBy,
+            @RequestParam(defaultValue = "asc") String direction) {
+
+        Pageable pageable = (sortBy != null && !sortBy.isEmpty()) ?
+                PageRequest.of(page, size, direction.equalsIgnoreCase("desc") ? Sort.by(sortBy).descending() : Sort.by(sortBy).ascending()) :
+                PageRequest.of(page, size);
 
         return ResponseEntity.ok(deviceUserAccessService.findByEnabledTrue(pageable));
     }
 
     @GetMapping("/user/{userId}/device/{deviceId}")
-    public ResponseEntity<DeviceUserAccessModel> getByUserAndDevice(
-            @PathVariable Long userId, @PathVariable Long deviceId) {
+    public ResponseEntity<DeviceUserAccessDTO> getByUserAndDevice(
+            @PathVariable Long userId,
+            @PathVariable Long deviceId) {
         return deviceUserAccessService.findByUserIdAndDeviceId(userId, deviceId)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
     }
 
     @GetMapping("/user/{userId}/device/{deviceId}/enabled")
-    public ResponseEntity<DeviceUserAccessModel> getByUserAndDeviceEnabled(
-            @PathVariable Long userId, @PathVariable Long deviceId) {
+    public ResponseEntity<DeviceUserAccessDTO> getByUserAndDeviceEnabled(
+            @PathVariable Long userId,
+            @PathVariable Long deviceId) {
         return deviceUserAccessService.findByUserIdAndDeviceIdAndEnabledTrue(userId, deviceId)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());

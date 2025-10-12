@@ -1,14 +1,18 @@
 package com.icm.biometric_zone_gate_api.services;
 
+import com.icm.biometric_zone_gate_api.dto.DeviceUserAccessDTO;
 import com.icm.biometric_zone_gate_api.models.DeviceUserAccessModel;
 import com.icm.biometric_zone_gate_api.repositories.DeviceUserAccessRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import com.icm.biometric_zone_gate_api.mapper.DeviceUserAccessMapper
 
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -19,14 +23,25 @@ public class DeviceUserAccessService {
         return deviceUserAccessRepository.findById(id);
     }
 
-    public List<DeviceUserAccessModel> findAll() {
-        return deviceUserAccessRepository.findAll();
+    public List<DeviceUserAccessDTO> findAll() {
+        List<DeviceUserAccessModel> entities = deviceUserAccessRepository.findAll();
+        return entities.stream()
+                .map(DeviceUserAccessMapper::toDTO)
+                .collect(Collectors.toList());
     }
 
-    public Page<DeviceUserAccessModel> findAll(Pageable pageable) {
-        return deviceUserAccessRepository.findAll(pageable);
-    }
+    public Page<DeviceUserAccessDTO> findAll(Pageable pageable) {
+        Page<DeviceUserAccessModel> entities = deviceUserAccessRepository.findAll(pageable);
 
+        // Mapear de Entity a DTO
+        return new PageImpl<>(
+                entities.stream()
+                        .map(DeviceUserAccessMapper::toDTO)
+                        .collect(Collectors.toList()),
+                pageable,
+                entities.getTotalElements()
+        );
+    }
     public DeviceUserAccessModel save(DeviceUserAccessModel access) {
         return deviceUserAccessRepository.save(access);
     }
@@ -52,47 +67,67 @@ public class DeviceUserAccessService {
         return false;
     }
 
-    public Optional<DeviceUserAccessModel> findByUserIdAndDeviceId(Long userId, Long deviceId) {
-        return deviceUserAccessRepository.findByUserIdAndDeviceId(userId, deviceId);
+    public Optional<DeviceUserAccessDTO> findByUserIdAndDeviceId(Long userId, Long deviceId) {
+        return deviceUserAccessRepository.findByUserIdAndDeviceId(userId, deviceId)
+                .map(DeviceUserAccessMapper::toDTO);
     }
 
-    public Optional<DeviceUserAccessModel> findByUserIdAndDeviceIdAndEnabledTrue(Long userId, Long deviceId) {
-        return deviceUserAccessRepository.findByUserIdAndDeviceIdAndEnabledTrue(userId, deviceId);
+    public Optional<DeviceUserAccessDTO> findByUserIdAndDeviceIdAndEnabledTrue(Long userId, Long deviceId) {
+        return deviceUserAccessRepository.findByUserIdAndDeviceIdAndEnabledTrue(userId, deviceId)
+                .map(DeviceUserAccessMapper::toDTO);
     }
 
-    public List<DeviceUserAccessModel> findByUserId(Long userId) {
-        return deviceUserAccessRepository.findByUserId(userId);
+
+    public List<DeviceUserAccessDTO> findByUserId(Long userId) {
+        List<DeviceUserAccessModel> entities = deviceUserAccessRepository.findByUserId(userId);
+        return entities.stream()
+                .map(DeviceUserAccessMapper::toDTO)
+                .collect(Collectors.toList());
     }
 
-    public Page<DeviceUserAccessModel> findByUserId(Long userId, Pageable pageable) {
-        return deviceUserAccessRepository.findByUserId(userId, pageable);
+    public Page<DeviceUserAccessDTO> findByUserId(Long userId, Pageable pageable) {
+        Page<DeviceUserAccessModel> page = deviceUserAccessRepository.findByUserId(userId, pageable);
+        return page.map(DeviceUserAccessMapper::toDTO);
     }
 
-    public List<DeviceUserAccessModel> findByDeviceId(Long deviceId) {
-        return deviceUserAccessRepository.findByDeviceId(deviceId);
+    public List<DeviceUserAccessDTO> findByDeviceId(Long deviceId) {
+        List<DeviceUserAccessModel> entities = deviceUserAccessRepository.findByDeviceId(deviceId);
+        return entities.stream()
+                .map(DeviceUserAccessMapper::toDTO)
+                .collect(Collectors.toList());
     }
 
-    public Page<DeviceUserAccessModel> findByDeviceId(Long deviceId, Pageable pageable) {
-        return deviceUserAccessRepository.findByDeviceId(deviceId, pageable);
+    public Page<DeviceUserAccessDTO> findByDeviceId(Long deviceId, Pageable pageable) {
+        Page<DeviceUserAccessModel> page = deviceUserAccessRepository.findByDeviceId(deviceId, pageable);
+        return page.map(DeviceUserAccessMapper::toDTO);
     }
 
-    public Page<DeviceUserAccessModel> findByDeviceIdAndEnabledTrue(Long deviceId, Pageable pageable) {
-        return deviceUserAccessRepository.findByDeviceIdAndEnabledTrue(deviceId, pageable);
+    public Page<DeviceUserAccessDTO> findByDeviceIdAndEnabledTrue(Long deviceId, Pageable pageable) {
+        Page<DeviceUserAccessModel> page = deviceUserAccessRepository.findByDeviceIdAndEnabledTrue(deviceId, pageable);
+        return page.map(DeviceUserAccessMapper::toDTO);
     }
 
-    public List<DeviceUserAccessModel> findByGroupNumber(Integer groupNumber) {
-        return deviceUserAccessRepository.findByGroupNumber(groupNumber);
+    public List<DeviceUserAccessDTO> findByGroupNumber(Integer groupNumber) {
+        List<DeviceUserAccessModel> entities = deviceUserAccessRepository.findByGroupNumber(groupNumber);
+        return entities.stream()
+                .map(DeviceUserAccessMapper::toDTO)
+                .collect(Collectors.toList());
     }
 
-    public Page<DeviceUserAccessModel> findByGroupNumber(Integer groupNumber, Pageable pageable) {
-        return deviceUserAccessRepository.findByGroupNumber(groupNumber, pageable);
+    public Page<DeviceUserAccessDTO> findByGroupNumber(Integer groupNumber, Pageable pageable) {
+        Page<DeviceUserAccessModel> page = deviceUserAccessRepository.findByGroupNumber(groupNumber, pageable);
+        return page.map(DeviceUserAccessMapper::toDTO);
     }
 
-    public List<DeviceUserAccessModel> findByEnabledTrue() {
-        return deviceUserAccessRepository.findByEnabledTrue();
+    public List<DeviceUserAccessDTO> findByEnabledTrue() {
+        List<DeviceUserAccessModel> entities = deviceUserAccessRepository.findByEnabledTrue();
+        return entities.stream()
+                .map(DeviceUserAccessMapper::toDTO)
+                .collect(Collectors.toList());
     }
 
-    public Page<DeviceUserAccessModel> findByEnabledTrue(Pageable pageable) {
-        return deviceUserAccessRepository.findByEnabledTrue(pageable);
+    public Page<DeviceUserAccessDTO> findByEnabledTrue(Pageable pageable) {
+        Page<DeviceUserAccessModel> page = deviceUserAccessRepository.findByEnabledTrue(pageable);
+        return page.map(DeviceUserAccessMapper::toDTO);
     }
 }
