@@ -24,13 +24,11 @@ public class DeviceUserAccessModel {
     // Usuario registrado en el dispositivo
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
-    @JsonBackReference
     private UserModel user;
 
     // Dispositivo donde está registrado
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "device_id", nullable = false)
-    @JsonBackReference
     private DeviceModel device;
 
     // weekzone del protocolo (zona horaria semanal)
