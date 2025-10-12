@@ -1,4 +1,4 @@
-package com.icm.biometric_zone_gate_api.mapper;
+package com.icm.biometric_zone_gate_api.mappers;
 
 import com.icm.biometric_zone_gate_api.dto.DeviceUserAccessDTO;
 import com.icm.biometric_zone_gate_api.models.DeviceUserAccessModel;
