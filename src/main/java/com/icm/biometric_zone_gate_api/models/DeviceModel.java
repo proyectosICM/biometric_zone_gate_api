@@ -1,6 +1,7 @@
 package com.icm.biometric_zone_gate_api.models;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -74,6 +75,7 @@ public class DeviceModel {
 
     @JsonIgnore
     @OneToMany(mappedBy = "device", cascade = CascadeType.ALL)
+    @JsonManagedReference
     private List<DeviceUserAccessModel> deviceUsers = new ArrayList<>();
 
     @Column(nullable = false, updatable = false)
