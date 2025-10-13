@@ -89,9 +89,29 @@ public class DeviceMessageHandler extends TextWebSocketHandler {
 
             // Extraer información del devinfo
             JsonNode devinfo = json.path("devinfo");
+
+            // Validar devinfo completo
+            if (!validateDevInfo(devinfo)) {
+                System.err.println("Registro inválido: devinfo incompleto o incorrecto");
+                session.sendMessage(new TextMessage("{\"ret\":\"reg\", \"result\":false, \"reason\":1}"));
+                return;
+            }
+
             String model = devinfo.path("modelname").asText("");
             String firmware = devinfo.path("firmware").asText("");
             int usersize = devinfo.path("usersize").asInt(0);
+            int fpsize = devinfo.path("fpsize").asInt(0);
+            int cardsize = devinfo.path("cardsize").asInt(0);
+            int pwdsize = devinfo.path("pwdsize").asInt(0);
+            int logsize = devinfo.path("logsize").asInt(0);
+            int useduser = devinfo.path("useduser").asInt(0);
+            int usedfp = devinfo.path("usedfp").asInt(0);
+            int usedcard = devinfo.path("usedcard").asInt(0);
+            int usedpwd = devinfo.path("usedpwd").asInt(0);
+            int usedlog = devinfo.path("usedlog").asInt(0);
+            int usednewlog = devinfo.path("usednewlog").asInt(0);
+            String fpalgo = devinfo.path("fpalgo").asText("");
+            String time = devinfo.path("time").asText("");
 
             System.out.println("Registro recibido:");
             System.out.println("   SN: " + sn);
@@ -129,5 +149,29 @@ public class DeviceMessageHandler extends TextWebSocketHandler {
                 session.sendMessage(new TextMessage("{\"ret\":\"reg\", \"result\":false, \"reason\":1}"));
             } catch (Exception ignored) {}
         }
+    }
+
+    private boolean validateDevInfo(JsonNode devinfo) {
+        if (devinfo == null) return false;
+
+        String[] requiredStringFields = {"modelname", "fpalgo", "firmware", "time"};
+        String[] requiredIntFields = {"usersize", "fpsize", "cardsize", "pwdsize", "logsize",
+                "useduser", "usedfp", "usedcard", "usedpwd", "usedlog", "usednewlog"};
+
+        for (String field : requiredStringFields) {
+            if (devinfo.path(field).asText(null) == null || devinfo.path(field).asText().isEmpty()) {
+                System.err.println("Campo crítico faltante o vacío: " + field);
+                return false;
+            }
+        }
+
+        for (String field : requiredIntFields) {
+            if (!devinfo.has(field) || !devinfo.get(field).canConvertToInt()) {
+                System.err.println("Campo crítico faltante o inválido: " + field);
+                return false;
+            }
+        }
+
+        return true;
     }
 }
