@@ -5,6 +5,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.icm.biometric_zone_gate_api.enums.DeviceStatus;
 import com.icm.biometric_zone_gate_api.models.DeviceModel;
 import com.icm.biometric_zone_gate_api.services.DeviceService;
+import com.icm.biometric_zone_gate_api.websocket.handlers.RegisterHandler;
+import com.icm.biometric_zone_gate_api.websocket.utils.DeviceValidator;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 import org.springframework.web.socket.TextMessage;
@@ -22,6 +24,8 @@ public class DeviceMessageHandler extends TextWebSocketHandler {
     private final ObjectMapper objectMapper = new ObjectMapper();
     private final DeviceService deviceService;
 
+    private final RegisterHandler registerHandler;
+
     public void handle(String message, WebSocketSession session) {
         try {
             System.out.println("Mensaje recibido del dispositivo " + session.getId() + ": " + message);
@@ -31,7 +35,7 @@ public class DeviceMessageHandler extends TextWebSocketHandler {
 
             switch (cmd) {
 
-                case "reg" -> handleRegister(json, session);
+                case "reg" -> registerHandler.handleRegister(json, session);
 
                 case "sendlog" -> handleSendLog(json, session);
 
@@ -88,7 +92,7 @@ public class DeviceMessageHandler extends TextWebSocketHandler {
             JsonNode devinfo = json.path("devinfo");
 
             // Validar devinfo completo
-            if (!validateDevInfo(devinfo)) {
+            if (!DeviceValidator.validateDevInfo(devinfo)) {
                 System.err.println("Registro inválido: devinfo incompleto o incorrecto");
                 session.sendMessage(new TextMessage("{\"ret\":\"reg\", \"result\":false, \"reason\":1}"));
                 return;
@@ -148,29 +152,6 @@ public class DeviceMessageHandler extends TextWebSocketHandler {
         }
     }
 
-    private boolean validateDevInfo(JsonNode devinfo) {
-        if (devinfo == null) return false;
-
-        String[] requiredStringFields = {"modelname", "fpalgo", "firmware", "time"};
-        String[] requiredIntFields = {"usersize", "fpsize", "cardsize", "pwdsize", "logsize",
-                "useduser", "usedfp", "usedcard", "usedpwd", "usedlog", "usednewlog"};
-
-        for (String field : requiredStringFields) {
-            if (devinfo.path(field).asText(null) == null || devinfo.path(field).asText().isEmpty()) {
-                System.err.println("Campo crítico faltante o vacío: " + field);
-                return false;
-            }
-        }
-
-        for (String field : requiredIntFields) {
-            if (!devinfo.has(field) || !devinfo.get(field).canConvertToInt()) {
-                System.err.println("Campo crítico faltante o inválido: " + field);
-                return false;
-            }
-        }
-
-        return true;
-    }
 
     private void handleSendLog(JsonNode json, WebSocketSession session) {
         try {
