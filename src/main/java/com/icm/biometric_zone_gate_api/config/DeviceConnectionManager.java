@@ -50,7 +50,7 @@ public class DeviceConnectionManager {
             client.connect(host);
 
             activeConnections.put(device.getId(), client);
-            System.out.println("Correctly connected to " + device.getName());
+            //System.out.println("Correctly connected to " + device.getName());
 
         } catch (Exception e) {
             //System.err.println("Error connecting to " + host + ": " + e.getMessage());

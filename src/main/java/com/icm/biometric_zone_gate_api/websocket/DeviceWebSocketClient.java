@@ -41,9 +41,9 @@ public class DeviceWebSocketClient {
         try {
             WebSocketContainer container = ContainerProvider.getWebSocketContainer();
             session = container.connectToServer(this, new URI("ws://" + host + ":7788"));
-            System.out.println("Connected to the device in: " + host);
+            //System.out.println("Connected to the device in: " + host);
         } catch (Exception e) {
-            System.err.println("Failed to connect to device, retrying in 5s...");
+            //System.err.println("Failed to connect to device, retrying in 5s...");
             scheduleReconnect();
         }
     }
