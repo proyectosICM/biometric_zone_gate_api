@@ -1,11 +1,9 @@
 package com.icm.biometric_zone_gate_api.services;
 
-import com.icm.biometric_zone_gate_api.config.DeviceConnectionManager;
 import com.icm.biometric_zone_gate_api.enums.DeviceStatus;
 import com.icm.biometric_zone_gate_api.models.DeviceModel;
 import com.icm.biometric_zone_gate_api.models.UserModel;
 import com.icm.biometric_zone_gate_api.repositories.DeviceRepository;
-import com.icm.biometric_zone_gate_api.websocket.DeviceWebSocketClient;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
