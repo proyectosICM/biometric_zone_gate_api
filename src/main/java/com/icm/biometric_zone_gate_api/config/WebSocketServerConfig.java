@@ -1,17 +1,25 @@
 package com.icm.biometric_zone_gate_api.config;
 
-import jakarta.websocket.server.ServerEndpoint;
-import org.springframework.context.annotation.Bean;
+import com.icm.biometric_zone_gate_api.websocket.DeviceMessageHandler;
+import com.icm.biometric_zone_gate_api.websocket.DeviceWebSocketHandler;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.Profile;
-import org.springframework.web.socket.server.standard.ServerEndpointExporter;
+import org.springframework.web.socket.config.annotation.EnableWebSocket;
+import org.springframework.web.socket.config.annotation.WebSocketConfigurer;
+import org.springframework.web.socket.config.annotation.WebSocketHandlerRegistry;
 
 @Configuration
-@Profile("!test")
-public class WebSocketServerConfig {
+@EnableWebSocket
+public class WebSocketServerConfig implements WebSocketConfigurer {
 
-    @Bean
-    public ServerEndpointExporter serverEndpointExporter() {
-        return new ServerEndpointExporter();
+    private final DeviceMessageHandler deviceMessageHandler;
+
+    public WebSocketServerConfig(DeviceMessageHandler deviceMessageHandler) {
+        this.deviceMessageHandler = deviceMessageHandler;
+    }
+
+    @Override
+    public void registerWebSocketHandlers(WebSocketHandlerRegistry registry) {
+        registry.addHandler(new DeviceWebSocketHandler(deviceMessageHandler), "/ws")
+                .setAllowedOrigins("*");
     }
 }
