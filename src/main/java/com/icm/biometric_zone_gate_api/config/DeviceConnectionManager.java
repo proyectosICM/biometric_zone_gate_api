@@ -53,7 +53,7 @@ public class DeviceConnectionManager {
             System.out.println("Correctly connected to " + device.getName());
 
         } catch (Exception e) {
-            System.err.println("Error connecting to " + host + ": " + e.getMessage());
+            //System.err.println("Error connecting to " + host + ": " + e.getMessage());
         }
     }
 
