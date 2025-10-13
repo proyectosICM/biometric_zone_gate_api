@@ -1,20 +1,30 @@
 package com.icm.biometric_zone_gate_api.websocket.handlers;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.icm.biometric_zone_gate_api.enums.AccessType;
+import com.icm.biometric_zone_gate_api.models.AccessLogsModel;
+import com.icm.biometric_zone_gate_api.models.DeviceModel;
+import com.icm.biometric_zone_gate_api.models.UserModel;
+import com.icm.biometric_zone_gate_api.services.AccessLogsService;
 import com.icm.biometric_zone_gate_api.services.DeviceService;
+import com.icm.biometric_zone_gate_api.services.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 import org.springframework.web.socket.TextMessage;
 import org.springframework.web.socket.WebSocketSession;
 
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.Optional;
 
 @Component
 @RequiredArgsConstructor
 public class SendLogHandler {
 
     private final DeviceService deviceService;
+    private final UserService userService;
+    private final AccessLogsService accessLogsService;
 
     public void handleSendLog(JsonNode json, WebSocketSession session) {
         try {
@@ -37,6 +47,35 @@ public class SendLogHandler {
 
                 System.out.printf("Log: enrollid=%d, time=%s, mode=%d, inout=%d, event=%d%n",
                         enrollId, time, mode, inout, event);
+
+                if (enrollId != 0) {
+                    UserModel user = userService.getUserById(enrollId).orElse(null);
+                    if (user == null) continue;
+
+                    DeviceModel device = deviceService.getDeviceBySn(sn).orElse(null);
+                    if (device == null) continue;
+
+                    if (inout == 0) { // Entrada
+                        AccessLogsModel log = new AccessLogsModel();
+                        log.setEntryTime(logTime);
+                        log.setUser(user);
+                        log.setDevice(device);
+                        log.setCompany(company);
+                        log.setAction(AccessType.IN);
+                        log.setSuccess(true);
+                        log.setCorrectEpp(false);
+                        log.setEventType(eventTypeService.getDefaultEventType()); // ejemplo
+                        accessLogsService.createLog(log);
+                    }  else { // Salida
+                        Optional<AccessLogsModel> openLog = accessLogsService.getOpenLogForUserDevice(user, device);
+                        if (openLog.isPresent()) {
+                            AccessLogsModel log = openLog.get();
+                            log.setExitTime(logTime);
+                            log.setDurationSeconds(Duration.between(log.getEntryTime().toInstant(), logTime.toInstant()).getSeconds());
+                            log.setAction(AccessType.EXIT);
+                            accessLogsService.createLog(log); // update
+                        }
+                }
             }
 
             // Server time
