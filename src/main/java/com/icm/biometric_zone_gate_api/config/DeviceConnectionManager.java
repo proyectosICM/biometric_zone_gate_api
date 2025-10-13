@@ -26,7 +26,7 @@ public class DeviceConnectionManager {
         List<DeviceModel> devices = deviceRepository.findAll();
 
         if (devices.isEmpty()) {
-            System.out.println("There are no devices registered in the database.");
+            //System.out.println("There are no devices registered in the database.");
             return;
         }
 
@@ -38,12 +38,12 @@ public class DeviceConnectionManager {
     public void connectDevice(DeviceModel device) {
         String host = device.getHost();
         if (host == null || host.isEmpty()) {
-            System.out.println("The device " + device.getSn() + " does not have an IP address configured, so it is omitted.");
+            //System.out.println("The device " + device.getSn() + " does not have an IP address configured, so it is omitted.");
             return;
         }
 
         try {
-            System.out.println("Connecting the device " + device.getName() + " (" + host + ")...");
+            //System.out.println("Connecting the device " + device.getName() + " (" + host + ")...");
 
             // Spring creates a new correctly injected instance
             DeviceWebSocketClient client = clientProvider.getObject();
@@ -61,14 +61,14 @@ public class DeviceConnectionManager {
         DeviceWebSocketClient client = activeConnections.remove(deviceId);
         if (client != null) {
             client.disconnect();
-            System.out.println("Device " + deviceId + " offline.");
+            //System.out.println("Device " + deviceId + " offline.");
         }
     }
 
     public void disconnectAll() {
         activeConnections.values().forEach(DeviceWebSocketClient::disconnect);
         activeConnections.clear();
-        System.out.println("All devices have been disconnected.");
+        //System.out.println("All devices have been disconnected.");
     }
 
     public DeviceWebSocketClient getClient(Long deviceId) {
