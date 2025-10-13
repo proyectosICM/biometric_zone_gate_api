@@ -119,7 +119,7 @@ public class DeviceWebSocketClient {
         new Thread(() -> {
             try {
                 Thread.sleep(5000);
-                System.out.println("Retrying connection with " + host + "...");
+                //System.out.println("Retrying connection with " + host + "...");
                 connect(host);
             } catch (InterruptedException ignored) {}
         }).start();
