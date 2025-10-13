@@ -19,6 +19,8 @@ public class WebSocketServerConfig implements WebSocketConfigurer {
 
     @Override
     public void registerWebSocketHandlers(WebSocketHandlerRegistry registry) {
+        registry.addHandler(new DeviceWebSocketHandler(deviceMessageHandler), "/")
+                .setAllowedOrigins("*");
         registry.addHandler(new DeviceWebSocketHandler(deviceMessageHandler), "/ws")
                 .setAllowedOrigins("*");
     }
