@@ -2,6 +2,7 @@ package com.icm.biometric_zone_gate_api.models;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
+import com.icm.biometric_zone_gate_api.enums.DeviceStatus;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -68,6 +69,10 @@ public class DeviceModel {
     // NOTE: revisar
     // Push enabled (custom, not from protocol)
     private boolean pushEnabled;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private DeviceStatus status = DeviceStatus.DISCONNECTED;
 
     @ManyToOne
     @JoinColumn(name = "company_id", nullable = false)

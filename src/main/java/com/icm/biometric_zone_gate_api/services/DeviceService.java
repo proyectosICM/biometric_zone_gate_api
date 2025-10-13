@@ -1,6 +1,7 @@
 package com.icm.biometric_zone_gate_api.services;
 
 import com.icm.biometric_zone_gate_api.config.DeviceConnectionManager;
+import com.icm.biometric_zone_gate_api.enums.DeviceStatus;
 import com.icm.biometric_zone_gate_api.models.DeviceModel;
 import com.icm.biometric_zone_gate_api.models.UserModel;
 import com.icm.biometric_zone_gate_api.repositories.DeviceRepository;
@@ -60,6 +61,17 @@ public class DeviceService {
             return true;
         }
         return false;
+    }
+
+    public Optional<DeviceModel> getDeviceBySn(String sn) {
+        return deviceRepository.findBySn(sn);
+    }
+
+    public DeviceModel updateDeviceStatus(Long deviceId, DeviceStatus newStatus) {
+        return deviceRepository.findById(deviceId).map(device -> {
+            device.setStatus(newStatus);
+            return deviceRepository.save(device);
+        }).orElseThrow(() -> new RuntimeException("Device not found with id: " + deviceId));
     }
 
     public List<DeviceModel> listByCompany(Long companyId) {
