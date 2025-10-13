@@ -82,6 +82,7 @@ public class DeviceController {
                 : ResponseEntity.notFound().build();
     }
 
+    /*
     @GetMapping("/{id}/sync-users")
     public ResponseEntity<String> syncUsers(@PathVariable Long id) {
         try {
@@ -109,7 +110,7 @@ public class DeviceController {
         deviceService.clearAllDeviceUsers(id);
         return ResponseEntity.ok("All users cleared from device.");
     }
-
+*/
     @GetMapping("/company/{companyId}")
     public ResponseEntity<List<DeviceModel>> listByCompany(@PathVariable Long companyId) {
         return ResponseEntity.ok(deviceService.listByCompany(companyId));
