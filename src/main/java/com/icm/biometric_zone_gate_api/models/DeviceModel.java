@@ -10,6 +10,7 @@ import lombok.NoArgsConstructor;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
+import java.time.LocalDateTime;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -25,55 +26,59 @@ public class DeviceModel {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    private String sn; // serial number
+    private String sn;
 
+    private String modelname;
+
+    // User capacity 1000/3000/5000
+    private Integer usersize;
+
+    // Fingerprint capacity 1000/3000/5000
+    private Integer fpsize;
+
+    // Rfid card capacity 1000/3000/5000/10000
+    private Integer cardsize;
+
+    // Password capacity
+    private Integer pwdsize;
+
+    // Logs capacity
+    private Integer logsize;
+
+    private Integer useduser;
+
+    private Integer usedfp;
+
+    private Integer usedcard;
+
+    private Integer usedpwd;
+
+    private Integer usedlog;
+
+    private Integer usednewlog;
+
+    // Fingerprint algorithm thbio1.0 or thbio3.0
+    private String fpalgo;
+
+    // Terminal firmware
+    private String firmware;
+
+    // Terminal datetime
+    private LocalDateTime time;
+
+    /***********************/
+    /*  WEB SYSTEM  */
+    /***********************/
+
+    // Device name in the web system
     private String name;
 
-    private String host; // ip or host
-
-    private String port; // port conection
-
-    // NOTE: Change to Enum
-    // Language code (0=English, 9=Spanish, etc.)
-    private int language;
-
-    // Volume level (0–10)
-    private int volume;
-
-    // Anti-passback mode (0=disabled, 1=host inside, 2=host outside)
-    private int antiPassback;
-
-    // Sleep enabled (true=sleep mode active)
-    private boolean sleepEnabled;
-
-    // NOTE: Change to ENUM
-    /**
-     * Verification mode (0–4)
-     * 0: FP or Card or Pwd
-     * 1: Card + FP
-     * 2: Pwd + FP
-     * 3: Card + FP + Pwd
-     * 4: Card + Pwd
-     */
-    private int verificationMode;
-
-    // Number of fingerprints per user (1–10, default 3)
-    private int userFpNum;
-
-    // Reverify time (0–255 minutes)
-    private int reverifyTime;
-
-    // Log hint threshold (when remaining logs < loghint, device warns)
-    private int logHint;
-
-    // NOTE: revisar
-    // Push enabled (custom, not from protocol)
-    private boolean pushEnabled;
-
+    // Device status in the web system¡
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private DeviceStatus status = DeviceStatus.DISCONNECTED;
 
+    // Relations DB
     @ManyToOne
     @JoinColumn(name = "company_id", nullable = false)
     private CompanyModel company;
@@ -83,6 +88,7 @@ public class DeviceModel {
     @JsonManagedReference
     private List<DeviceUserAccessModel> deviceUsers = new ArrayList<>();
 
+    // Audit
     @Column(nullable = false, updatable = false)
     @CreationTimestamp
     private ZonedDateTime createdAt;

@@ -44,12 +44,7 @@ public class DeviceService {
     public Optional<DeviceModel> updateDevice(Long id, DeviceModel updatedDevice) {
         return deviceRepository.findById(id).map(device -> {
             device.setName(updatedDevice.getName());
-            device.setHost(updatedDevice.getHost());
-            device.setPort(updatedDevice.getPort());
-            device.setPushEnabled(updatedDevice.isPushEnabled());
-            device.setLanguage(updatedDevice.getLanguage());
-            device.setVolume(updatedDevice.getVolume());
-            device.setVerificationMode(updatedDevice.getVerificationMode());
+            device.setSn(updatedDevice.getSn());
             device.setCompany(updatedDevice.getCompany());
             return deviceRepository.save(device);
         });
