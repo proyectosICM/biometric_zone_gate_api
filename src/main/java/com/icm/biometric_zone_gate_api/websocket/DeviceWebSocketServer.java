@@ -10,7 +10,6 @@ import jakarta.websocket.Session;
 import jakarta.websocket.server.ServerEndpoint;
 
 @ServerEndpoint("/ws")
-@Component
 @RequiredArgsConstructor
 public class DeviceWebSocketServer {
 
