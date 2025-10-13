@@ -6,6 +6,9 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.socket.TextMessage;
 import org.springframework.web.socket.WebSocketSession;
 
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+
 @Component
 public class DeviceMessageHandler {
 
@@ -16,22 +19,22 @@ public class DeviceMessageHandler {
             System.out.println("📩 Mensaje recibido del dispositivo " + session.getId() + ": " + message);
 
             JsonNode json = objectMapper.readTree(message);
-            String cmd = json.has("cmd") ? json.get("cmd").asText() : "unknown";
+            String cmd = json.path("cmd").asText("unknown");
 
             switch (cmd) {
-                case "reg" -> {
-                    System.out.println("✅ Received register message from " + session.getId());
-                    // 🔹 Enviar respuesta al cliente Python
-                    session.sendMessage(new TextMessage("{\"status\": \"ok\", \"msg\": \"Device registered\"}"));
-                }
+
+                case "reg" -> handleRegister(json, session);
+
                 case "sendlog" -> {
                     System.out.println("📝 Received logs from " + session.getId());
                     session.sendMessage(new TextMessage("{\"status\": \"ok\", \"msg\": \"Logs received\"}"));
                 }
+
                 case "senduser" -> {
                     System.out.println("👤 Received user from " + session.getId());
                     session.sendMessage(new TextMessage("{\"status\": \"ok\", \"msg\": \"User received\"}"));
                 }
+
                 default -> {
                     System.out.println("⚠️ Unknown command: " + cmd);
                     session.sendMessage(new TextMessage("{\"status\": \"error\", \"msg\": \"Unknown command\"}"));
@@ -42,7 +45,46 @@ public class DeviceMessageHandler {
             System.err.println("❌ Error processing message from " + session.getId() + ": " + e.getMessage());
             e.printStackTrace();
             try {
-                session.sendMessage(new TextMessage("{\"status\": \"error\", \"msg\": \"Exception occurred\"}"));
+                session.sendMessage(new TextMessage("{\"ret\":\"reg\", \"result\":false, \"reason\":1}"));
+            } catch (Exception ignored) {}
+        }
+    }
+
+    private void handleRegister(JsonNode json, WebSocketSession session) {
+        try {
+            String sn = json.path("sn").asText(null);
+            if (sn == null || sn.isEmpty()) {
+                System.err.println("Registro inválido: falta SN");
+                session.sendMessage(new TextMessage("{\"ret\":\"reg\", \"result\":false, \"reason\":1}"));
+                return;
+            }
+
+            // Extraer información del devinfo
+            JsonNode devinfo = json.path("devinfo");
+            String model = devinfo.path("modelname").asText("");
+            String firmware = devinfo.path("firmware").asText("");
+            int usersize = devinfo.path("usersize").asInt(0);
+
+            System.out.println("✅ Registro recibido:");
+            System.out.println("   SN: " + sn);
+            System.out.println("   Modelo: " + model);
+            System.out.println("   Firmware: " + firmware);
+            System.out.println("   Capacidad usuarios: " + usersize);
+
+            // Aquí luego guardaremos en la BD
+
+            // Formatear hora actual del servidor
+            String cloudTime = LocalDateTime.now()
+                    .format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
+
+            // Enviar respuesta de éxito
+            String response = String.format("{\"ret\":\"reg\",\"result\":true,\"cloudtime\":\"%s\"}", cloudTime);
+            session.sendMessage(new TextMessage(response));
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            try {
+                session.sendMessage(new TextMessage("{\"ret\":\"reg\", \"result\":false, \"reason\":1}"));
             } catch (Exception ignored) {}
         }
     }
