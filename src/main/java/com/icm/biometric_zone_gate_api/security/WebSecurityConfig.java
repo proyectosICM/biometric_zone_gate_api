@@ -71,6 +71,7 @@ public class WebSecurityConfig {
                 .logout().disable()
                 .authorizeHttpRequests(auth -> {
                     auth.requestMatchers("/login").permitAll();
+                    auth.requestMatchers("/ws/**").permitAll();
                     auth.requestMatchers("/api/users/**").permitAll();
                     auth.requestMatchers("/api/companies/**").permitAll();
                     auth.requestMatchers("/api/branches/**").permitAll();
