@@ -5,6 +5,7 @@ import com.icm.biometric_zone_gate_api.enums.DeviceStatus;
 import com.icm.biometric_zone_gate_api.models.DeviceModel;
 import com.icm.biometric_zone_gate_api.services.DeviceService;
 import com.icm.biometric_zone_gate_api.websocket.utils.DeviceValidator;
+import lombok.RequiredArgsConstructor;
 import org.springframework.web.socket.TextMessage;
 import org.springframework.web.socket.WebSocketSession;
 
@@ -12,13 +13,10 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Optional;
 
+@RequiredArgsConstructor
 public class RegisterHandler {
 
     private final DeviceService deviceService;
-
-    public RegisterHandler(DeviceService deviceService) {
-        this.deviceService = deviceService;
-    }
 
     public void handleRegister(JsonNode json, WebSocketSession session) {
         try {
