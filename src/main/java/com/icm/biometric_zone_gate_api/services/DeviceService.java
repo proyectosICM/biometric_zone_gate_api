@@ -17,7 +17,6 @@ import java.util.Optional;
 public class DeviceService {
 
     private final DeviceRepository deviceRepository;
-    private final DeviceConnectionManager connectionManager;
 
     public DeviceModel createDevice(DeviceModel device) {
         return deviceRepository.save(device);
@@ -75,6 +74,7 @@ public class DeviceService {
         return deviceRepository.findByCompanyId(companyId, pageable);
     }
 
+    /*
     public void syncUsersFromDevice(Long deviceId) {
         DeviceWebSocketClient client = connectionManager.getClient(deviceId);
         if (client == null) {
@@ -101,4 +101,6 @@ public class DeviceService {
         if (client == null) throw new IllegalStateException("Device not connected.");
         client.clearAllUsers();
     }
+
+     */
 }
