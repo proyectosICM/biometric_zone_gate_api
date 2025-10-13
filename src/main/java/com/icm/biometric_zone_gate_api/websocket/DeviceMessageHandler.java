@@ -6,6 +6,7 @@ import com.icm.biometric_zone_gate_api.enums.DeviceStatus;
 import com.icm.biometric_zone_gate_api.models.DeviceModel;
 import com.icm.biometric_zone_gate_api.services.DeviceService;
 import com.icm.biometric_zone_gate_api.websocket.handlers.RegisterHandler;
+import com.icm.biometric_zone_gate_api.websocket.handlers.SendLogHandler;
 import com.icm.biometric_zone_gate_api.websocket.utils.DeviceValidator;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
@@ -25,6 +26,7 @@ public class DeviceMessageHandler extends TextWebSocketHandler {
     private final DeviceService deviceService;
 
     private final RegisterHandler registerHandler;
+    private final SendLogHandler sendLogHandler;
 
     public void handle(String message, WebSocketSession session) {
         try {
@@ -37,7 +39,7 @@ public class DeviceMessageHandler extends TextWebSocketHandler {
 
                 case "reg" -> registerHandler.handleRegister(json, session);
 
-                case "sendlog" -> handleSendLog(json, session);
+                case "sendlog" -> sendLogHandler.handleSendLog(json, session);
 
                 case "senduser" -> {
                     System.out.println("Received user from " + session.getId());
@@ -78,80 +80,6 @@ public class DeviceMessageHandler extends TextWebSocketHandler {
         System.out.println("Device connected: " + session.getId());
         // SN se asignará en handleRegister cuando llegue el mensaje
     }
-
-    private void handleRegister(JsonNode json, WebSocketSession session) {
-        try {
-            String sn = json.path("sn").asText(null);
-            if (sn == null || sn.isEmpty()) {
-                System.err.println("Registro inválido: falta SN");
-                session.sendMessage(new TextMessage("{\"ret\":\"reg\", \"result\":false, \"reason\":1}"));
-                return;
-            }
-
-            // Extraer información del devinfo
-            JsonNode devinfo = json.path("devinfo");
-
-            // Validar devinfo completo
-            if (!DeviceValidator.validateDevInfo(devinfo)) {
-                System.err.println("Registro inválido: devinfo incompleto o incorrecto");
-                session.sendMessage(new TextMessage("{\"ret\":\"reg\", \"result\":false, \"reason\":1}"));
-                return;
-            }
-
-            String model = devinfo.path("modelname").asText("");
-            String firmware = devinfo.path("firmware").asText("");
-            int usersize = devinfo.path("usersize").asInt(0);
-            int fpsize = devinfo.path("fpsize").asInt(0);
-            int cardsize = devinfo.path("cardsize").asInt(0);
-            int pwdsize = devinfo.path("pwdsize").asInt(0);
-            int logsize = devinfo.path("logsize").asInt(0);
-            int useduser = devinfo.path("useduser").asInt(0);
-            int usedfp = devinfo.path("usedfp").asInt(0);
-            int usedcard = devinfo.path("usedcard").asInt(0);
-            int usedpwd = devinfo.path("usedpwd").asInt(0);
-            int usedlog = devinfo.path("usedlog").asInt(0);
-            int usednewlog = devinfo.path("usednewlog").asInt(0);
-            String fpalgo = devinfo.path("fpalgo").asText("");
-            String time = devinfo.path("time").asText("");
-
-            System.out.println("Registro recibido:");
-            System.out.println("   SN: " + sn);
-            System.out.println("   Modelo: " + model);
-            System.out.println("   Firmware: " + firmware);
-            System.out.println("   Capacidad usuarios: " + usersize);
-
-            // Aquí luego guardaremos en la BD
-            Optional<DeviceModel> existingDeviceOpt = deviceService.getDeviceBySn(sn);
-            if (existingDeviceOpt.isPresent()) {
-                DeviceModel device = existingDeviceOpt.get();
-
-                // Cambiar estado a CONECTADO
-                deviceService.updateDeviceStatus(device.getId(), DeviceStatus.CONNECTED);
-
-                // Guardar el SN en los atributos de la sesión para poder marcarlo desconectado después
-                session.getAttributes().put("sn", sn);
-
-                System.out.println("Dispositivo existente marcado como CONECTADO: " + sn);
-            } else {
-                System.out.println("Dispositivo no encontrado en BD con SN " + sn + ". No se creará nuevo registro.");
-            }
-
-            // Formatear hora actual del servidor
-            String cloudTime = LocalDateTime.now()
-                    .format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
-
-            // Enviar respuesta de éxito
-            String response = String.format("{\"ret\":\"reg\",\"result\":true,\"cloudtime\":\"%s\"}", cloudTime);
-            session.sendMessage(new TextMessage(response));
-
-        } catch (Exception e) {
-            e.printStackTrace();
-            try {
-                session.sendMessage(new TextMessage("{\"ret\":\"reg\", \"result\":false, \"reason\":1}"));
-            } catch (Exception ignored) {}
-        }
-    }
-
 
     private void handleSendLog(JsonNode json, WebSocketSession session) {
         try {
