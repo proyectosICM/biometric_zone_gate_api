@@ -53,9 +53,8 @@ public class DeviceUserAccessController {
 
     @PostMapping
     public ResponseEntity<DeviceUserAccessDTO> create(@RequestBody DeviceUserAccessDTO dto) {
-        DeviceUserAccessModel entity = DeviceUserAccessMapper.toEntity(dto);
-        DeviceUserAccessModel saved = deviceUserAccessService.save(entity);
-        return ResponseEntity.ok(DeviceUserAccessMapper.toDTO(saved));
+        DeviceUserAccessDTO saved = deviceUserAccessService.save(dto);
+        return ResponseEntity.ok(saved);
     }
 
     @PutMapping("/{id}")

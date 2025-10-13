@@ -1,8 +1,12 @@
 package com.icm.biometric_zone_gate_api.services;
 
 import com.icm.biometric_zone_gate_api.dto.DeviceUserAccessDTO;
+import com.icm.biometric_zone_gate_api.models.DeviceModel;
 import com.icm.biometric_zone_gate_api.models.DeviceUserAccessModel;
+import com.icm.biometric_zone_gate_api.models.UserModel;
+import com.icm.biometric_zone_gate_api.repositories.DeviceRepository;
 import com.icm.biometric_zone_gate_api.repositories.DeviceUserAccessRepository;
+import com.icm.biometric_zone_gate_api.repositories.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
@@ -18,6 +22,9 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class DeviceUserAccessService {
     private final DeviceUserAccessRepository deviceUserAccessRepository;
+    private final DeviceRepository deviceRepository;
+    private final UserRepository userRepository;
+
 
     public Optional<DeviceUserAccessModel> findById(Long id) {
         return deviceUserAccessRepository.findById(id);
@@ -42,8 +49,33 @@ public class DeviceUserAccessService {
                 entities.getTotalElements()
         );
     }
-    public DeviceUserAccessModel save(DeviceUserAccessModel access) {
-        return deviceUserAccessRepository.save(access);
+
+    public DeviceUserAccessDTO save(DeviceUserAccessDTO dto) {
+        // Convertir DTO a entidad base
+        DeviceUserAccessModel entity = DeviceUserAccessMapper.toEntity(dto);
+
+        // Validar y asignar relaciones obligatorias
+        if (dto.getUserId() != null) {
+            UserModel user = userRepository.findById(dto.getUserId())
+                    .orElseThrow(() -> new RuntimeException("Usuario no encontrado con ID: " + dto.getUserId()));
+            entity.setUser(user);
+        } else {
+            throw new RuntimeException("El campo userId es obligatorio.");
+        }
+
+        if (dto.getDeviceId() != null) {
+            DeviceModel device = deviceRepository.findById(dto.getDeviceId())
+                    .orElseThrow(() -> new RuntimeException("Dispositivo no encontrado con ID: " + dto.getDeviceId()));
+            entity.setDevice(device);
+        } else {
+            throw new RuntimeException("El campo deviceId es obligatorio.");
+        }
+
+        // Guardar en base de datos
+        DeviceUserAccessModel saved = deviceUserAccessRepository.save(entity);
+
+        // Retornar DTO actualizado
+        return DeviceUserAccessMapper.toDTO(saved);
     }
 
     public Optional<DeviceUserAccessModel> update(Long id, DeviceUserAccessModel updatedAccess) {

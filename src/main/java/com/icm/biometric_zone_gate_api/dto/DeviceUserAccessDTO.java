@@ -16,9 +16,10 @@ public class DeviceUserAccessDTO {
     private ZonedDateTime startTime;
     private ZonedDateTime endTime;
     private Boolean enabled;
+    private Long userId;
     private String name;
     private String userName;
-    private String deviceId;
+    private Long deviceId;
     private String deviceName;
 
 }

@@ -18,13 +18,14 @@ public class DeviceUserAccessMapper {
         dto.setEnabled(entity.getEnabled());
 
         if (entity.getUser() != null) {
+            dto.setUserId(entity.getUser().getId());
             dto.setName(entity.getUser().getName());
             dto.setUserName(entity.getUser().getName());
         }
 
         if (entity.getDevice() != null) {
+            dto.setDeviceId(entity.getDevice().getId());
             dto.setDeviceName(entity.getDevice().getName());
-            dto.setDeviceId(entity.getDevice().getId() != null ? entity.getDevice().getId().toString() : null);
         }
 
         return dto;
