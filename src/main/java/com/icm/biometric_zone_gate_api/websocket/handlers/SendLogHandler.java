@@ -46,14 +46,14 @@ public class SendLogHandler {
             String sn = (String) session.getAttributes().get("sn");
             if (sn == null) {
                 System.err.println("No SN found for session " + session.getId());
-                session.sendMessage(new TextMessage("{\"ret\":\"sendlog\",\"result\":false,\"reason\":2}"));
+                session.sendMessage(new TextMessage("{\"ret\":\"sendlog\",\"result\":false,\"reason\":1}"));
                 return;
             }
 
             Optional<DeviceModel> optDevice = deviceService.getDeviceBySn(sn);
             if (optDevice.isEmpty()) {
                 System.err.println("Device not found for SN: " + sn);
-                session.sendMessage(new TextMessage("{\"ret\":\"sendlog\",\"result\":false,\"reason\":3}"));
+                session.sendMessage(new TextMessage("{\"ret\":\"sendlog\",\"result\":false,\"reason\":1}"));
                 return;
             }
 
