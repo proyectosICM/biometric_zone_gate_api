@@ -92,6 +92,7 @@ public class SendLogHandler {
                     log.setEntryTime(logTime);
                     log.setUser(user);
                     log.setDevice(device);
+                    log.setCompany(device.getCompany());
                     log.setAction(AccessType.ENTRY);
                     log.setSuccess(true);
                     accessLogsService.createLog(log);
