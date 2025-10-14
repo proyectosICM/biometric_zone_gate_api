@@ -76,7 +76,7 @@ public class DeviceMessageHandler extends TextWebSocketHandler {
         System.out.println("Device disconnected: " + session.getId());
         String sn = (String) session.getAttributes().get("sn");
         if (sn != null) {
-            deviceSessionManager.removeSession(sn); // <-- quitar sesión
+            deviceSessionManager.removeSession(sn, session); // <-- quitar sesión
             deviceService.getDeviceBySn(sn).ifPresent(device -> {
                 deviceService.updateDeviceStatus(device.getId(), DeviceStatus.DISCONNECTED);
                 System.out.println("Dispositivo marcado como DESCONECTADO: " + sn);
