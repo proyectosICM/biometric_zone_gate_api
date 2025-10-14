@@ -9,7 +9,7 @@ import java.util.List;
 import java.util.Optional;
 
 public interface UserCredentialRepository extends JpaRepository<UserCredentialModel, Long> {
-    Optional<UserCredentialModel> findByDeviceUser_IdAndBackupNum(Long deviceUserId, Integer backupNum);
+    Optional<UserCredentialModel> findByDeviceUserIdAndBackupNum(Long deviceUserId, Integer backupNum);
     List<UserCredentialModel> findByUserId(Long userId);
     Page<UserCredentialModel> findByUserId(Long userId, Pageable pageable);
 }
