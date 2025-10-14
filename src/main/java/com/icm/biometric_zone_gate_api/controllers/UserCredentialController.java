@@ -33,7 +33,7 @@ public class UserCredentialController {
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
     }
-
+/*
     @GetMapping("/user/{userId}")
     public ResponseEntity<List<UserCredentialModel>> getCredentialsByUserId(@PathVariable Long userId) {
         return ResponseEntity.ok(userCredentialService.getCredentialsByUserId(userId));
@@ -44,6 +44,7 @@ public class UserCredentialController {
             @PathVariable Long userId, Pageable pageable) {
         return ResponseEntity.ok(userCredentialService.getCredentialsByUserId(userId, pageable));
     }
+ */
 
     @PostMapping
     public ResponseEntity<UserCredentialModel> createCredential(@RequestBody UserCredentialModel credential) {
