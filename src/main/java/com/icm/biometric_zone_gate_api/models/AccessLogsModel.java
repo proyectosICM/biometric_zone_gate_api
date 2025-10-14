@@ -33,8 +33,7 @@
         @ManyToOne
         @JoinColumn(name = "event_type_id", nullable = false)
         private EventTypeModel eventType;
-    
-        @Column(nullable = false)
+
         private Boolean correctEpp;
     
         @Column(nullable = false)
