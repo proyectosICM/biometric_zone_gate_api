@@ -1,6 +1,8 @@
 package com.icm.biometric_zone_gate_api.websocket.handlers;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.icm.biometric_zone_gate_api.models.*;
+import com.icm.biometric_zone_gate_api.repositories.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 import org.springframework.web.socket.TextMessage;
@@ -9,116 +11,101 @@ import org.springframework.web.socket.WebSocketSession;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 
-/**
- * 📘 {@code SendUserHandler}
- *
- * <p>
- * Handler responsable de procesar los mensajes WebSocket con el comando <b>"senduser"</b>
- * enviados por los dispositivos biométricos al servidor.
- * </p>
- *
- * <p>
- * Cuando un dispositivo registra un nuevo usuario (huella, tarjeta o contraseña),
- * envía un mensaje JSON al servidor con la información del usuario.
- * Este handler:
- * <ul>
- *   <li>Valida los campos obligatorios del mensaje recibido.</li>
- *   <li>Identifica el tipo de registro (huella, password, RFID).</li>
- *   <li>Imprime los datos recibidos (o podría persistirlos en la base de datos).</li>
- *   <li>Responde al dispositivo confirmando la recepción exitosa o un error.</li>
- * </ul>
- * </p>
- *
- * <p>
- * Ejemplo de mensaje recibido desde el dispositivo:
- * </p>
- * <pre>
- * {
- *   "cmd": "senduser",
- *   "enrollid": 1,
- *   "name": "chingzou",
- *   "backupnum": 0,
- *   "admin": 0,
- *   "record": "aabbccddeeff..."
- * }
- * </pre>
- *
- * <p>
- * Ejemplo de respuesta de éxito:
- * </p>
- * <pre>
- * {
- *   "ret": "senduser",
- *   "result": true,
- *   "cloudtime": "2025-10-13 22:15:37"
- * }
- * </pre>
- *
- * <p>
- * Si faltan campos o los datos son inválidos, el servidor responde:
- * </p>
- * <pre>
- * {
- *   "ret": "senduser",
- *   "result": false,
- *   "reason": 1
- * }
- * </pre>
- *
- * @author Eduardo
- * @version 1.0
- * @since 2025-10-13
- */
 @Component
 @RequiredArgsConstructor
 public class SendUserHandler {
 
+    private final UserRepository userRepository;
+    private final DeviceUserRepository deviceUserRepository;
+    private final UserCredentialRepository userCredentialRepository;
+    private final DeviceRepository deviceRepository;
+
     public void handleSendUser(JsonNode json, WebSocketSession session) {
         try {
-            // Leer campos obligatorios
+            // Obtener SN desde la sesión
+            String sn = (String) session.getAttributes().get("sn");
+            if (sn == null || sn.isBlank()) {
+                System.err.println("No SN found in session attributes");
+                session.sendMessage(new TextMessage("{\"ret\":\"senduser\",\"result\":false,\"reason\":1}"));
+                return;
+            }
+
+            // Buscar dispositivo
+            DeviceModel device = deviceRepository.findBySn(sn)
+                    .orElseThrow(() -> new IllegalStateException("Device with SN " + sn + " not found"));
+            Long deviceId = device.getId();
+
+            // Leer campos del JSON
             int enrollId = json.path("enrollid").asInt(-1);
             String name = json.path("name").asText(null);
             int backupNum = json.path("backupnum").asInt(-1);
             int admin = json.path("admin").asInt(0);
-            JsonNode recordNode = json.path("record");
+            String record = json.path("record").asText(null);
 
-            // Validaciones básicas
-            if (enrollId <= 0 || name == null || backupNum < 0 || recordNode.isMissingNode()) {
+            // Validaciones
+            if (enrollId <= 0 || name == null || backupNum < 0 || record == null || record.isBlank()) {
                 System.err.println("Invalid user info: missing or invalid fields");
                 session.sendMessage(new TextMessage("{\"ret\":\"senduser\",\"result\":false,\"reason\":1}"));
                 return;
             }
 
-            // Determinar tipo de registro
-            String recordType;
-            if (backupNum >= 0 && backupNum <= 9) {
-                recordType = "fingerprint";
-            } else if (backupNum == 10) {
-                recordType = "password";
-            } else if (backupNum == 11) {
-                recordType = "rfid_card";
-            } else {
-                recordType = "unknown";
-            }
+            // Buscar o crear usuario
+            UserModel user = userRepository.findByName(name)
+                    .orElseGet(() -> {
+                        UserModel newUser = new UserModel();
+                        newUser.setName(name);
+                        newUser.setAdminLevel(admin);
+                        newUser.setEnabled(true);
+                        newUser.setRole(com.icm.biometric_zone_gate_api.enums.Role.USER);
+                        newUser.setCompany(device.getCompany()); // si aplica
+                        return userRepository.save(newUser);
+                    });
 
-            // Mostrar información del usuario recibido
+            // Buscar o crear DeviceUser
+            DeviceUserModel deviceUser = deviceUserRepository.findByDevice_IdAndEnrollId(deviceId, enrollId)
+                    .orElseGet(() -> {
+                        DeviceUserModel du = new DeviceUserModel();
+                        du.setDevice(device);
+                        du.setEnrollId(enrollId);
+                        du.setUser(user);
+                        du.setAdminLevel(admin);
+                        du.setSynced(true);
+                        return deviceUserRepository.save(du);
+                    });
+
+            // Guardar o actualizar credencial
+            UserCredentialModel credential = userCredentialRepository
+                    .findByDeviceUser_IdAndBackupNum(deviceUser.getId(), backupNum)
+                    .orElseGet(() -> {
+                        UserCredentialModel c = new UserCredentialModel();
+                        c.setDeviceUser(deviceUser);
+                        c.setBackupNum(backupNum);
+                        return c;
+                    });
+            credential.setRecord(record);
+            userCredentialRepository.save(credential);
+
+            // Determinar tipo de registro
+            String recordType = switch (backupNum) {
+                case 10 -> "password";
+                case 11 -> "rfid_card";
+                default -> (backupNum >= 0 && backupNum <= 9) ? "fingerprint" : "unknown";
+            };
+
+            // Logs
             System.out.println("Received user info from device:");
             System.out.println(" ├─ enrollid: " + enrollId);
             System.out.println(" ├─ name: " + name);
             System.out.println(" ├─ backupnum: " + backupNum + " (" + recordType + ")");
             System.out.println(" ├─ admin: " + admin);
-            System.out.println(" └─ record: " + recordNode.asText());
+            System.out.println(" └─ record: " + record);
 
-            // Aquí más adelante podrías guardar el usuario en base de datos
-            // vincularlo con el dispositivo según tu modelo de datos
-
-            // Preparar respuesta (éxito)
+            // Respuesta exitosa
             String cloudTime = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
             String response = String.format(
                     "{\"ret\":\"senduser\",\"result\":true,\"cloudtime\":\"%s\"}",
                     cloudTime
             );
-
             session.sendMessage(new TextMessage(response));
 
         } catch (Exception e) {

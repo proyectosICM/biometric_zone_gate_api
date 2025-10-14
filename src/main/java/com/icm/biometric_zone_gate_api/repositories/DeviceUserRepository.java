@@ -1,0 +1,10 @@
+package com.icm.biometric_zone_gate_api.repositories;
+
+import com.icm.biometric_zone_gate_api.models.DeviceUserModel;
+import org.springframework.data.jpa.repository.JpaRepository;
+
+import java.util.Optional;
+
+public interface DeviceUserRepository extends JpaRepository<DeviceUserModel, Long> {
+    Optional<DeviceUserModel> findByDevice_IdAndEnrollId(Long deviceId, Integer enrollId);
+}
