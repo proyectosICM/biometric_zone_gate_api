@@ -12,6 +12,7 @@ import org.springframework.stereotype.Repository;
 import java.time.LocalDateTime;
 import java.time.ZonedDateTime;
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public interface AccessLogsRepository extends JpaRepository<AccessLogsModel, Long> {
@@ -45,4 +46,14 @@ public interface AccessLogsRepository extends JpaRepository<AccessLogsModel, Lon
             ZonedDateTime endOfDay,
             Pageable pageable
     );
+
+    @Query("""
+    SELECT a FROM AccessLogsModel a
+    WHERE a.user.id = :userId 
+      AND a.device.id = :deviceId 
+      AND a.exitTime IS NULL
+    ORDER BY a.entryTime DESC
+    LIMIT 1
+""")
+    Optional<AccessLogsModel> findOpenLogByUserAndDevice(@Param("userId") Long userId, @Param("deviceId") Long deviceId);
 }

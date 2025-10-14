@@ -2,6 +2,8 @@ package com.icm.biometric_zone_gate_api.services;
 
 import com.icm.biometric_zone_gate_api.enums.AccessType;
 import com.icm.biometric_zone_gate_api.models.AccessLogsModel;
+import com.icm.biometric_zone_gate_api.models.DeviceModel;
+import com.icm.biometric_zone_gate_api.models.UserModel;
 import com.icm.biometric_zone_gate_api.repositories.AccessLogsRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -100,5 +102,9 @@ public class AccessLogsService {
         return accessLogsRepository
                 .findByDeviceIdAndEntryTimeBetween(deviceId, startOfDay, endOfDay, top4)
                 .getContent();
+    }
+
+    public Optional<AccessLogsModel> getOpenLogForUserDevice(UserModel user, DeviceModel device) {
+        return accessLogsRepository.findOpenLogByUserAndDevice(user.getId(), device.getId());
     }
 }

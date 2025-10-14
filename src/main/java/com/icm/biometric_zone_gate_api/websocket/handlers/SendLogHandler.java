@@ -15,6 +15,8 @@ import org.springframework.web.socket.WebSocketSession;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Optional;
 
@@ -37,7 +39,24 @@ public class SendLogHandler {
                 return;
             }
 
-            System.out.println("Received logs from device: " + session.getId());
+            // ✅ Obtener el SN de la sesión WebSocket
+            String sn = (String) session.getAttributes().get("sn");
+            if (sn == null) {
+                System.err.println("No SN found for session " + session.getId());
+                session.sendMessage(new TextMessage("{\"ret\":\"sendlog\",\"result\":false,\"reason\":2}"));
+                return;
+            }
+
+            Optional<DeviceModel> optDevice = deviceService.getDeviceBySn(sn);
+            if (optDevice.isEmpty()) {
+                System.err.println("Device not found for SN: " + sn);
+                session.sendMessage(new TextMessage("{\"ret\":\"sendlog\",\"result\":false,\"reason\":3}"));
+                return;
+            }
+
+            DeviceModel device = optDevice.get();
+
+            System.out.println("Received logs from device: " + sn);
             for (JsonNode record : records) {
                 int enrollId = record.path("enrollid").asInt(0);
                 String time = record.path("time").asText("");
@@ -48,41 +67,55 @@ public class SendLogHandler {
                 System.out.printf("Log: enrollid=%d, time=%s, mode=%d, inout=%d, event=%d%n",
                         enrollId, time, mode, inout, event);
 
-                if (enrollId != 0) {
-                    UserModel user = userService.getUserById(enrollId).orElse(null);
-                    if (user == null) continue;
+                // Parsear fecha
+                ZonedDateTime logTime = LocalDateTime.parse(time, DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"))
+                        .atZone(ZoneId.systemDefault());
 
-                    DeviceModel device = deviceService.getDeviceBySn(sn).orElse(null);
-                    if (device == null) continue;
+                // Si enrollId == 0 → log del sistema (por ejemplo puerta abierta/cerrada)
+                if (enrollId == 0) {
+                    System.out.println("System event from device " + sn + ": event=" + event);
+                    continue;
+                }
 
-                    if (inout == 0) { // Entrada
-                        AccessLogsModel log = new AccessLogsModel();
-                        log.setEntryTime(logTime);
-                        log.setUser(user);
-                        log.setDevice(device);
-                        log.setCompany(company);
-                        log.setAction(AccessType.IN);
-                        log.setSuccess(true);
-                        log.setCorrectEpp(false);
-                        log.setEventType(eventTypeService.getDefaultEventType()); // ejemplo
-                        accessLogsService.createLog(log);
-                    }  else { // Salida
-                        Optional<AccessLogsModel> openLog = accessLogsService.getOpenLogForUserDevice(user, device);
-                        if (openLog.isPresent()) {
-                            AccessLogsModel log = openLog.get();
-                            log.setExitTime(logTime);
-                            log.setDurationSeconds(Duration.between(log.getEntryTime().toInstant(), logTime.toInstant()).getSeconds());
-                            log.setAction(AccessType.EXIT);
-                            accessLogsService.createLog(log); // update
-                        }
+                // Buscar usuario
+                Optional<UserModel> optUser = userService.getUserById((long) enrollId);
+                if (optUser.isEmpty()) {
+                    System.err.println("User not found for enrollId=" + enrollId);
+                    continue;
+                }
+
+                UserModel user = optUser.get();
+
+                // Crear o actualizar log
+                if (inout == 0) { // Entrada
+                    AccessLogsModel log = new AccessLogsModel();
+                    log.setEntryTime(logTime);
+                    log.setUser(user);
+                    log.setDevice(device);
+                    log.setAction(AccessType.ENTRY);
+                    log.setSuccess(true);
+                    accessLogsService.createLog(log);
+                } else { // Salida
+                    Optional<AccessLogsModel> openLog = accessLogsService.getOpenLogForUserDevice(user, device);
+                    if (openLog.isPresent()) {
+                        AccessLogsModel log = openLog.get();
+                        log.setExitTime(logTime);
+                        long duration = Duration.between(log.getEntryTime(), logTime).getSeconds();
+                        log.setDurationSeconds(duration);
+                        log.setAction(AccessType.EXIT);
+                        accessLogsService.createLog(log); // o update, depende de tu servicio
+                    }
                 }
             }
 
             // Server time
             String cloudTime = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
 
-            // Simulate access = 1 (door open)
-            String response = String.format("{\"ret\":\"sendlog\",\"result\":true,\"cloudtime\":\"%s\",\"access\":1}", cloudTime);
+            // Responder al dispositivo
+            String response = String.format(
+                    "{\"ret\":\"sendlog\",\"result\":true,\"cloudtime\":\"%s\",\"access\":1}",
+                    cloudTime
+            );
             session.sendMessage(new TextMessage(response));
 
         } catch (Exception e) {
