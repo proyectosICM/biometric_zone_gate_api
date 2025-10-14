@@ -5,8 +5,10 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.icm.biometric_zone_gate_api.enums.DeviceStatus;
 import com.icm.biometric_zone_gate_api.models.DeviceModel;
 import com.icm.biometric_zone_gate_api.services.DeviceService;
+import com.icm.biometric_zone_gate_api.websocket.handlers.GetUserListResponseHandler;
 import com.icm.biometric_zone_gate_api.websocket.handlers.RegisterHandler;
 import com.icm.biometric_zone_gate_api.websocket.handlers.SendLogHandler;
+import com.icm.biometric_zone_gate_api.websocket.handlers.SendUserHandler;
 import com.icm.biometric_zone_gate_api.websocket.utils.DeviceValidator;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
@@ -27,6 +29,8 @@ public class DeviceMessageHandler extends TextWebSocketHandler {
 
     private final RegisterHandler registerHandler;
     private final SendLogHandler sendLogHandler;
+    private final SendUserHandler sendUserHandler;
+    private final GetUserListResponseHandler getUserListResponseHandler;
 
     public void handle(String message, WebSocketSession session) {
         try {
@@ -41,10 +45,9 @@ public class DeviceMessageHandler extends TextWebSocketHandler {
 
                 case "sendlog" -> sendLogHandler.handleSendLog(json, session);
 
-                case "senduser" -> {
-                    System.out.println("Received user from " + session.getId());
-                    session.sendMessage(new TextMessage("{\"status\": \"ok\", \"msg\": \"User received\"}"));
-                }
+                case "senduser" -> sendUserHandler.handleSendUser(json, session);
+
+                case "getuserlist" -> getUserListResponseHandler.handleGetUserListResponse(json);
 
                 default -> {
                     System.out.println("Unknown command: " + cmd);
