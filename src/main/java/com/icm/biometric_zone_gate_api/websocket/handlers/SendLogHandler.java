@@ -4,9 +4,11 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.icm.biometric_zone_gate_api.enums.AccessType;
 import com.icm.biometric_zone_gate_api.models.AccessLogsModel;
 import com.icm.biometric_zone_gate_api.models.DeviceModel;
+import com.icm.biometric_zone_gate_api.models.EventTypeModel;
 import com.icm.biometric_zone_gate_api.models.UserModel;
 import com.icm.biometric_zone_gate_api.services.AccessLogsService;
 import com.icm.biometric_zone_gate_api.services.DeviceService;
+import com.icm.biometric_zone_gate_api.services.EventTypeService;
 import com.icm.biometric_zone_gate_api.services.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
@@ -27,6 +29,7 @@ public class SendLogHandler {
     private final DeviceService deviceService;
     private final UserService userService;
     private final AccessLogsService accessLogsService;
+    private final EventTypeService eventTypeService;
 
     public void handleSendLog(JsonNode json, WebSocketSession session) {
         try {
@@ -62,18 +65,25 @@ public class SendLogHandler {
                 String time = record.path("time").asText("");
                 int mode = record.path("mode").asInt(0);
                 int inout = record.path("inout").asInt(0);
-                int event = record.path("event").asInt(0);
+                int eventCode = record.path("event").asInt(0);
 
                 System.out.printf("Log: enrollid=%d, time=%s, mode=%d, inout=%d, event=%d%n",
-                        enrollId, time, mode, inout, event);
+                        enrollId, time, mode, inout, eventCode);
 
                 // Parsear fecha
                 ZonedDateTime logTime = LocalDateTime.parse(time, DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"))
                         .atZone(ZoneId.systemDefault());
 
+                // Buscar tipo de evento
+                Optional<EventTypeModel> optEventType = eventTypeService.getEventTypeByCode(eventCode);
+                EventTypeModel eventType = optEventType.orElse(null);
+                if (eventType == null) {
+                    System.err.println("Tipo de evento no encontrado para code=" + eventCode);
+                }
+
                 // Si enrollId == 0 → log del sistema (por ejemplo puerta abierta/cerrada)
                 if (enrollId == 0) {
-                    System.out.println("System event from device " + sn + ": event=" + event);
+                    System.out.println("System event from device " + sn + ": event=" + eventCode);
                     continue;
                 }
 
@@ -93,6 +103,7 @@ public class SendLogHandler {
                     log.setUser(user);
                     log.setDevice(device);
                     log.setCompany(device.getCompany());
+                    log.setEventType(eventType);
                     log.setAction(AccessType.ENTRY);
                     log.setSuccess(true);
                     accessLogsService.createLog(log);
