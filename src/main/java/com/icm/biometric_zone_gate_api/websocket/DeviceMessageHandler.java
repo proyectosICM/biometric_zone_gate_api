@@ -5,10 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.icm.biometric_zone_gate_api.enums.DeviceStatus;
 import com.icm.biometric_zone_gate_api.models.DeviceModel;
 import com.icm.biometric_zone_gate_api.services.DeviceService;
-import com.icm.biometric_zone_gate_api.websocket.handlers.GetUserListResponseHandler;
-import com.icm.biometric_zone_gate_api.websocket.handlers.RegisterHandler;
-import com.icm.biometric_zone_gate_api.websocket.handlers.SendLogHandler;
-import com.icm.biometric_zone_gate_api.websocket.handlers.SendUserHandler;
+import com.icm.biometric_zone_gate_api.websocket.handlers.*;
 import com.icm.biometric_zone_gate_api.websocket.utils.DeviceValidator;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
@@ -27,10 +24,13 @@ public class DeviceMessageHandler extends TextWebSocketHandler {
     private final ObjectMapper objectMapper = new ObjectMapper();
     private final DeviceService deviceService;
 
+    private final DeviceSessionManager deviceSessionManager;
+
     private final RegisterHandler registerHandler;
     private final SendLogHandler sendLogHandler;
     private final SendUserHandler sendUserHandler;
     private final GetUserListResponseHandler getUserListResponseHandler;
+    private final GetUserInfoResponseHandler getUserInfoResponseHandler;
 
     public void handle(String message, WebSocketSession session) {
         try {
@@ -52,6 +52,8 @@ public class DeviceMessageHandler extends TextWebSocketHandler {
 
                 case "getuserlist" -> getUserListResponseHandler.handleGetUserListResponse(json);
 
+                case "getuserinfo" -> getUserInfoResponseHandler.handleGetUserInfoResponse(json);
+
                 default -> {
                     System.out.println("Unknown command: " + cmd);
                     session.sendMessage(new TextMessage("{\"status\": \"error\", \"msg\": \"Unknown command\"}"));
@@ -71,9 +73,10 @@ public class DeviceMessageHandler extends TextWebSocketHandler {
     public void afterConnectionClosed(WebSocketSession session, org.springframework.web.socket.CloseStatus status) {
         System.out.println("Device disconnected: " + session.getId());
 
-        // Recuperar SN guardado en la sesión
+        System.out.println("Device disconnected: " + session.getId());
         String sn = (String) session.getAttributes().get("sn");
         if (sn != null) {
+            deviceSessionManager.removeSession(sn); // <-- quitar sesión
             deviceService.getDeviceBySn(sn).ifPresent(device -> {
                 deviceService.updateDeviceStatus(device.getId(), DeviceStatus.DISCONNECTED);
                 System.out.println("Dispositivo marcado como DESCONECTADO: " + sn);

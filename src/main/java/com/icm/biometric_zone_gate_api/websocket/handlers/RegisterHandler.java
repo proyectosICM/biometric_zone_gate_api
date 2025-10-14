@@ -4,6 +4,7 @@
     import com.icm.biometric_zone_gate_api.enums.DeviceStatus;
     import com.icm.biometric_zone_gate_api.models.DeviceModel;
     import com.icm.biometric_zone_gate_api.services.DeviceService;
+    import com.icm.biometric_zone_gate_api.websocket.DeviceSessionManager;
     import com.icm.biometric_zone_gate_api.websocket.commands.GetUserListCommandSender;
     import com.icm.biometric_zone_gate_api.websocket.utils.DeviceValidator;
     import lombok.RequiredArgsConstructor;
@@ -21,6 +22,7 @@
     
         private final DeviceService deviceService;
         private final GetUserListCommandSender getUserListCommandSender;
+        private final DeviceSessionManager deviceSessionManager;
     
         public void handleRegister(JsonNode json, WebSocketSession session) {
             try {
@@ -67,6 +69,7 @@
                     DeviceModel device = existingDeviceOpt.get();
                     deviceService.updateDeviceStatus(device.getId(), DeviceStatus.CONNECTED);
                     session.getAttributes().put("sn", sn);
+                    deviceSessionManager.registerSession(sn, session);
                     System.out.println("Existing device marked as CONNECTED: " + sn);
                 } else {
                     System.out.println("Device not found in DB with SN " + sn + ". Not creating new record.");

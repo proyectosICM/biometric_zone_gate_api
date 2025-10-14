@@ -3,6 +3,8 @@ package com.icm.biometric_zone_gate_api.controllers;
 import com.icm.biometric_zone_gate_api.models.DeviceModel;
 import com.icm.biometric_zone_gate_api.models.UserModel;
 import com.icm.biometric_zone_gate_api.services.DeviceService;
+import com.icm.biometric_zone_gate_api.websocket.DeviceSessionManager;
+import com.icm.biometric_zone_gate_api.websocket.commands.GetUserInfoCommandSender;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -11,6 +13,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.socket.WebSocketSession;
 
 import java.util.List;
 
@@ -20,6 +23,8 @@ import java.util.List;
 public class DeviceController {
 
     private final DeviceService deviceService;
+    private final GetUserInfoCommandSender getUserInfoCommandSender;
+    private final DeviceSessionManager deviceSessionManager;
 
     @PostMapping
     public ResponseEntity<DeviceModel> createDevice(@RequestBody DeviceModel device) {
@@ -80,6 +85,21 @@ public class DeviceController {
         return deviceService.deleteDevice(id)
                 ? ResponseEntity.noContent().build()
                 : ResponseEntity.notFound().build();
+    }
+
+    @GetMapping("/{sn}/user/{enrollId}/{backupNum}")
+    public ResponseEntity<String> getUserInfo(
+            @PathVariable String sn,
+            @PathVariable int enrollId,
+            @PathVariable int backupNum) {
+
+        WebSocketSession session = deviceSessionManager.getSessionBySn(sn);
+        if (session == null || !session.isOpen()) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Dispositivo no conectado");
+        }
+
+        getUserInfoCommandSender.sendGetUserInfoCommand(session, enrollId, backupNum);
+        return ResponseEntity.ok("Comando enviado correctamente");
     }
 
     /*
