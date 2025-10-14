@@ -37,7 +37,10 @@ public class DeviceMessageHandler extends TextWebSocketHandler {
             System.out.println("Mensaje recibido del dispositivo " + session.getId() + ": " + message);
 
             JsonNode json = objectMapper.readTree(message);
-            String cmd = json.path("cmd").asText("unknown");
+            //String cmd = json.path("cmd").asText("unknown");
+            String cmd = json.has("cmd") ? json.get("cmd").asText() :
+                    json.has("ret") ? json.get("ret").asText() :
+                            "unknown";
 
             switch (cmd) {
 
