@@ -42,7 +42,7 @@ public class SendLogHandler {
                 return;
             }
 
-            // ✅ Obtener el SN de la sesión WebSocket
+            // Obtener el SN de la sesión WebSocket
             String sn = (String) session.getAttributes().get("sn");
             if (sn == null) {
                 System.err.println("No SN found for session " + session.getId());

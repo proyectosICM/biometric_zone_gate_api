@@ -4,6 +4,10 @@ import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
+
+import java.time.ZonedDateTime;
 
 @Data
 @NoArgsConstructor
@@ -25,6 +29,13 @@ public class UserCredentialModel {
     private String record;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id", referencedColumnName = "id", nullable = false)
-    private UserModel user;
+    @JoinColumn(name = "device_user_id", referencedColumnName = "id", nullable = false)
+    private DeviceUserModel deviceUser;
+
+    @Column(nullable = false, updatable = false)
+    @CreationTimestamp
+    private ZonedDateTime createdAt;
+
+    @UpdateTimestamp
+    private ZonedDateTime updatedAt;
 }

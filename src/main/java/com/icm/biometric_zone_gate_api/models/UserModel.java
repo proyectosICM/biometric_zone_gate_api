@@ -29,10 +29,6 @@ public class UserModel {
     @Column(nullable = false)
     private Role role;
 
-    // ID assigned by the biometric device
-    @Column(unique = true)
-    private Integer enrollId;
-    
     private String name;
 
     @Column(unique = true)
@@ -57,12 +53,7 @@ public class UserModel {
 
     @JsonIgnore
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<UserCredentialModel> credentials = new ArrayList<>();
-
-    @JsonIgnore
-    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL)
-    @JsonManagedReference
-    private List<DeviceUserAccessModel> devicesAccess = new ArrayList<>();
+    private List<DeviceUserModel> deviceUsers = new ArrayList<>();
 
     @Column(nullable = false, updatable = false)
     @CreationTimestamp

@@ -9,6 +9,66 @@ import org.springframework.web.socket.WebSocketSession;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 
+/**
+ * 📘 {@code SendUserHandler}
+ *
+ * <p>
+ * Handler responsable de procesar los mensajes WebSocket con el comando <b>"senduser"</b>
+ * enviados por los dispositivos biométricos al servidor.
+ * </p>
+ *
+ * <p>
+ * Cuando un dispositivo registra un nuevo usuario (huella, tarjeta o contraseña),
+ * envía un mensaje JSON al servidor con la información del usuario.
+ * Este handler:
+ * <ul>
+ *   <li>Valida los campos obligatorios del mensaje recibido.</li>
+ *   <li>Identifica el tipo de registro (huella, password, RFID).</li>
+ *   <li>Imprime los datos recibidos (o podría persistirlos en la base de datos).</li>
+ *   <li>Responde al dispositivo confirmando la recepción exitosa o un error.</li>
+ * </ul>
+ * </p>
+ *
+ * <p>
+ * Ejemplo de mensaje recibido desde el dispositivo:
+ * </p>
+ * <pre>
+ * {
+ *   "cmd": "senduser",
+ *   "enrollid": 1,
+ *   "name": "chingzou",
+ *   "backupnum": 0,
+ *   "admin": 0,
+ *   "record": "aabbccddeeff..."
+ * }
+ * </pre>
+ *
+ * <p>
+ * Ejemplo de respuesta de éxito:
+ * </p>
+ * <pre>
+ * {
+ *   "ret": "senduser",
+ *   "result": true,
+ *   "cloudtime": "2025-10-13 22:15:37"
+ * }
+ * </pre>
+ *
+ * <p>
+ * Si faltan campos o los datos son inválidos, el servidor responde:
+ * </p>
+ * <pre>
+ * {
+ *   "ret": "senduser",
+ *   "result": false,
+ *   "reason": 1
+ * }
+ * </pre>
+ *
+ * @author Eduardo
+ * @version 1.0
+ * @since 2025-10-13
+ */
 @Component
 @RequiredArgsConstructor
 public class SendUserHandler {
