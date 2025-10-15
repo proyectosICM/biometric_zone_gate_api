@@ -62,7 +62,7 @@ public class SendUserHandler {
                     });
 
             // Buscar o crear DeviceUser
-            DeviceUserModel deviceUser = deviceUserRepository.findByDevice_IdAndEnrollId(deviceId, enrollId)
+            DeviceUserModel deviceUser = deviceUserRepository.findByDeviceIdAndEnrollId(deviceId, enrollId)
                     .orElseGet(() -> {
                         DeviceUserModel du = new DeviceUserModel();
                         du.setDevice(device);

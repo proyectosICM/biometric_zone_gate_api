@@ -6,5 +6,5 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import java.util.Optional;
 
 public interface DeviceUserRepository extends JpaRepository<DeviceUserModel, Long> {
-    Optional<DeviceUserModel> findByDevice_IdAndEnrollId(Long deviceId, Integer enrollId);
+    Optional<DeviceUserModel> findByDeviceIdAndEnrollId(Long deviceId, Integer enrollId);
 }

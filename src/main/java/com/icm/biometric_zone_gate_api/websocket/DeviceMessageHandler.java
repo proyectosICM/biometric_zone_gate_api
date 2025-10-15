@@ -50,7 +50,7 @@ public class DeviceMessageHandler extends TextWebSocketHandler {
 
                 case "senduser" -> sendUserHandler.handleSendUser(json, session);
 
-                case "getuserlist" -> getUserListResponseHandler.handleGetUserListResponse(json);
+                case "getuserlist" -> getUserListResponseHandler.handleGetUserListResponse(json, session);
 
                 case "getuserinfo" -> getUserInfoResponseHandler.handleGetUserInfoResponse(json);
 
@@ -89,5 +89,4 @@ public class DeviceMessageHandler extends TextWebSocketHandler {
         System.out.println("Device connected: " + session.getId());
         // SN se asignará en handleRegister cuando llegue el mensaje
     }
-
 }
