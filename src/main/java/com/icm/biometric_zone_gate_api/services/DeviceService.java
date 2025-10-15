@@ -9,6 +9,7 @@ import com.icm.biometric_zone_gate_api.repositories.DeviceRepository;
 import com.icm.biometric_zone_gate_api.repositories.DeviceUserAccessRepository;
 import com.icm.biometric_zone_gate_api.repositories.DeviceUserRepository;
 import com.icm.biometric_zone_gate_api.websocket.DeviceSessionManager;
+import com.icm.biometric_zone_gate_api.websocket.commands.EnableUserCommandSender;
 import com.icm.biometric_zone_gate_api.websocket.commands.GetUserNameCommandSender;
 import com.icm.biometric_zone_gate_api.websocket.commands.SetUserNameCommandSender;
 import lombok.RequiredArgsConstructor;
@@ -30,6 +31,7 @@ public class DeviceService {
     private final GetUserNameCommandSender getUserNameCommandSender;
     private final DeviceUserRepository deviceUserRepository;
     private final SetUserNameCommandSender setUserNameCommandSender;
+    private final EnableUserCommandSender enableUserCommandSender;
 
     public DeviceModel createDevice(DeviceModel device) {
         return deviceRepository.save(device);
@@ -132,6 +134,39 @@ public class DeviceService {
 
         } catch (Exception e) {
             System.err.println("❌ Error al propagar cambio de nombre: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+
+    public void broadcastUserEnableState(UserModel user) {
+        try {
+            List<DeviceUserModel> links = deviceUserRepository.findByUserId(user.getId());
+
+            if (links.isEmpty()) {
+                System.out.println("ℹ️ Usuario " + user.getUsername() + " no está asociado a ningún dispositivo.");
+                return;
+            }
+
+            for (DeviceUserModel link : links) {
+                DeviceModel device = link.getDevice();
+                String sn = device.getSn();
+                WebSocketSession session = deviceSessionManager.getSessionBySn(sn);
+
+                if (session != null && session.isOpen()) {
+                    boolean enabled = Boolean.TRUE.equals(user.getEnabled());
+
+                    System.out.println("📡 Enviando ENABLE USER al dispositivo SN=" + sn +
+                            " (enrollId=" + link.getEnrollId() + ", enabled=" + enabled + ")");
+
+                    enableUserCommandSender.sendEnableUserCommand(session, link.getEnrollId(), enabled);
+
+                } else {
+                    System.out.println("⚠️ Dispositivo SN=" + sn + " no conectado. No se puede actualizar estado.");
+                }
+            }
+
+        } catch (Exception e) {
+            System.err.println("❌ Error al propagar cambio de estado ENABLE/DISABLE: " + e.getMessage());
             e.printStackTrace();
         }
     }

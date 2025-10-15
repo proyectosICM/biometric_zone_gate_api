@@ -41,6 +41,8 @@ public class UserService {
     public Optional<UserModel> updateUser(Long id, UserModel updatedUser) {
         return userRepository.findById(id).map(user -> {
             boolean nameChanged = updatedUser.getName() != null && !updatedUser.getName().equals(user.getName());
+            boolean enabledChanged = updatedUser.getEnabled() != null && !updatedUser.getEnabled().equals(user.getEnabled());
+
             user.setName(updatedUser.getName());
             user.setEmail(updatedUser.getEmail());
             user.setAdminLevel(updatedUser.getAdminLevel());
@@ -64,6 +66,10 @@ public class UserService {
             // 🔔 Si el nombre cambió, propagar a los dispositivos
             if (nameChanged) {
                 deviceService.broadcastUserNameUpdate(saved);
+            }
+
+            if (enabledChanged) {
+                deviceService.broadcastUserEnableState(saved);
             }
 
             return saved;
