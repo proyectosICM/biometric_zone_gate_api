@@ -1,6 +1,7 @@
 package com.icm.biometric_zone_gate_api.websocket.handlers;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.icm.biometric_zone_gate_api.models.CompanyModel;
 import com.icm.biometric_zone_gate_api.models.DeviceModel;
 import com.icm.biometric_zone_gate_api.models.DeviceUserModel;
 import com.icm.biometric_zone_gate_api.models.UserModel;
@@ -55,6 +56,7 @@ public class GetUserListResponseHandler {
             }
 
             DeviceModel device = deviceOpt.get();
+            CompanyModel company = device.getCompany();
 
             for (JsonNode userNode : json.path("record")) {
                 int enrollId = userNode.path("enrollid").asInt();
@@ -73,6 +75,7 @@ public class GetUserListResponseHandler {
                             u.setRole(com.icm.biometric_zone_gate_api.enums.Role.USER);
                             u.setAdminLevel(admin);
                             u.setEnabled(true);
+                            u.setCompany(company);
                             // Asignar empresa por defecto si es obligatorio
                             // u.setCompany(defaultCompany);
                             return userRepository.save(u);
