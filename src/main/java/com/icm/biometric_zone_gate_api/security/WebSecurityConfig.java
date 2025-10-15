@@ -56,7 +56,7 @@ public class WebSecurityConfig {
         jwtAuthenticationFilter.setAuthenticationManager(authenticationManager);
         jwtAuthenticationFilter.setFilterProcessesUrl("/login");
 
-        HeaderWriter headerWriter = new StaticHeadersWriter("Access-Control-Allow-Origin", "http://telemetriaperu.com:3004", "http://localhost:3004", "http://samloto.com:3004", "http://192.168.1.232:3004");
+        HeaderWriter headerWriter = new StaticHeadersWriter("Access-Control-Allow-Origin", "http://telemetriaperu.com:3003", "http://localhost:3003", "http://samloto.com:3003", "http://192.168.1.232:3003");
 
         return httpSecurity
                 .cors()
@@ -77,6 +77,7 @@ public class WebSecurityConfig {
                     auth.requestMatchers("/api/companies/**").permitAll();
                     auth.requestMatchers("/api/branches/**").permitAll();
                     auth.requestMatchers("/api/v1/companies/**").permitAll();
+                    auth.requestMatchers(HttpMethod.GET, "/api/devices/*/user/*/*").permitAll();
                     // .hasRole("ADMINISTRATOR");
                     auth.requestMatchers("/swagger-ui/**").permitAll();
                     auth.requestMatchers("/doc/**").permitAll();
