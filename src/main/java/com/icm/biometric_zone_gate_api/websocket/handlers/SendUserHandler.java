@@ -1,6 +1,7 @@
 package com.icm.biometric_zone_gate_api.websocket.handlers;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.icm.biometric_zone_gate_api.enums.CredentialType;
 import com.icm.biometric_zone_gate_api.models.*;
 import com.icm.biometric_zone_gate_api.repositories.*;
 import lombok.RequiredArgsConstructor;
@@ -73,6 +74,8 @@ public class SendUserHandler {
                         return deviceUserRepository.save(du);
                     });
 
+            CredentialType type = mapBackupNumToType(backupNum);
+
             // Guardar o actualizar credencial
             UserCredentialModel credential = userCredentialRepository
                     .findByDeviceUserIdAndBackupNum(deviceUser.getId(), backupNum)
@@ -80,6 +83,7 @@ public class SendUserHandler {
                         UserCredentialModel c = new UserCredentialModel();
                         c.setDeviceUser(deviceUser);
                         c.setBackupNum(backupNum);
+                        c.setType(type);
                         return c;
                     });
             credential.setRecord(record);
@@ -113,6 +117,18 @@ public class SendUserHandler {
             try {
                 session.sendMessage(new TextMessage("{\"ret\":\"senduser\",\"result\":false,\"reason\":1}"));
             } catch (Exception ignored) {}
+        }
+    }
+
+    private CredentialType mapBackupNumToType(int backupNum) {
+        if (backupNum >= 0 && backupNum <= 9) {
+            return CredentialType.FINGERPRINT;
+        } else if (backupNum == 10) {
+            return CredentialType.PASSWORD;
+        } else if (backupNum == 11) {
+            return CredentialType.CARD;
+        } else {
+            return CredentialType.UNKNOWN;
         }
     }
 }
