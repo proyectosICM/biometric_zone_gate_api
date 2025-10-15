@@ -160,4 +160,17 @@ public class DeviceController {
 
         return ResponseEntity.ok(deviceService.listByCompanyPaginated(companyId, pageable));
     }
+
+    @PostMapping("/{deviceId}/get-username/{enrollId}")
+    public ResponseEntity<?> getUserName(
+            @PathVariable Long deviceId,
+            @PathVariable int enrollId
+    ) {
+        try {
+            deviceService.requestUserName(deviceId, enrollId);
+            return ResponseEntity.ok("Comando GET USER NAME enviado al dispositivo.");
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body("Error: " + e.getMessage());
+        }
+    }
 }

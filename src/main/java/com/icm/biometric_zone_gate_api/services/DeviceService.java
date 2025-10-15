@@ -4,10 +4,13 @@ import com.icm.biometric_zone_gate_api.enums.DeviceStatus;
 import com.icm.biometric_zone_gate_api.models.DeviceModel;
 import com.icm.biometric_zone_gate_api.models.UserModel;
 import com.icm.biometric_zone_gate_api.repositories.DeviceRepository;
+import com.icm.biometric_zone_gate_api.websocket.DeviceSessionManager;
+import com.icm.biometric_zone_gate_api.websocket.commands.GetUserNameCommandSender;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.web.socket.WebSocketSession;
 
 import java.util.List;
 import java.util.Optional;
@@ -17,6 +20,8 @@ import java.util.Optional;
 public class DeviceService {
 
     private final DeviceRepository deviceRepository;
+    private final DeviceSessionManager deviceSessionManager;
+    private final GetUserNameCommandSender getUserNameCommandSender;
 
     public DeviceModel createDevice(DeviceModel device) {
         return deviceRepository.save(device);
@@ -72,6 +77,24 @@ public class DeviceService {
 
     public Page<DeviceModel> listByCompanyPaginated(Long companyId, Pageable pageable) {
         return deviceRepository.findByCompanyId(companyId, pageable);
+    }
+
+    public void requestUserName(Long deviceId, int enrollId) {
+        Optional<DeviceModel> deviceOpt = deviceRepository.findById(deviceId);
+
+        if (deviceOpt.isEmpty()) {
+            throw new IllegalArgumentException("No existe el dispositivo con id " + deviceId);
+        }
+
+        DeviceModel device = deviceOpt.get();
+        String sn = device.getSn();
+
+        WebSocketSession session = deviceSessionManager.getSessionBySn(sn);
+        if (session == null || !session.isOpen()) {
+            throw new IllegalStateException("El dispositivo " + sn + " no está conectado.");
+        }
+
+        getUserNameCommandSender.sendGetUserNameCommand(session, enrollId);
     }
 
     /*
