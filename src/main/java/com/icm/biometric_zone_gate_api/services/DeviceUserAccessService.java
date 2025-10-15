@@ -77,21 +77,24 @@ public class DeviceUserAccessService {
         // Guardar en base de datos
         DeviceUserAccessModel saved = deviceUserAccessRepository.save(entity);
 
+        UserModel userFull = userRepository.findById(saved.getUser().getId())
+                .orElseThrow(() -> new RuntimeException("Usuario no encontrado tras guardar."));
+
         // Enviar al dispositivo si está conectado
         var session = sessionManager.getSessionBySn(saved.getDevice().getSn());
 
         if (session != null && session.isOpen()) {
             try {
-                if (!saved.getUser().getDeviceUsers().isEmpty()) {
-                    var deviceUser = saved.getUser().getDeviceUsers().get(0);
+                if (!userFull.getDeviceUsers().isEmpty()) {
+                    var deviceUser = userFull.getDeviceUsers().get(0);
 
                     if (!deviceUser.getCredentials().isEmpty()) {
                         var credential = deviceUser.getCredentials().get(0);
 
-                        int enrollId = saved.getUser().getId().intValue();
-                        String name = saved.getUser().getName();
+                        int enrollId = userFull.getId().intValue();
+                        String name = userFull.getName();
                         int backupNum = credential.getBackupNum();
-                        int admin = saved.getUser().getAdminLevel() != null ? saved.getUser().getAdminLevel() : 0;
+                        int admin = userFull.getAdminLevel() != null ? userFull.getAdminLevel() : 0;
                         String record = credential.getRecord();
 
                         commandSender.sendSetUserInfoCommand(session, enrollId, name, backupNum, admin, record);
