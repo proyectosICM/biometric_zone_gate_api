@@ -34,6 +34,8 @@ public class DeviceMessageHandler extends TextWebSocketHandler {
     private final SetUserInfoResponseHandler setUserInfoResponseHandler;
     private final DeleteUserResponseHandler deleteUserResponseHandler;
     private final GetUserNameResponseHandler getUserNameResponseHandler;
+    private final SetUserNameResponseHandler setUserNameResponseHandler;
+
 
     public void handle(String message, WebSocketSession session) {
         try {
@@ -62,6 +64,8 @@ public class DeviceMessageHandler extends TextWebSocketHandler {
                 case "deleteuser" -> deleteUserResponseHandler.handleDeleteUserResponse(json);
 
                 case "getusername" -> getUserNameResponseHandler.handleGetUserNameResponse(json);
+
+                case "setusername" -> setUserNameResponseHandler.handleSetUserNameResponse(json);
 
                 default -> {
                     System.out.println("Unknown command: " + cmd);
