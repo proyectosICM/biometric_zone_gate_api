@@ -2,10 +2,15 @@ package com.icm.biometric_zone_gate_api.services;
 
 import com.icm.biometric_zone_gate_api.enums.DeviceStatus;
 import com.icm.biometric_zone_gate_api.models.DeviceModel;
+import com.icm.biometric_zone_gate_api.models.DeviceUserAccessModel;
+import com.icm.biometric_zone_gate_api.models.DeviceUserModel;
 import com.icm.biometric_zone_gate_api.models.UserModel;
 import com.icm.biometric_zone_gate_api.repositories.DeviceRepository;
+import com.icm.biometric_zone_gate_api.repositories.DeviceUserAccessRepository;
+import com.icm.biometric_zone_gate_api.repositories.DeviceUserRepository;
 import com.icm.biometric_zone_gate_api.websocket.DeviceSessionManager;
 import com.icm.biometric_zone_gate_api.websocket.commands.GetUserNameCommandSender;
+import com.icm.biometric_zone_gate_api.websocket.commands.SetUserNameCommandSender;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -20,8 +25,11 @@ import java.util.Optional;
 public class DeviceService {
 
     private final DeviceRepository deviceRepository;
+    private final DeviceUserAccessRepository deviceUserAccessRepository;
     private final DeviceSessionManager deviceSessionManager;
     private final GetUserNameCommandSender getUserNameCommandSender;
+    private final DeviceUserRepository deviceUserRepository;
+    private final SetUserNameCommandSender setUserNameCommandSender;
 
     public DeviceModel createDevice(DeviceModel device) {
         return deviceRepository.save(device);
@@ -95,6 +103,37 @@ public class DeviceService {
         }
 
         getUserNameCommandSender.sendGetUserNameCommand(session, enrollId);
+    }
+
+    public void broadcastUserNameUpdate(UserModel user) {
+        try {
+            List<DeviceUserModel> links = deviceUserRepository.findByUserId(user.getId());
+
+            if (links.isEmpty()) {
+                System.out.println("ℹ️ Usuario " + user.getUsername() + " no está asociado a ningún dispositivo.");
+                return;
+            }
+
+            for (DeviceUserModel link : links) {
+                DeviceModel device = link.getDevice();
+                String sn = device.getSn();
+                WebSocketSession session = deviceSessionManager.getSessionBySn(sn);
+
+                if (session != null && session.isOpen()) {
+                    System.out.println("📡 Enviando SET USERNAME al dispositivo SN=" + sn +
+                            " (enrollId=" + link.getEnrollId() + ", name=" + user.getName() + ")");
+
+                    var record = new SetUserNameCommandSender.UserRecord(link.getEnrollId(), user.getName());
+                    setUserNameCommandSender.sendSetUserNameCommand(session, List.of(record));
+                } else {
+                    System.out.println("⚠️ Dispositivo SN=" + sn + " no conectado. No se puede actualizar nombre.");
+                }
+            }
+
+        } catch (Exception e) {
+            System.err.println("❌ Error al propagar cambio de nombre: " + e.getMessage());
+            e.printStackTrace();
+        }
     }
 
     /*

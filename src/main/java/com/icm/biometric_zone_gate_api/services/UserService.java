@@ -17,6 +17,7 @@ public class UserService {
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+    private final DeviceService deviceService;
 
     public List<UserModel> getAllUsers() {
         return userRepository.findAll();
@@ -39,6 +40,7 @@ public class UserService {
 
     public Optional<UserModel> updateUser(Long id, UserModel updatedUser) {
         return userRepository.findById(id).map(user -> {
+            boolean nameChanged = updatedUser.getName() != null && !updatedUser.getName().equals(user.getName());
             user.setName(updatedUser.getName());
             user.setEmail(updatedUser.getEmail());
             user.setAdminLevel(updatedUser.getAdminLevel());
@@ -57,7 +59,14 @@ public class UserService {
                 user.setPassword(passwordEncoder.encode(updatedUser.getPassword()));
             }
 
-            return userRepository.save(user);
+            UserModel saved = userRepository.save(user);
+
+            // 🔔 Si el nombre cambió, propagar a los dispositivos
+            if (nameChanged) {
+                deviceService.broadcastUserNameUpdate(saved);
+            }
+
+            return saved;
 
 
         });
