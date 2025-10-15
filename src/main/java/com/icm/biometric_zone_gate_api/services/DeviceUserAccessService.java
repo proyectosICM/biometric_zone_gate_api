@@ -8,6 +8,7 @@ import com.icm.biometric_zone_gate_api.repositories.DeviceRepository;
 import com.icm.biometric_zone_gate_api.repositories.DeviceUserAccessRepository;
 import com.icm.biometric_zone_gate_api.repositories.UserRepository;
 import com.icm.biometric_zone_gate_api.websocket.DeviceSessionManager;
+import com.icm.biometric_zone_gate_api.websocket.commands.DeleteUserCommandSender;
 import com.icm.biometric_zone_gate_api.websocket.commands.SetUserInfoCommandSender;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -28,6 +29,7 @@ public class DeviceUserAccessService {
     private final UserRepository userRepository;
     private final DeviceSessionManager sessionManager;
     private final SetUserInfoCommandSender commandSender;
+    private final DeleteUserCommandSender deleteUserCommandSender;
 
     public Optional<DeviceUserAccessModel> findById(Long id) {
         return deviceUserAccessRepository.findById(id);
@@ -127,11 +129,53 @@ public class DeviceUserAccessService {
     }
 
     public boolean deleteById(Long id) {
-        if (deviceUserAccessRepository.existsById(id)) {
-            deviceUserAccessRepository.deleteById(id);
-            return true;
+        var accessOpt = deviceUserAccessRepository.findById(id);
+
+        if (accessOpt.isEmpty()) {
+            System.out.println("No existe DeviceUserAccess con ID: " + id);
+            return false;
         }
-        return false;
+
+        var access = accessOpt.get();
+
+        // Obtener relaciones necesarias
+        var user = access.getUser();
+        var device = access.getDevice();
+
+        // Buscar sesión activa del dispositivo
+        var session = sessionManager.getSessionBySn(device.getSn());
+
+        // Determinar tipo de credencial (si aplica)
+        int backupNum = 0; // por defecto huella
+        if (user != null && !user.getDeviceUsers().isEmpty()) {
+            var deviceUser = user.getDeviceUsers().get(0);
+            if (!deviceUser.getCredentials().isEmpty()) {
+                backupNum = deviceUser.getCredentials().get(0).getBackupNum();
+            }
+        }
+
+        if (session != null && session.isOpen()) {
+            try {
+                int enrollId = user.getId().intValue();
+
+                // Enviar comando deleteuser al dispositivo
+                deleteUserCommandSender.sendDeleteUserCommand(session, enrollId, backupNum);
+
+                System.out.printf("🗑️ Enviado comando DELETEUSER (user=%d, backup=%d) al dispositivo %s%n",
+                        enrollId, backupNum, device.getSn());
+
+            } catch (Exception e) {
+                System.err.println("Error al enviar deleteuser al dispositivo: " + e.getMessage());
+            }
+        } else {
+            System.out.printf("Dispositivo %s no conectado. Eliminación pendiente.%n", device.getSn());
+        }
+
+        // Finalmente eliminar en base de datos
+        deviceUserAccessRepository.deleteById(id);
+        System.out.printf("Eliminado DeviceUserAccess con ID=%d de la base de datos.%n", id);
+
+        return true;
     }
 
     public Optional<DeviceUserAccessDTO> findByUserIdAndDeviceId(Long userId, Long deviceId) {

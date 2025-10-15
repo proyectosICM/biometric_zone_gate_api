@@ -70,7 +70,8 @@ public class DeviceUserAccessController {
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@PathVariable Long id) {
         boolean deleted = deviceUserAccessService.deleteById(id);
-        return deleted ? ResponseEntity.noContent().build() : ResponseEntity.notFound().build();
+        return deleted ? ResponseEntity.noContent().build()
+                : ResponseEntity.notFound().build();
     }
 
     // =========================
