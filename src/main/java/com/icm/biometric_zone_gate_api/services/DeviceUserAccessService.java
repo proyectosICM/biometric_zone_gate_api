@@ -7,6 +7,8 @@ import com.icm.biometric_zone_gate_api.models.UserModel;
 import com.icm.biometric_zone_gate_api.repositories.DeviceRepository;
 import com.icm.biometric_zone_gate_api.repositories.DeviceUserAccessRepository;
 import com.icm.biometric_zone_gate_api.repositories.UserRepository;
+import com.icm.biometric_zone_gate_api.websocket.DeviceSessionManager;
+import com.icm.biometric_zone_gate_api.websocket.commands.SetUserInfoCommandSender;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
@@ -24,7 +26,8 @@ public class DeviceUserAccessService {
     private final DeviceUserAccessRepository deviceUserAccessRepository;
     private final DeviceRepository deviceRepository;
     private final UserRepository userRepository;
-
+    private final DeviceSessionManager sessionManager;
+    private final SetUserInfoCommandSender commandSender;
 
     public Optional<DeviceUserAccessModel> findById(Long id) {
         return deviceUserAccessRepository.findById(id);
@@ -73,6 +76,35 @@ public class DeviceUserAccessService {
 
         // Guardar en base de datos
         DeviceUserAccessModel saved = deviceUserAccessRepository.save(entity);
+
+        // Enviar al dispositivo si está conectado
+        var session = sessionManager.getSessionBySn(saved.getDevice().getSn());
+
+        if (session != null && session.isOpen()) {
+            try {
+                if (!saved.getUser().getDeviceUsers().isEmpty()) {
+                    var deviceUser = saved.getUser().getDeviceUsers().get(0);
+
+                    if (!deviceUser.getCredentials().isEmpty()) {
+                        var credential = deviceUser.getCredentials().get(0);
+
+                        int enrollId = saved.getUser().getId().intValue();
+                        String name = saved.getUser().getName();
+                        int backupNum = credential.getBackupNum();
+                        int admin = saved.getUser().getAdminLevel() != null ? saved.getUser().getAdminLevel() : 0;
+                        String record = credential.getRecord();
+
+                        commandSender.sendSetUserInfoCommand(session, enrollId, name, backupNum, admin, record);
+                    }
+                }
+            } catch (Exception e) {
+                System.err.println("⚠️ Error al enviar usuario al dispositivo: " + e.getMessage());
+            }
+        } else {
+            System.out.printf("⚠️ Dispositivo %s no conectado. Usuario pendiente de descarga.%n",
+                    saved.getDevice().getSn());
+        }
+
 
         // Retornar DTO actualizado
         return DeviceUserAccessMapper.toDTO(saved);
