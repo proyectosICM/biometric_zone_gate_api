@@ -1,5 +1,6 @@
 package com.icm.biometric_zone_gate_api.models;
 
+import com.icm.biometric_zone_gate_api.enums.CredentialType;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -23,6 +24,10 @@ public class UserCredentialModel {
     // 0–9 = fingerprint, 10 = password, 11 = card
     @Column(nullable = false)
     private Integer backupNum;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private CredentialType type;
 
     // según doc: <1620 para THbio3.0
     @Column(length = 1600)

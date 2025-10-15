@@ -1,12 +1,11 @@
 package com.icm.biometric_zone_gate_api.websocket.handlers;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import com.icm.biometric_zone_gate_api.models.CompanyModel;
-import com.icm.biometric_zone_gate_api.models.DeviceModel;
-import com.icm.biometric_zone_gate_api.models.DeviceUserModel;
-import com.icm.biometric_zone_gate_api.models.UserModel;
+import com.icm.biometric_zone_gate_api.enums.CredentialType;
+import com.icm.biometric_zone_gate_api.models.*;
 import com.icm.biometric_zone_gate_api.repositories.DeviceRepository;
 import com.icm.biometric_zone_gate_api.repositories.DeviceUserRepository;
+import com.icm.biometric_zone_gate_api.repositories.UserCredentialRepository;
 import com.icm.biometric_zone_gate_api.repositories.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
@@ -21,6 +20,7 @@ public class GetUserListResponseHandler {
     private final UserRepository userRepository;
     private final DeviceRepository deviceRepository;
     private final DeviceUserRepository deviceUserRepository;
+    private final UserCredentialRepository userCredentialRepository;
 
     public void handleGetUserListResponse(JsonNode json, WebSocketSession session) {
         try {
@@ -99,12 +99,43 @@ public class GetUserListResponseHandler {
                     deviceUserRepository.save(deviceUser);
                 }
 
-                // (Opcional) Registrar credenciales según backupNum
-                // Aquí puedes mapear fingerprint, password, card, etc.
+                // Registrar o actualizar credencial asociada
+                CredentialType type = mapBackupNumToType(backupNum);
+                if (type != CredentialType.UNKNOWN) {
+
+                    Optional<UserCredentialModel> existing = userCredentialRepository
+                            .findByDeviceUserIdAndBackupNum(deviceUser.getId(), backupNum);
+
+                    if (existing.isEmpty()) {
+                        UserCredentialModel cred = new UserCredentialModel();
+                        cred.setBackupNum(backupNum);
+                        cred.setType(type);
+                        cred.setRecord(null); // En este punto el dispositivo solo envía tipo, no datos
+                        cred.setDeviceUser(deviceUser);
+                        userCredentialRepository.save(cred);
+                        System.out.println("     ✅ Credencial registrada: " + type + " (backupNum=" + backupNum + ")");
+                    } else {
+                        System.out.println("     ℹ️ Credencial existente: " + type + " (backupNum=" + backupNum + ")");
+                    }
+                } else {
+                    System.out.println("     ⚠️ Tipo de credencial desconocido para backupNum=" + backupNum);
+                }
             }
 
         } catch (Exception e) {
             e.printStackTrace();
+        }
+    }
+
+    private CredentialType mapBackupNumToType(int backupNum) {
+        if (backupNum >= 0 && backupNum <= 9) {
+            return CredentialType.FINGERPRINT;
+        } else if (backupNum == 10) {
+            return CredentialType.PASSWORD;
+        } else if (backupNum == 11) {
+            return CredentialType.CARD;
+        } else {
+            return CredentialType.UNKNOWN;
         }
     }
 }
