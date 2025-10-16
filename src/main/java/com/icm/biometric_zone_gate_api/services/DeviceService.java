@@ -36,7 +36,7 @@ public class DeviceService {
     private final RebootCommandSender rebootCommandSender;
     private final CleanAdminCommandSender cleanAdminCommandSender;
     private final SetTimeCommandSender setTimeCommandSender;
-
+    private final OpenDoorCommandSender openDoorCommandSender;
 
     public DeviceModel createDevice(DeviceModel device) {
         return deviceRepository.save(device);
@@ -273,6 +273,26 @@ public class DeviceService {
             System.out.println("⚠️ Dispositivo " + sn + " no conectado. Comando SETTIME personalizado pendiente.");
         }
     }
+
+    public void openDoor(Long deviceId) {
+        DeviceModel device = deviceRepository.findById(deviceId)
+                .orElseThrow(() -> new RuntimeException("Dispositivo no encontrado con id: " + deviceId));
+
+        String sn = device.getSn();
+        WebSocketSession session = deviceSessionManager.getSessionBySn(sn);
+
+        if (session != null && session.isOpen()) {
+            try {
+                openDoorCommandSender.sendOpenDoorCommand(session);
+                System.out.println("🔓 Comando OPENDOOR enviado al dispositivo " + sn);
+            } catch (Exception e) {
+                System.err.println("❌ Error al enviar OPENDOOR: " + e.getMessage());
+            }
+        } else {
+            System.out.println("⚠️ Dispositivo " + sn + " no conectado. Comando OPENDOOR pendiente.");
+        }
+    }
+
 
 
     /*

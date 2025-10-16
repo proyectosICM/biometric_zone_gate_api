@@ -210,4 +210,11 @@ public class DeviceController {
         deviceService.syncDeviceTimeCustom(id, customTime);
         return ResponseEntity.ok("🕓 Comando SETTIME con hora personalizada enviado al dispositivo con ID " + id);
     }
+
+    @PostMapping("/{id}/open-door")
+    public ResponseEntity<String> openDoor(@PathVariable Long id) {
+        deviceService.openDoor(id);
+        return ResponseEntity.ok("🔓 Comando OPENDOOR enviado al dispositivo con ID " + id);
+    }
+
 }
