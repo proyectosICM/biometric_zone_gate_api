@@ -217,4 +217,10 @@ public class DeviceController {
         return ResponseEntity.ok("🔓 Comando OPENDOOR enviado al dispositivo con ID " + id);
     }
 
+    @PostMapping("/{id}/get-devinfo")
+    public ResponseEntity<String> getDeviceInfo(@PathVariable Long id) {
+        deviceService.requestDeviceInfo(id);
+        return ResponseEntity.ok("📡 Comando GETDEVINFO enviado al dispositivo con ID " + id);
+    }
+
 }

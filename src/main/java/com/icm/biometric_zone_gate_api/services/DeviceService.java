@@ -37,6 +37,7 @@ public class DeviceService {
     private final CleanAdminCommandSender cleanAdminCommandSender;
     private final SetTimeCommandSender setTimeCommandSender;
     private final OpenDoorCommandSender openDoorCommandSender;
+    private final GetDevInfoCommandSender getDevInfoCommandSender;
 
     public DeviceModel createDevice(DeviceModel device) {
         return deviceRepository.save(device);
@@ -292,6 +293,26 @@ public class DeviceService {
             System.out.println("⚠️ Dispositivo " + sn + " no conectado. Comando OPENDOOR pendiente.");
         }
     }
+
+    public void requestDeviceInfo(Long deviceId) {
+        DeviceModel device = deviceRepository.findById(deviceId)
+                .orElseThrow(() -> new RuntimeException("Dispositivo no encontrado con id: " + deviceId));
+
+        String sn = device.getSn();
+        WebSocketSession session = deviceSessionManager.getSessionBySn(sn);
+
+        if (session != null && session.isOpen()) {
+            try {
+                getDevInfoCommandSender.sendGetDevInfoCommand(session);
+                System.out.println("📡 Comando GETDEVINFO enviado al dispositivo " + sn);
+            } catch (Exception e) {
+                System.err.println("❌ Error al enviar GETDEVINFO: " + e.getMessage());
+            }
+        } else {
+            System.out.println("⚠️ Dispositivo " + sn + " no conectado. Comando GETDEVINFO pendiente.");
+        }
+    }
+
 
 
 
