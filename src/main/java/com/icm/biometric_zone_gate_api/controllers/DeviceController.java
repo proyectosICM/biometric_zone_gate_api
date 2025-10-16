@@ -223,4 +223,10 @@ public class DeviceController {
         return ResponseEntity.ok("📡 Comando GETDEVINFO enviado al dispositivo con ID " + id);
     }
 
+    @PostMapping("/{id}/clean-logs")
+    public ResponseEntity<String> cleanDeviceLogs(@PathVariable Long id) {
+        deviceService.cleanDeviceLogs(id);
+        return ResponseEntity.ok("🧹 Comando CLEANLOG enviado al dispositivo con ID " + id);
+    }
+
 }
