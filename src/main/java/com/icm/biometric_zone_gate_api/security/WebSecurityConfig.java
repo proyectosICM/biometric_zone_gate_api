@@ -74,6 +74,7 @@ public class WebSecurityConfig {
                     auth.requestMatchers("/ws/**").permitAll();
                     auth.requestMatchers("/").permitAll();
                     auth.requestMatchers("/api/users/**").permitAll();
+                    auth.requestMatchers("/api/devices/**").permitAll();
                     auth.requestMatchers("/api/companies/**").permitAll();
                     auth.requestMatchers("/api/branches/**").permitAll();
                     auth.requestMatchers("/api/v1/companies/**").permitAll();
