@@ -16,6 +16,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.web.socket.WebSocketSession;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -34,6 +35,8 @@ public class DeviceService {
     private final InitSystemCommandSender initSystemCommandSender;
     private final RebootCommandSender rebootCommandSender;
     private final CleanAdminCommandSender cleanAdminCommandSender;
+    private final SetTimeCommandSender setTimeCommandSender;
+
 
     public DeviceModel createDevice(DeviceModel device) {
         return deviceRepository.save(device);
@@ -231,6 +234,46 @@ public class DeviceService {
             System.out.println("⚠️ Dispositivo " + sn + " no conectado. Comando CLEAN ADMIN pendiente.");
         }
     }
+
+    public void syncDeviceTimeNow(Long deviceId) {
+        DeviceModel device = deviceRepository.findById(deviceId)
+                .orElseThrow(() -> new RuntimeException("Dispositivo no encontrado con id: " + deviceId));
+
+        String sn = device.getSn();
+        WebSocketSession session = deviceSessionManager.getSessionBySn(sn);
+
+        if (session != null && session.isOpen()) {
+            try {
+                setTimeCommandSender.sendSetTimeCommand(session);
+                System.out.println("⏰ Comando SETTIME (hora actual del servidor) enviado al dispositivo " + sn);
+            } catch (Exception e) {
+                System.err.println("❌ Error al enviar SETTIME: " + e.getMessage());
+            }
+        } else {
+            System.out.println("⚠️ Dispositivo " + sn + " no conectado. Comando SETTIME pendiente.");
+        }
+    }
+
+    // 🕓 2. Sincroniza con una hora personalizada
+    public void syncDeviceTimeCustom(Long deviceId, LocalDateTime customTime) {
+        DeviceModel device = deviceRepository.findById(deviceId)
+                .orElseThrow(() -> new RuntimeException("Dispositivo no encontrado con id: " + deviceId));
+
+        String sn = device.getSn();
+        WebSocketSession session = deviceSessionManager.getSessionBySn(sn);
+
+        if (session != null && session.isOpen()) {
+            try {
+                setTimeCommandSender.sendSetTimeCommand(session, customTime);
+                System.out.println("🕓 Comando SETTIME (hora personalizada) enviado al dispositivo " + sn);
+            } catch (Exception e) {
+                System.err.println("❌ Error al enviar SETTIME personalizado: " + e.getMessage());
+            }
+        } else {
+            System.out.println("⚠️ Dispositivo " + sn + " no conectado. Comando SETTIME personalizado pendiente.");
+        }
+    }
+
 
     /*
     public void syncUsersFromDevice(Long deviceId) {

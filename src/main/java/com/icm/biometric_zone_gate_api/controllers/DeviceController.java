@@ -10,11 +10,13 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.socket.WebSocketSession;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @RestController
@@ -192,4 +194,20 @@ public class DeviceController {
         return ResponseEntity.ok("Comando CLEAN ADMIN enviado para el dispositivo con ID " + id);
     }
 
+    @PostMapping("/{id}/settime")
+    public ResponseEntity<String> syncDeviceTimeNow(@PathVariable Long id) {
+        deviceService.syncDeviceTimeNow(id);
+        return ResponseEntity.ok("⏰ Comando SETTIME con hora actual enviado al dispositivo con ID " + id);
+    }
+
+    // 🕓 Sincroniza con hora personalizada
+    @PostMapping("/{id}/settime/custom")
+    public ResponseEntity<String> syncDeviceTimeCustom(
+            @PathVariable Long id,
+            @RequestParam("datetime")
+            @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss") LocalDateTime customTime) {
+
+        deviceService.syncDeviceTimeCustom(id, customTime);
+        return ResponseEntity.ok("🕓 Comando SETTIME con hora personalizada enviado al dispositivo con ID " + id);
+    }
 }
