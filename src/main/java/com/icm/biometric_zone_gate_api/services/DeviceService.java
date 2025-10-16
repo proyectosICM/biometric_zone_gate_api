@@ -32,6 +32,7 @@ public class DeviceService {
     private final EnableUserCommandSender enableUserCommandSender;
     private final CleanUserCommandSender cleanUserCommandSender;
     private final InitSystemCommandSender initSystemCommandSender;
+    private final RebootCommandSender rebootCommandSender;
 
     public DeviceModel createDevice(DeviceModel device) {
         return deviceRepository.save(device);
@@ -188,6 +189,25 @@ public class DeviceService {
             }
         } else {
             System.out.println("⚠️ Dispositivo " + sn + " no conectado. Comando INIT SYSTEM pendiente.");
+        }
+    }
+
+    public void rebootDevice(Long deviceId) {
+        DeviceModel device = deviceRepository.findById(deviceId)
+                .orElseThrow(() -> new RuntimeException("Dispositivo no encontrado con id: " + deviceId));
+
+        String sn = device.getSn();
+        WebSocketSession session = deviceSessionManager.getSessionBySn(sn);
+
+        if (session != null && session.isOpen()) {
+            try {
+                rebootCommandSender.sendRebootCommand(session);
+                System.out.println("🧩 Comando REBOOT enviado al dispositivo " + sn);
+            } catch (Exception e) {
+                System.err.println("❌ Error al enviar REBOOT: " + e.getMessage());
+            }
+        } else {
+            System.out.println("⚠️ Dispositivo " + sn + " no conectado. Comando REBOOT pendiente.");
         }
     }
 

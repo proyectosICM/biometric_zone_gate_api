@@ -179,4 +179,10 @@ public class DeviceController {
         deviceService.initializeSystem(id);
         return ResponseEntity.ok("Comando INIT SYSTEM enviado para el dispositivo con ID " + id);
     }
+
+    @PostMapping("/{id}/reboot")
+    public ResponseEntity<String> rebootDevice(@PathVariable Long id) {
+        deviceService.rebootDevice(id);
+        return ResponseEntity.ok("Comando REBOOT enviado para el dispositivo con ID " + id);
+    }
 }
