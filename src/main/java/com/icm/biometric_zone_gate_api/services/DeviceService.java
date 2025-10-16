@@ -33,6 +33,7 @@ public class DeviceService {
     private final CleanUserCommandSender cleanUserCommandSender;
     private final InitSystemCommandSender initSystemCommandSender;
     private final RebootCommandSender rebootCommandSender;
+    private final CleanAdminCommandSender cleanAdminCommandSender;
 
     public DeviceModel createDevice(DeviceModel device) {
         return deviceRepository.save(device);
@@ -208,6 +209,26 @@ public class DeviceService {
             }
         } else {
             System.out.println("⚠️ Dispositivo " + sn + " no conectado. Comando REBOOT pendiente.");
+        }
+    }
+
+    public void cleanAdmins(Long deviceId) {
+        // Buscar el dispositivo por su ID
+        DeviceModel device = deviceRepository.findById(deviceId)
+                .orElseThrow(() -> new RuntimeException("Dispositivo no encontrado con id: " + deviceId));
+
+        String sn = device.getSn();
+        WebSocketSession session = deviceSessionManager.getSessionBySn(sn);
+
+        if (session != null && session.isOpen()) {
+            try {
+                cleanAdminCommandSender.sendCleanAdminCommand(session);
+                System.out.println("🧹 Comando CLEAN ADMIN enviado al dispositivo " + sn);
+            } catch (Exception e) {
+                System.err.println("❌ Error al enviar CLEAN ADMIN: " + e.getMessage());
+            }
+        } else {
+            System.out.println("⚠️ Dispositivo " + sn + " no conectado. Comando CLEAN ADMIN pendiente.");
         }
     }
 

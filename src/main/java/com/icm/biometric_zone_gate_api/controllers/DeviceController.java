@@ -185,4 +185,11 @@ public class DeviceController {
         deviceService.rebootDevice(id);
         return ResponseEntity.ok("Comando REBOOT enviado para el dispositivo con ID " + id);
     }
+
+    @PostMapping("/{id}/clean-admins")
+    public ResponseEntity<String> cleanAdmins(@PathVariable Long id) {
+        deviceService.cleanAdmins(id);
+        return ResponseEntity.ok("Comando CLEAN ADMIN enviado para el dispositivo con ID " + id);
+    }
+
 }
