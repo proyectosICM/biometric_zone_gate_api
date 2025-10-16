@@ -180,9 +180,9 @@ public class DeviceUserAccessController {
                 .orElse(ResponseEntity.notFound().build());
     }
 
-    @DeleteMapping("/{sn}/clean-users")
-    public ResponseEntity<String> cleanUsers(@PathVariable String sn) {
-        deviceUserAccessService.cleanDeviceUsersBySn(sn);
-        return ResponseEntity.ok("Comando CLEAN USER enviado y permisos eliminados para el dispositivo " + sn);
+    @DeleteMapping("/{id}/clean-users")
+    public ResponseEntity<String> cleanUsers(@PathVariable Long id) {
+        deviceUserAccessService.cleanDeviceUsersBySn(id);
+        return ResponseEntity.ok("Comando CLEAN USER enviado y permisos eliminados para el dispositivo " + id);
     }
 }

@@ -247,10 +247,12 @@ public class DeviceUserAccessService {
         return page.map(DeviceUserAccessMapper::toDTO);
     }
 
-    public void cleanDeviceUsersBySn(String sn) {
-        // Obtener dispositivo por SN
-        DeviceModel device = deviceRepository.findBySn(sn)
-                .orElseThrow(() -> new RuntimeException("Dispositivo no encontrado con SN: " + sn));
+    public void cleanDeviceUsersBySn(Long id) {
+        // Buscar el dispositivo por ID
+        DeviceModel device = deviceRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Dispositivo no encontrado con ID: " + id));
+
+        String sn = device.getSn();
 
         // Obtener sesión activa
         var session = sessionManager.getSessionBySn(sn);
