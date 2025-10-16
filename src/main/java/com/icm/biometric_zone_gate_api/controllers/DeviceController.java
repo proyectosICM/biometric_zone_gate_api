@@ -173,4 +173,10 @@ public class DeviceController {
             return ResponseEntity.badRequest().body("Error: " + e.getMessage());
         }
     }
+
+    @PostMapping("/{id}/initialize-system")
+    public ResponseEntity<String> initializeSystem(@PathVariable Long id) {
+        deviceService.initializeSystem(id);
+        return ResponseEntity.ok("Comando INIT SYSTEM enviado para el dispositivo con ID " + id);
+    }
 }

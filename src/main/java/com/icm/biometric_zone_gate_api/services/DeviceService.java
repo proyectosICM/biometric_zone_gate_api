@@ -9,10 +9,7 @@ import com.icm.biometric_zone_gate_api.repositories.DeviceRepository;
 import com.icm.biometric_zone_gate_api.repositories.DeviceUserAccessRepository;
 import com.icm.biometric_zone_gate_api.repositories.DeviceUserRepository;
 import com.icm.biometric_zone_gate_api.websocket.DeviceSessionManager;
-import com.icm.biometric_zone_gate_api.websocket.commands.CleanUserCommandSender;
-import com.icm.biometric_zone_gate_api.websocket.commands.EnableUserCommandSender;
-import com.icm.biometric_zone_gate_api.websocket.commands.GetUserNameCommandSender;
-import com.icm.biometric_zone_gate_api.websocket.commands.SetUserNameCommandSender;
+import com.icm.biometric_zone_gate_api.websocket.commands.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -34,6 +31,7 @@ public class DeviceService {
     private final SetUserNameCommandSender setUserNameCommandSender;
     private final EnableUserCommandSender enableUserCommandSender;
     private final CleanUserCommandSender cleanUserCommandSender;
+    private final InitSystemCommandSender initSystemCommandSender;
 
     public DeviceModel createDevice(DeviceModel device) {
         return deviceRepository.save(device);
@@ -170,6 +168,26 @@ public class DeviceService {
         } catch (Exception e) {
             System.err.println("❌ Error al propagar cambio de estado ENABLE/DISABLE: " + e.getMessage());
             e.printStackTrace();
+        }
+    }
+
+    public void initializeSystem(Long deviceId) {
+        // Buscar el dispositivo por su ID
+        DeviceModel device = deviceRepository.findById(deviceId)
+                .orElseThrow(() -> new RuntimeException("Dispositivo no encontrado con id: " + deviceId));
+
+        String sn = device.getSn();
+        WebSocketSession session = deviceSessionManager.getSessionBySn(sn);
+
+        if (session != null && session.isOpen()) {
+            try {
+                initSystemCommandSender.sendInitSystemCommand(session);
+                System.out.println("🧩 Comando INIT SYSTEM enviado al dispositivo " + sn);
+            } catch (Exception e) {
+                System.err.println("❌ Error al enviar INIT SYSTEM: " + e.getMessage());
+            }
+        } else {
+            System.out.println("⚠️ Dispositivo " + sn + " no conectado. Comando INIT SYSTEM pendiente.");
         }
     }
 
