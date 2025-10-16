@@ -12,6 +12,7 @@ import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
+/** Representa el usuario específico dentro de un dispositivo. */
 @Data
 @NoArgsConstructor
 @AllArgsConstructor

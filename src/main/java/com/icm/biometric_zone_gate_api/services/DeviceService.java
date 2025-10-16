@@ -9,6 +9,7 @@ import com.icm.biometric_zone_gate_api.repositories.DeviceRepository;
 import com.icm.biometric_zone_gate_api.repositories.DeviceUserAccessRepository;
 import com.icm.biometric_zone_gate_api.repositories.DeviceUserRepository;
 import com.icm.biometric_zone_gate_api.websocket.DeviceSessionManager;
+import com.icm.biometric_zone_gate_api.websocket.commands.CleanUserCommandSender;
 import com.icm.biometric_zone_gate_api.websocket.commands.EnableUserCommandSender;
 import com.icm.biometric_zone_gate_api.websocket.commands.GetUserNameCommandSender;
 import com.icm.biometric_zone_gate_api.websocket.commands.SetUserNameCommandSender;
@@ -32,6 +33,7 @@ public class DeviceService {
     private final DeviceUserRepository deviceUserRepository;
     private final SetUserNameCommandSender setUserNameCommandSender;
     private final EnableUserCommandSender enableUserCommandSender;
+    private final CleanUserCommandSender cleanUserCommandSender;
 
     public DeviceModel createDevice(DeviceModel device) {
         return deviceRepository.save(device);

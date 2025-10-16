@@ -3,11 +3,14 @@ package com.icm.biometric_zone_gate_api.services;
 import com.icm.biometric_zone_gate_api.dto.DeviceUserAccessDTO;
 import com.icm.biometric_zone_gate_api.models.DeviceModel;
 import com.icm.biometric_zone_gate_api.models.DeviceUserAccessModel;
+import com.icm.biometric_zone_gate_api.models.DeviceUserModel;
 import com.icm.biometric_zone_gate_api.models.UserModel;
 import com.icm.biometric_zone_gate_api.repositories.DeviceRepository;
 import com.icm.biometric_zone_gate_api.repositories.DeviceUserAccessRepository;
+import com.icm.biometric_zone_gate_api.repositories.DeviceUserRepository;
 import com.icm.biometric_zone_gate_api.repositories.UserRepository;
 import com.icm.biometric_zone_gate_api.websocket.DeviceSessionManager;
+import com.icm.biometric_zone_gate_api.websocket.commands.CleanUserCommandSender;
 import com.icm.biometric_zone_gate_api.websocket.commands.DeleteUserCommandSender;
 import com.icm.biometric_zone_gate_api.websocket.commands.SetUserInfoCommandSender;
 import lombok.RequiredArgsConstructor;
@@ -30,6 +33,8 @@ public class DeviceUserAccessService {
     private final DeviceSessionManager sessionManager;
     private final SetUserInfoCommandSender commandSender;
     private final DeleteUserCommandSender deleteUserCommandSender;
+    private final CleanUserCommandSender cleanUserCommandSender;
+    private final DeviceUserRepository deviceUserRepository;
 
     public Optional<DeviceUserAccessModel> findById(Long id) {
         return deviceUserAccessRepository.findById(id);
@@ -241,4 +246,44 @@ public class DeviceUserAccessService {
         Page<DeviceUserAccessModel> page = deviceUserAccessRepository.findByEnabledTrue(pageable);
         return page.map(DeviceUserAccessMapper::toDTO);
     }
+
+    public void cleanDeviceUsersBySn(String sn) {
+        // Obtener dispositivo por SN
+        DeviceModel device = deviceRepository.findBySn(sn)
+                .orElseThrow(() -> new RuntimeException("Dispositivo no encontrado con SN: " + sn));
+
+        // Obtener sesión activa
+        var session = sessionManager.getSessionBySn(sn);
+
+        if (session != null && session.isOpen()) {
+            try {
+                // Enviar comando CLEAN USER al dispositivo
+                cleanUserCommandSender.sendCleanUserCommand(session);
+                System.out.println("🧹 Comando CLEAN USER enviado al dispositivo " + sn);
+            } catch (Exception e) {
+                System.err.println("❌ Error al enviar CLEAN USER: " + e.getMessage());
+            }
+        } else {
+            System.out.println("⚠️ Dispositivo " + sn + " no conectado. Comando pendiente.");
+        }
+
+        // Eliminar todos los DeviceUserAccess asociados a este dispositivo
+        List<DeviceUserAccessModel> accesses = deviceUserAccessRepository.findByDeviceId(device.getId());
+        if (!accesses.isEmpty()) {
+            deviceUserAccessRepository.deleteAll(accesses);
+            System.out.println("🗑️ Eliminados " + accesses.size() + " registros de DeviceUserAccess para dispositivo " + sn);
+        } else {
+            System.out.println("ℹ️ No hay registros de DeviceUserAccess para eliminar para dispositivo " + sn);
+        }
+
+        // Eliminar todos los DeviceUser asociados al dispositivo
+        List<DeviceUserModel> deviceUsers = deviceUserRepository.findByDeviceId(device.getId());
+        if (!deviceUsers.isEmpty()) {
+            deviceUserRepository.deleteAll(deviceUsers);
+            System.out.println("🗑️ Eliminados " + deviceUsers.size() + " registros de DeviceUser para dispositivo " + sn);
+        } else {
+            System.out.println("ℹ️ No hay registros de DeviceUser para eliminar para dispositivo " + sn);
+        }
+    }
+
 }

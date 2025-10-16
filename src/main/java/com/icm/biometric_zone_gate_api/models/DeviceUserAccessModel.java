@@ -9,6 +9,7 @@ import lombok.NoArgsConstructor;
 
 import java.time.ZonedDateTime;
 
+/** Representa la asignación de usuarios a dispositivos desde la perspectiva de acceso o permisos. */
 @Data
 @NoArgsConstructor
 @AllArgsConstructor

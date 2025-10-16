@@ -179,4 +179,10 @@ public class DeviceUserAccessController {
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
     }
+
+    @PostMapping("/{sn}/clean-users")
+    public ResponseEntity<String> cleanUsers(@PathVariable String sn) {
+        deviceUserAccessService.cleanDeviceUsersBySn(sn);
+        return ResponseEntity.ok("Comando CLEAN USER enviado y permisos eliminados para el dispositivo " + sn);
+    }
 }
