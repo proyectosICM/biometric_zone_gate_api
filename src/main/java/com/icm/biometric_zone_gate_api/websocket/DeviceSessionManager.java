@@ -18,7 +18,7 @@ public class DeviceSessionManager {
      * Registra una sesión de dispositivo por su SN.
      * Si ya existía otra sesión, la cierra antes de reemplazarla.
      */
-    /*
+
     public void registerSession(String sn, WebSocketSession session) {
         WebSocketSession existing = sessionMap.put(sn, session);
         if (existing != null && existing.isOpen()) {
@@ -31,12 +31,13 @@ public class DeviceSessionManager {
         }
         System.out.println("✅ Sesión registrada para SN " + sn + ", ID: " + session.getId());
     }
-     */
+
+    /*
     public void registerSession(String sn, WebSocketSession session) {
         sessionMap.put(sn, session);
         System.out.println("✅ Sesión registrada (puente o directa) para SN " + sn + ", ID: " + session.getId());
     }
-
+*/
     /**
      * Elimina la sesión de un SN.
      * Solo elimina si la sesión actual coincide con la registrada (evita eliminar otra sesión nueva).
