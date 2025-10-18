@@ -2,6 +2,7 @@ package com.icm.biometric_zone_gate_api.websocket;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.icm.biometric_zone_gate_api.websocket.handlers.GetAllLogResponseHandler;
 import com.icm.biometric_zone_gate_api.websocket.handlers.GetNewLogResponseHandler;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
@@ -16,6 +17,7 @@ public class DeviceWebSocketHandler extends TextWebSocketHandler {
     private final ObjectMapper objectMapper = new ObjectMapper();
     private final DeviceMessageHandler messageHandler;
     private final GetNewLogResponseHandler getNewLogResponseHandler;
+    private final GetAllLogResponseHandler getAllLogResponseHandler;
 
     /*
     @Override
@@ -45,6 +47,11 @@ public class DeviceWebSocketHandler extends TextWebSocketHandler {
             // 🔍 Si el mensaje es respuesta de getnewlog
             if ("getnewlog".equalsIgnoreCase(cmd) || "getnewlog".equalsIgnoreCase(ret)) {
                 getNewLogResponseHandler.handleGetNewLogResponse(json, session);
+                return;
+            }
+
+            if ("getalllog".equalsIgnoreCase(cmd) || "getalllog".equalsIgnoreCase(ret)) {
+                getAllLogResponseHandler.handleGetAllLogResponse(json, session);
                 return;
             }
 

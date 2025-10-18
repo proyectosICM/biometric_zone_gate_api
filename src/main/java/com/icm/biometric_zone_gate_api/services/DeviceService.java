@@ -40,6 +40,7 @@ public class DeviceService {
     private final GetDevInfoCommandSender getDevInfoCommandSender;
     private final CleanLogCommandSender cleanLogCommandSender;
     private final GetNewLogCommandSender getNewLogCommandSender;
+    private final GetAllLogCommandSender getAllLogCommandSender;
 
     public DeviceModel createDevice(DeviceModel device) {
         return deviceRepository.save(device);
@@ -356,6 +357,24 @@ public class DeviceService {
             }
         } else {
             System.out.println("⚠️ Dispositivo " + sn + " no conectado. Comando GETNEWLOG pendiente.");
+        }
+    }
+
+    public void requestAllLogs(Long deviceId, boolean start) {
+        DeviceModel device = deviceRepository.findById(deviceId)
+                .orElseThrow(() -> new RuntimeException("Dispositivo no encontrado con id: " + deviceId));
+        String sn = device.getSn();
+        WebSocketSession session = deviceSessionManager.getSessionBySn(sn);
+
+        if (session != null && session.isOpen()) {
+            try {
+                getAllLogCommandSender.sendGetAllLogCommand(session, start);
+                System.out.println("📡 Comando GETALLLOG (" + (start ? "inicio" : "continuación") + ") enviado al dispositivo " + sn);
+            } catch (Exception e) {
+                System.err.println("❌ Error al enviar GETALLLOG: " + e.getMessage());
+            }
+        } else {
+            System.out.println("⚠️ Dispositivo " + sn + " no conectado. Comando GETALLLOG pendiente.");
         }
     }
 
