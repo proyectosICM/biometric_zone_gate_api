@@ -51,13 +51,14 @@ public class GetNewLogResponseHandler {
                     }
                 }
 
-                // 🔁 Solicita siguiente bloque solo si count > 0
+                // 🔁 Solo pedimos más si realmente quedan logs
                 System.out.println("⏳ Solicitando siguiente paquete de logs...");
                 getNewLogCommandSender.sendGetNewLogCommand(session, false);
 
             } else {
-                // ✅ No hay más registros → detener ciclo
+                // ✅ count == 0 → detener por completo
                 System.out.println("📭 No hay más registros nuevos. Fin del ciclo GETNEWLOG.");
+                return;
             }
 
         } catch (Exception e) {
@@ -66,4 +67,3 @@ public class GetNewLogResponseHandler {
         }
     }
 }
-
