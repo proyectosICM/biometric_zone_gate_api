@@ -81,21 +81,22 @@ public class DeviceUserAccessService {
         } else {
             throw new RuntimeException("El campo deviceId es obligatorio.");
         }
-
+        System.err.println("Entro a crear 2");
         // Guardar en base de datos
         DeviceUserAccessModel saved = deviceUserAccessRepository.save(entity);
 
         UserModel userFull = userRepository.findById(saved.getUser().getId())
                 .orElseThrow(() -> new RuntimeException("Usuario no encontrado tras guardar."));
-
+        System.err.println("Entro a crear 3");
         // Enviar al dispositivo si está conectado
         var session = sessionManager.getSessionBySn(saved.getDevice().getSn());
-
+        System.err.println("Entro a crear 4");
         if (session != null && session.isOpen()) {
+            System.err.println("Entro a crear 5");
             try {
                 if (!userFull.getDeviceUsers().isEmpty()) {
                     var deviceUser = userFull.getDeviceUsers().get(0);
-
+                    System.err.println("Entro a crear 6");
                     if (!deviceUser.getCredentials().isEmpty()) {
                         var credential = deviceUser.getCredentials().get(0);
 
