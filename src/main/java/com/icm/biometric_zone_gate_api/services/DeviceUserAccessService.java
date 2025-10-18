@@ -103,8 +103,9 @@ public class DeviceUserAccessService {
                         int backupNum = credential.getBackupNum();
                         int admin = userFull.getAdminLevel() != null ? userFull.getAdminLevel() : 0;
                         String record = credential.getRecord();
-
+                        System.err.println("Enviando Usuario ");
                         commandSender.sendSetUserInfoCommand(session, enrollId, name, backupNum, admin, record);
+                        System.err.println("Usuario Enviado");
                     }
                 }
             } catch (Exception e) {
