@@ -61,6 +61,7 @@ public class DeviceUserAccessService {
     }
 
     public DeviceUserAccessDTO save(DeviceUserAccessDTO dto) {
+        System.err.println("Entro a crear ");
         // Convertir DTO a entidad base
         DeviceUserAccessModel entity = DeviceUserAccessMapper.toEntity(dto);
 
