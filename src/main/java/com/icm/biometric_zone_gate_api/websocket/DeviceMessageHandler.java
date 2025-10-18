@@ -42,6 +42,7 @@ public class DeviceMessageHandler extends TextWebSocketHandler {
     private final OpenDoorResponseHandler openDoorResponseHandler;
     private final GetDevInfoResponseHandler getDevInfoResponseHandler;
     private final CleanLogResponseHandler cleanLogResponseHandler;
+    private final GetNewLogResponseHandler getNewLogResponseHandler;
 
     public void handle(String message, WebSocketSession session) {
         try {
@@ -88,6 +89,9 @@ public class DeviceMessageHandler extends TextWebSocketHandler {
                 case "getdevinfo" -> getDevInfoResponseHandler.handleGetDevInfoResponse(json);
 
                 case "cleanlog" -> cleanLogResponseHandler.handleCleanLogResponse(json);
+
+                case "getnewlog" -> getNewLogResponseHandler.handleGetNewLogResponse(json);
+
 
                 default -> {
                     System.out.println("Unknown command: " + cmd);
