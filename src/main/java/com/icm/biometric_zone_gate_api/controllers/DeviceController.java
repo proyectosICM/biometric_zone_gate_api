@@ -237,4 +237,12 @@ public class DeviceController {
         return ResponseEntity.ok("Comando GETNEWLOG enviado (start=" + start + ")");
     }
 
+    @PostMapping("/{deviceId}/getalllog")
+    public ResponseEntity<String> requestAllLogs(
+            @PathVariable Long deviceId,
+            @RequestParam(defaultValue = "true") boolean start) {
+        deviceService.requestAllLogs(deviceId, start);
+        return ResponseEntity.ok("Comando GETNEWLOG enviado (start=" + start + ")");
+    }
+
 }
