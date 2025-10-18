@@ -23,16 +23,23 @@ public class GetNewLogResponseHandler {
                 return;
             }
 
-            if (result) {
-                int count = json.path("count").asInt(0);
-                int from = json.path("from").asInt(0);
-                int to = json.path("to").asInt(0);
+            if (!result) {
+                int reason = json.path("reason").asInt(-1);
+                System.out.printf("⚠️ GETNEWLOG falló. reason=%d%n", reason);
+                return;
+            }
 
-                System.out.printf("✅ GETNEWLOG respuesta exitosa: count=%d, from=%d, to=%d%n", count, from, to);
+            int count = json.path("count").asInt(0);
+            int from = json.path("from").asInt(0);
+            int to = json.path("to").asInt(0);
 
-                ArrayNode records = (ArrayNode) json.path("record");
-                if (records != null && records.size() > 0) {
-                    System.out.println("📋 Registros recibidos:");
+            System.out.printf("✅ GETNEWLOG respuesta: count=%d, from=%d, to=%d%n", count, from, to);
+
+            // 📋 Si hay registros, procesarlos
+            if (count > 0) {
+                if (json.has("record") && json.get("record").isArray()) {
+                    ArrayNode records = (ArrayNode) json.get("record");
+                    System.out.println("📋 Registros recibidos (" + records.size() + "):");
                     for (JsonNode record : records) {
                         int enrollId = record.path("enrollid").asInt();
                         String time = record.path("time").asText();
@@ -42,19 +49,15 @@ public class GetNewLogResponseHandler {
                         System.out.printf(" - ID:%d | Time:%s | Mode:%d | InOut:%d | Event:%d%n",
                                 enrollId, time, mode, inout, event);
                     }
-
-                    // 🔁 Si hay registros, pedimos el siguiente bloque
-                    System.out.println("⏳ Solicitando siguiente paquete de logs...");
-                    getNewLogCommandSender.sendGetNewLogCommand(session, false);
-
-                } else {
-                    // ✅ Paquete vacío → fin del proceso
-                    System.out.println("📭 No hay más registros nuevos. Fin de la descarga de logs.");
                 }
 
+                // 🔁 Solicita siguiente bloque solo si count > 0
+                System.out.println("⏳ Solicitando siguiente paquete de logs...");
+                getNewLogCommandSender.sendGetNewLogCommand(session, false);
+
             } else {
-                int reason = json.path("reason").asInt(-1);
-                System.out.printf("⚠️ GETNEWLOG falló. reason=%d%n", reason);
+                // ✅ No hay más registros → detener ciclo
+                System.out.println("📭 No hay más registros nuevos. Fin del ciclo GETNEWLOG.");
             }
 
         } catch (Exception e) {
@@ -63,3 +66,4 @@ public class GetNewLogResponseHandler {
         }
     }
 }
+
