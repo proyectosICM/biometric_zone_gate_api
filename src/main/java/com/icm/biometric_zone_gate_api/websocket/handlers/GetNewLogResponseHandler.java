@@ -2,16 +2,18 @@ package com.icm.biometric_zone_gate_api.websocket.handlers;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.icm.biometric_zone_gate_api.websocket.commands.GetNewLogCommandSender;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
+import org.springframework.web.socket.WebSocketSession;
 
-/**
- * Maneja la respuesta del dispositivo al comando "getnewlog".
- * Por ahora solo imprime los logs recibidos (sin guardar en DB).
- */
 @Component
+@RequiredArgsConstructor
 public class GetNewLogResponseHandler {
 
-    public void handleGetNewLogResponse(JsonNode json) {
+    private final GetNewLogCommandSender getNewLogCommandSender;
+
+    public void handleGetNewLogResponse(JsonNode json, WebSocketSession session) {
         try {
             boolean result = json.path("result").asBoolean(false);
             String ret = json.path("ret").asText("");
@@ -40,8 +42,14 @@ public class GetNewLogResponseHandler {
                         System.out.printf(" - ID:%d | Time:%s | Mode:%d | InOut:%d | Event:%d%n",
                                 enrollId, time, mode, inout, event);
                     }
+
+                    // 🔁 Si hay registros, pedimos el siguiente bloque
+                    System.out.println("⏳ Solicitando siguiente paquete de logs...");
+                    getNewLogCommandSender.sendGetNewLogCommand(session, false);
+
                 } else {
-                    System.out.println("📭 No hay registros nuevos en este paquete.");
+                    // ✅ Paquete vacío → fin del proceso
+                    System.out.println("📭 No hay más registros nuevos. Fin de la descarga de logs.");
                 }
 
             } else {

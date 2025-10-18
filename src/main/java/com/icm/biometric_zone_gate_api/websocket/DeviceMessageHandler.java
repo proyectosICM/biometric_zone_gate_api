@@ -90,8 +90,7 @@ public class DeviceMessageHandler extends TextWebSocketHandler {
 
                 case "cleanlog" -> cleanLogResponseHandler.handleCleanLogResponse(json);
 
-                case "getnewlog" -> getNewLogResponseHandler.handleGetNewLogResponse(json);
-
+                case "getnewlog" -> getNewLogResponseHandler.handleGetNewLogResponse(json, session);
 
                 default -> {
                     System.out.println("Unknown command: " + cmd);
