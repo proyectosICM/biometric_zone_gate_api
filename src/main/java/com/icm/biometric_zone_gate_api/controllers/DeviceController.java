@@ -229,4 +229,12 @@ public class DeviceController {
         return ResponseEntity.ok("🧹 Comando CLEANLOG enviado al dispositivo con ID " + id);
     }
 
+    @PostMapping("/{deviceId}/getnewlog")
+    public ResponseEntity<String> requestNewLogs(
+            @PathVariable Long deviceId,
+            @RequestParam(defaultValue = "true") boolean start) {
+        deviceService.requestNewLogs(deviceId, start);
+        return ResponseEntity.ok("Comando GETNEWLOG enviado (start=" + start + ")");
+    }
+
 }

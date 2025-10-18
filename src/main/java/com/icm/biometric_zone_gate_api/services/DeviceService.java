@@ -39,6 +39,7 @@ public class DeviceService {
     private final OpenDoorCommandSender openDoorCommandSender;
     private final GetDevInfoCommandSender getDevInfoCommandSender;
     private final CleanLogCommandSender cleanLogCommandSender;
+    private final GetNewLogCommandSender getNewLogCommandSender;
 
     public DeviceModel createDevice(DeviceModel device) {
         return deviceRepository.save(device);
@@ -330,6 +331,31 @@ public class DeviceService {
             }
         } else {
             System.out.println("⚠️ Dispositivo " + sn + " no conectado. Comando CLEANLOG pendiente.");
+        }
+    }
+
+    /**
+     * Solicita al dispositivo los registros nuevos (GETNEWLOG).
+     * @param deviceId ID del dispositivo en la base de datos
+     * @param start true para la primera solicitud, false para la continuación
+     */
+    public void requestNewLogs(Long deviceId, boolean start) {
+        // Buscar dispositivo por ID
+        DeviceModel device = deviceRepository.findById(deviceId)
+                .orElseThrow(() -> new RuntimeException("Dispositivo no encontrado con id: " + deviceId));
+
+        String sn = device.getSn();
+        WebSocketSession session = deviceSessionManager.getSessionBySn(sn);
+
+        if (session != null && session.isOpen()) {
+            try {
+                getNewLogCommandSender.sendGetNewLogCommand(session, start);
+                System.out.println("📡 Comando GETNEWLOG (" + (start ? "inicio" : "continuación") + ") enviado al dispositivo " + sn);
+            } catch (Exception e) {
+                System.err.println("❌ Error al enviar GETNEWLOG: " + e.getMessage());
+            }
+        } else {
+            System.out.println("⚠️ Dispositivo " + sn + " no conectado. Comando GETNEWLOG pendiente.");
         }
     }
 
