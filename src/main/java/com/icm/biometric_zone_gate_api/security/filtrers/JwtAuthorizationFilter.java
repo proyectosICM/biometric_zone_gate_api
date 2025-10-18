@@ -45,4 +45,11 @@ public class JwtAuthorizationFilter extends OncePerRequestFilter {
         }
         filterChain.doFilter(request, response);
     }
+
+    @Override
+    protected boolean shouldNotFilter(HttpServletRequest request) throws ServletException {
+        String path = request.getRequestURI();
+        // Ignorar todos los endpoints de WebSocket
+        return path.startsWith("/ws/");
+    }
 }
