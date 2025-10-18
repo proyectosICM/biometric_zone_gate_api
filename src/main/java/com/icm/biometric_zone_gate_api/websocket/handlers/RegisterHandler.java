@@ -80,14 +80,14 @@
                 String response = String.format("{\"ret\":\"reg\",\"result\":true,\"cloudtime\":\"%s\"}", cloudTime);
                 session.sendMessage(new TextMessage(response));
 
-                System.out.println("✅ Registro del dispositivo exitoso: " + sn);
+                System.out.println("Registro del dispositivo exitoso: " + sn);
 
 // --- 🔹 Disparar automáticamente comando GET USER LIST ---
                 try {
                     Thread.sleep(500); // opcional: pequeña espera de 0.5s
                     getUserListCommandSender.sendGetUserListCommand(session, true);
                 } catch (Exception ex) {
-                    System.err.println("⚠️ No se pudo enviar comando getuserlist: " + ex.getMessage());
+                    System.err.println("No se pudo enviar comando getuserlist: " + ex.getMessage());
                 }
     
             } catch (Exception e) {

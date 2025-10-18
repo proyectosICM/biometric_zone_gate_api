@@ -16,14 +16,14 @@ public class SetUserInfoResponseHandler {
             boolean result = json.path("result").asBoolean(false);
 
             if (result) {
-                System.out.println("✅ Dispositivo confirmó SET USER INFO exitoso.");
+                System.out.println("Dispositivo confirmó SET USER INFO exitoso.");
             } else {
                 int reason = json.path("reason").asInt(-1);
-                System.out.println("⚠️ Falló SET USER INFO. Reason=" + reason);
+                System.out.println("Falló SET USER INFO. Reason=" + reason);
             }
 
         } catch (Exception e) {
-            System.err.println("❌ Error al procesar respuesta de setuserinfo: " + e.getMessage());
+            System.err.println("Error al procesar respuesta de setuserinfo: " + e.getMessage());
             e.printStackTrace();
         }
     }

@@ -33,9 +33,9 @@ public class GetUserListResponseHandler {
                 return;
             }
 
-            System.out.println("📩 Respuesta GET USER LIST recibida desde el dispositivo:");
-            System.out.println(" ├─ Resultado: " + (result ? "ÉXITO" : "FALLO"));
-            System.out.println(" ├─ Cantidad de usuarios: " + count);
+            //System.out.println("📩 Respuesta GET USER LIST recibida desde el dispositivo:");
+            //System.out.println(" ├─ Resultado: " + (result ? "ÉXITO" : "FALLO"));
+            //System.out.println(" ├─ Cantidad de usuarios: " + count);
 
             if (!result) return;
 
@@ -51,7 +51,7 @@ public class GetUserListResponseHandler {
 
             Optional<DeviceModel> deviceOpt = deviceRepository.findBySn(sn);
             if (deviceOpt.isEmpty()) {
-                System.err.println("⚠️ Dispositivo no encontrado en BD: " + sn);
+                System.err.println("Dispositivo no encontrado en BD: " + sn);
                 return;
             }
 

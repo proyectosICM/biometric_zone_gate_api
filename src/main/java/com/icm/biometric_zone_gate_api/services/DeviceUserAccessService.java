@@ -108,10 +108,10 @@ public class DeviceUserAccessService {
                     }
                 }
             } catch (Exception e) {
-                System.err.println("⚠️ Error al enviar usuario al dispositivo: " + e.getMessage());
+                System.err.println("Error al enviar usuario al dispositivo: " + e.getMessage());
             }
         } else {
-            System.out.printf("⚠️ Dispositivo %s no conectado. Usuario pendiente de descarga.%n",
+            System.out.printf(" Dispositivo %s no conectado. Usuario pendiente de descarga.%n",
                     saved.getDevice().getSn());
         }
 

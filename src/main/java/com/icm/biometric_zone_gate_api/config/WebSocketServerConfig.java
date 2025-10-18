@@ -15,11 +15,7 @@ public class WebSocketServerConfig implements WebSocketConfigurer {
 
     private final DeviceMessageHandler deviceMessageHandler;
     private final DeviceWebSocketHandler deviceWebSocketHandler;
-/*
-    public WebSocketServerConfig(DeviceMessageHandler deviceMessageHandler) {
-        this.deviceMessageHandler = deviceMessageHandler;
-    }
-*/
+
     @Override
     public void registerWebSocketHandlers(WebSocketHandlerRegistry registry) {
         registry.addHandler(deviceWebSocketHandler, "/ws")

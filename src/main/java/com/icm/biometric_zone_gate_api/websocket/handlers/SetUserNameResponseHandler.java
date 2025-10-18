@@ -16,14 +16,14 @@ public class SetUserNameResponseHandler {
             boolean result = json.path("result").asBoolean(false);
 
             if (result) {
-                System.out.println("✅ Dispositivo confirmó SET USERNAME exitoso.");
+                System.out.println("Dispositivo confirmó SET USERNAME exitoso.");
             } else {
                 int reason = json.path("reason").asInt(-1);
-                System.out.println("⚠️ Falló SET USERNAME. Reason=" + reason);
+                System.out.println("Falló SET USERNAME. Reason=" + reason);
             }
 
         } catch (Exception e) {
-            System.err.println("❌ Error al procesar respuesta de setusername: " + e.getMessage());
+            System.err.println("Error al procesar respuesta de setusername: " + e.getMessage());
             e.printStackTrace();
         }
     }

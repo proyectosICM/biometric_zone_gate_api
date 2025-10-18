@@ -33,13 +33,13 @@ public class SetUserInfoCommandSender {
                     enrollId, name, backupNum, admin, record
             );
 
-            System.out.println("➡️ Enviando comando SET USER INFO al dispositivo...");
+            System.out.println("Enviando comando SET USER INFO al dispositivo...");
             System.out.println(message);
 
             session.sendMessage(new TextMessage(message));
 
         } catch (Exception e) {
-            System.err.println("❌ Error al enviar setuserinfo: " + e.getMessage());
+            System.err.println("Error al enviar setuserinfo: " + e.getMessage());
         }
     }
 }
