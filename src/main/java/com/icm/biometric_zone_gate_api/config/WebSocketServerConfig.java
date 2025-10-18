@@ -14,6 +14,7 @@ import org.springframework.web.socket.config.annotation.WebSocketHandlerRegistry
 public class WebSocketServerConfig implements WebSocketConfigurer {
 
     private final DeviceMessageHandler deviceMessageHandler;
+    private final DeviceWebSocketHandler deviceWebSocketHandler;
 /*
     public WebSocketServerConfig(DeviceMessageHandler deviceMessageHandler) {
         this.deviceMessageHandler = deviceMessageHandler;
@@ -21,9 +22,9 @@ public class WebSocketServerConfig implements WebSocketConfigurer {
 */
     @Override
     public void registerWebSocketHandlers(WebSocketHandlerRegistry registry) {
-        registry.addHandler(new DeviceWebSocketHandler(deviceMessageHandler), "/")
+        registry.addHandler(deviceWebSocketHandler, "/")
                 .setAllowedOrigins("*");
-        registry.addHandler(new DeviceWebSocketHandler(deviceMessageHandler), "/ws")
+        registry.addHandler(deviceWebSocketHandler, "/ws")
                 .setAllowedOrigins("*");
     }
 }
