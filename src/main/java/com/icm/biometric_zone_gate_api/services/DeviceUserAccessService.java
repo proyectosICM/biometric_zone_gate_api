@@ -91,6 +91,7 @@ public class DeviceUserAccessService {
         // Enviar al dispositivo si está conectado
         var session = sessionManager.getSessionBySn(saved.getDevice().getSn());
         System.err.println("Entro a crear 4");
+        System.err.println("Entro a crear -- " + session);
         if (session != null && session.isOpen()) {
             System.err.println("Entro a crear 5");
             try {
