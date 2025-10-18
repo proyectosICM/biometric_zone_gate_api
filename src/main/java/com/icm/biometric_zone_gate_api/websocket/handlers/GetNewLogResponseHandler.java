@@ -7,14 +7,31 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 import org.springframework.web.socket.WebSocketSession;
 
+import java.util.concurrent.ConcurrentHashMap;
+
+/**
+ * Maneja las respuestas del comando "getnewlog".
+ * Evita enviar más solicitudes cuando el dispositivo indica que no hay más registros.
+ */
 @Component
 @RequiredArgsConstructor
 public class GetNewLogResponseHandler {
 
     private final GetNewLogCommandSender getNewLogCommandSender;
 
+    // 🧠 Guardamos estado por sesión para evitar bucles
+    private final ConcurrentHashMap<String, Boolean> finishedSessions = new ConcurrentHashMap<>();
+
     public void handleGetNewLogResponse(JsonNode json, WebSocketSession session) {
         try {
+            String sessionId = session.getId();
+
+            // Si ya se completó la descarga, ignoramos mensajes adicionales
+            if (finishedSessions.getOrDefault(sessionId, false)) {
+                System.out.println("🛑 Ignorando respuesta de GETNEWLOG: ya se marcó como finalizado.");
+                return;
+            }
+
             boolean result = json.path("result").asBoolean(false);
             String ret = json.path("ret").asText("");
 
@@ -58,7 +75,7 @@ public class GetNewLogResponseHandler {
             } else {
                 // ✅ count == 0 → detener por completo
                 System.out.println("📭 No hay más registros nuevos. Fin del ciclo GETNEWLOG.");
-                return;
+                finishedSessions.put(sessionId, true);
             }
 
         } catch (Exception e) {
