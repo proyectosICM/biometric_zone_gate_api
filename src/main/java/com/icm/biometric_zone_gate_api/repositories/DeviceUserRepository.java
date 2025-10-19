@@ -9,5 +9,5 @@ import java.util.Optional;
 public interface DeviceUserRepository extends JpaRepository<DeviceUserModel, Long> {
     //List<DeviceUserModel> findByUserId(Long userId);
     //List<DeviceUserModel> findByDeviceId(Long deviceId);
-    Optional<DeviceUserModel> findByDeviceIdAndEnrollId(Long deviceId, Integer enrollId);
+    //Optional<DeviceUserModel> findByDeviceIdAndEnrollId(Long deviceId, Integer enrollId);
 }
