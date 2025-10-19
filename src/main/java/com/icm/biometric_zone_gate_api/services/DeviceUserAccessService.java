@@ -271,6 +271,7 @@ public class DeviceUserAccessService {
         }
 
         // Eliminar todos los DeviceUser asociados al dispositivo
+        /*
         List<DeviceUserModel> deviceUsers = deviceUserRepository.findByDeviceId(device.getId());
         if (!deviceUsers.isEmpty()) {
             deviceUserRepository.deleteAll(deviceUsers);
@@ -278,6 +279,7 @@ public class DeviceUserAccessService {
         } else {
             System.out.println("ℹ️ No hay registros de DeviceUser para eliminar para dispositivo " + sn);
         }
+         */
     }
 
 }
