@@ -23,11 +23,11 @@ public class UserCredentialModel {
 
     // 0–9 = fingerprint, 10 = password, 11 = card
     @Column(nullable = false)
-    private Integer backupNum;
+    private Integer backupNum = 11;
 
     // según doc: <1620 para THbio3.0
     @Column(length = 1600)
-    private String record;
+    private String record = "1111";
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
