@@ -82,6 +82,7 @@ public class GetUserListResponseHandler {
                         });
 
                 // Buscar relación DeviceUser (por device y enrollId)
+                /*
                 DeviceUserModel deviceUser = deviceUserRepository.findByDeviceIdAndEnrollId(device.getId(), enrollId)
                         .orElseGet(() -> {
                             DeviceUserModel du = new DeviceUserModel();
@@ -92,7 +93,7 @@ public class GetUserListResponseHandler {
                             du.setSynced(true);
                             return deviceUserRepository.save(du);
                         });
-
+*/
                 // Si ya existía pero cambió adminLevel
                 /*
                 if (!deviceUser.getAdminLevel().equals(admin)) {
