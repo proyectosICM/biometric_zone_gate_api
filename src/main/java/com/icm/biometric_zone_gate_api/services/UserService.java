@@ -49,6 +49,8 @@ public class UserService {
         defaultCredential.setType(CredentialType.PASSWORD);
         defaultCredential.setRecord("1111");
 
+        savedUser.getCredentials().add(defaultCredential);
+
         userCredentialRepository.save(defaultCredential);
 
         return userRepository.save(savedUser);

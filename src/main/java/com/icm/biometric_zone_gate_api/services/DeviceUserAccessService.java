@@ -57,52 +57,52 @@ public class DeviceUserAccessService {
         );
     }
 
-        public DeviceUserAccessDTO save(DeviceUserAccessDTO dto) {
-            DeviceUserAccessModel entity = DeviceUserAccessMapper.toEntity(dto);
+    public DeviceUserAccessDTO save(DeviceUserAccessDTO dto) {
+        DeviceUserAccessModel entity = DeviceUserAccessMapper.toEntity(dto);
 
-            // --- Validar relaciones obligatorias --
-            if (dto.getUserId() == null)
-                throw new RuntimeException("El campo userId es obligatorio.");
-            if (dto.getDeviceId() == null)
-                throw new RuntimeException("El campo deviceId es obligatorio.");
+        // --- Validar relaciones obligatorias --
+        if (dto.getUserId() == null)
+            throw new RuntimeException("El campo userId es obligatorio.");
+        if (dto.getDeviceId() == null)
+            throw new RuntimeException("El campo deviceId es obligatorio.");
 
-            // Asociar entidades
-            UserModel user = userRepository.findById(dto.getUserId())
-                    .orElseThrow(() -> new RuntimeException("Usuario no encontrado con ID: " + dto.getUserId()));
+        // Asociar entidades
+        UserModel user = userRepository.findById(dto.getUserId())
+                .orElseThrow(() -> new RuntimeException("Usuario no encontrado con ID: " + dto.getUserId()));
 
-            DeviceModel device = deviceRepository.findById(dto.getDeviceId())
-                    .orElseThrow(() -> new RuntimeException("Dispositivo no encontrado con ID: " + dto.getDeviceId()));
+        DeviceModel device = deviceRepository.findById(dto.getDeviceId())
+                .orElseThrow(() -> new RuntimeException("Dispositivo no encontrado con ID: " + dto.getDeviceId()));
 
-            entity.setUser(user);
-            entity.setDevice(device);
+        entity.setUser(user);
+        entity.setDevice(device);
 
-            // Guardar en base de datos
-            DeviceUserAccessModel saved = deviceUserAccessRepository.save(entity);
+        // Guardar en base de datos
+        DeviceUserAccessModel saved = deviceUserAccessRepository.save(entity);
 
-            // --- Intentar enviar al dispositivo ---
-            var session = sessionManager.getSessionBySn(saved.getDevice().getSn());
+        // --- Intentar enviar al dispositivo ---
+        var session = sessionManager.getSessionBySn(saved.getDevice().getSn());
 
-            if (session != null && session.isOpen()) {
-                try {
-                    if (user.getCredentials() == null || user.getCredentials().isEmpty()) {
-                        System.err.println("Usuario sin credenciales, no se puede enviar al dispositivo.");
-                    } else {
-                        for (UserCredentialModel credential : user.getCredentials()) {
-                            int enrollId = user.getId().intValue();
-                            String name = user.getName();
-                            int backupNum = credential.getBackupNum();
-                            int admin = user.getAdminLevel() != null ? user.getAdminLevel() : 0;
-                            String record = credential.getRecord();
+        if (session != null && session.isOpen()) {
+            try {
+                if (user.getCredentials() == null || user.getCredentials().isEmpty()) {
+                    System.err.println("Usuario sin credenciales, no se puede enviar al dispositivo.");
+                } else {
+                    for (UserCredentialModel credential : user.getCredentials()) {
+                        int enrollId = user.getId().intValue();
+                        String name = user.getName();
+                        int backupNum = credential.getBackupNum();
+                        int admin = user.getAdminLevel() != null ? user.getAdminLevel() : 0;
+                        String record = credential.getRecord();
 
-                            // 🔹 Imprimir TODOS los datos antes de enviar
-                            System.out.println("===== Datos del usuario a enviar =====");
-                            System.out.println("ID usuario: " + enrollId);
-                            System.out.println("Nombre: " + name);
-                            System.out.println("Admin level: " + admin);
-                            System.out.println("BackupNum: " + backupNum);
-                            System.out.println("Record: " + record);
-                            System.out.println("Dispositivo: " + device.getSn());
-                            System.out.println("=====================================");
+                        // 🔹 Imprimir TODOS los datos antes de enviar
+                        System.out.println("===== Datos del usuario a enviar =====");
+                        System.out.println("ID usuario: " + enrollId);
+                        System.out.println("Nombre: " + name);
+                        System.out.println("Admin level: " + admin);
+                        System.out.println("BackupNum: " + backupNum);
+                        System.out.println("Record: " + record);
+                        System.out.println("Dispositivo: " + device.getSn());
+                        System.out.println("=====================================");
 
                             /*
                             System.err.printf("Enviando usuario '%s' (ID=%d, backup=%d) al dispositivo %s%n",
@@ -110,23 +110,23 @@ public class DeviceUserAccessService {
 
                              */
 
-                            commandSender.sendSetUserInfoCommand(session, enrollId, name, backupNum, admin, record);
-                        }
-
-                        System.err.println("✅ Usuario enviado correctamente.");
+                        commandSender.sendSetUserInfoCommand(session, enrollId, name, backupNum, admin, record);
                     }
-                } catch (Exception e) {
-                    System.err.println("❌ Error al enviar usuario al dispositivo: " + e.getMessage());
+
+                    System.err.println("✅ Usuario enviado correctamente.");
                 }
-            } else {
-                System.out.printf(" Dispositivo %s no conectado. Usuario pendiente de descarga.%n",
-                        saved.getDevice().getSn());
+            } catch (Exception e) {
+                System.err.println("❌ Error al enviar usuario al dispositivo: " + e.getMessage());
             }
-    
-    
-            // Retornar DTO actualizado
-            return DeviceUserAccessMapper.toDTO(saved);
+        } else {
+            System.out.printf(" Dispositivo %s no conectado. Usuario pendiente de descarga.%n",
+                    saved.getDevice().getSn());
         }
+
+
+        // Retornar DTO actualizado
+        return DeviceUserAccessMapper.toDTO(saved);
+    }
 
     public Optional<DeviceUserAccessModel> update(Long id, DeviceUserAccessModel updatedAccess) {
         return deviceUserAccessRepository.findById(id).map(existing -> {
