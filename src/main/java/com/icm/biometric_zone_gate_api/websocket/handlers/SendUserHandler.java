@@ -78,10 +78,11 @@ public class SendUserHandler {
 
             // Guardar o actualizar credencial
             UserCredentialModel credential = userCredentialRepository
-                    .findByDeviceUserIdAndBackupNum(deviceUser.getId(), backupNum)
+                    .findByUserIdAndBackupNum(user.getId(), backupNum)
                     .orElseGet(() -> {
                         UserCredentialModel c = new UserCredentialModel();
-                        c.setDeviceUser(deviceUser);
+                        c.setUser(user);
+                        //c.setDevice(device);
                         c.setBackupNum(backupNum);
                         c.setType(type);
                         return c;

@@ -53,7 +53,7 @@ public class UserModel {
 
     @JsonIgnore
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<DeviceUserModel> deviceUsers = new ArrayList<>();
+    private List<UserCredentialModel> credentials = new ArrayList<>();
 
     @Column(nullable = false, updatable = false)
     @CreationTimestamp

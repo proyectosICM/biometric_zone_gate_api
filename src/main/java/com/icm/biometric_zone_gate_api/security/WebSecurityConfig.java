@@ -75,9 +75,8 @@ public class WebSecurityConfig {
                     auth.requestMatchers("/ws/**").permitAll();
                     auth.requestMatchers("/api/users/**").permitAll();
                     auth.requestMatchers("/api/companies/**").permitAll();
-                    auth.requestMatchers("/api/branches/**").permitAll();
-                    auth.requestMatchers("/api/v1/companies/**").permitAll();
-                    auth.requestMatchers(HttpMethod.GET, "/api/devices/*/user/*/*").permitAll();
+                    auth.requestMatchers("/api/user_credentials/**").permitAll();
+                    //auth.requestMatchers(HttpMethod.GET, "/api/devices/*/user/*/*").permitAll();
                     // .hasRole("ADMINISTRATOR");
                     auth.requestMatchers("/swagger-ui/**").permitAll();
                     auth.requestMatchers("/doc/**").permitAll();

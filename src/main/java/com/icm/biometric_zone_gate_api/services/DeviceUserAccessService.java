@@ -1,10 +1,7 @@
 package com.icm.biometric_zone_gate_api.services;
 
 import com.icm.biometric_zone_gate_api.dto.DeviceUserAccessDTO;
-import com.icm.biometric_zone_gate_api.models.DeviceModel;
-import com.icm.biometric_zone_gate_api.models.DeviceUserAccessModel;
-import com.icm.biometric_zone_gate_api.models.DeviceUserModel;
-import com.icm.biometric_zone_gate_api.models.UserModel;
+import com.icm.biometric_zone_gate_api.models.*;
 import com.icm.biometric_zone_gate_api.repositories.DeviceRepository;
 import com.icm.biometric_zone_gate_api.repositories.DeviceUserAccessRepository;
 import com.icm.biometric_zone_gate_api.repositories.DeviceUserRepository;
@@ -60,70 +57,63 @@ public class DeviceUserAccessService {
         );
     }
 
-    public DeviceUserAccessDTO save(DeviceUserAccessDTO dto) {
-        System.err.println("Entro a crear ");
-        // Convertir DTO a entidad base
-        DeviceUserAccessModel entity = DeviceUserAccessMapper.toEntity(dto);
+        public DeviceUserAccessDTO save(DeviceUserAccessDTO dto) {
+            DeviceUserAccessModel entity = DeviceUserAccessMapper.toEntity(dto);
 
-        // Validar y asignar relaciones obligatorias
-        if (dto.getUserId() != null) {
+            // --- Validar relaciones obligatorias --
+            if (dto.getUserId() == null)
+                throw new RuntimeException("El campo userId es obligatorio.");
+            if (dto.getDeviceId() == null)
+                throw new RuntimeException("El campo deviceId es obligatorio.");
+
+            // Asociar entidades
             UserModel user = userRepository.findById(dto.getUserId())
                     .orElseThrow(() -> new RuntimeException("Usuario no encontrado con ID: " + dto.getUserId()));
-            entity.setUser(user);
-        } else {
-            throw new RuntimeException("El campo userId es obligatorio.");
-        }
 
-        if (dto.getDeviceId() != null) {
             DeviceModel device = deviceRepository.findById(dto.getDeviceId())
                     .orElseThrow(() -> new RuntimeException("Dispositivo no encontrado con ID: " + dto.getDeviceId()));
+
+            entity.setUser(user);
             entity.setDevice(device);
-        } else {
-            throw new RuntimeException("El campo deviceId es obligatorio.");
-        }
-        System.err.println("Entro a crear 2");
-        // Guardar en base de datos
-        DeviceUserAccessModel saved = deviceUserAccessRepository.save(entity);
 
-        UserModel userFull = userRepository.findById(saved.getUser().getId())
-                .orElseThrow(() -> new RuntimeException("Usuario no encontrado tras guardar."));
-        System.err.println("Entro a crear 3");
-        // Enviar al dispositivo si está conectado
-        var session = sessionManager.getSessionBySn(saved.getDevice().getSn());
-        System.err.println("Entro a crear 4");
-        System.err.println("Entro a crear -- " + session);
+            // Guardar en base de datos
+            DeviceUserAccessModel saved = deviceUserAccessRepository.save(entity);
 
-        if (session != null && session.isOpen()) {
-            System.err.println("Entro a crear 5");
-            try {
-                if (!userFull.getDeviceUsers().isEmpty()) {
-                    var deviceUser = userFull.getDeviceUsers().get(0);
-                    System.err.println("Entro a crear 6");
-                    if (!deviceUser.getCredentials().isEmpty()) {
-                        var credential = deviceUser.getCredentials().get(0);
+            // --- Intentar enviar al dispositivo ---
+            var session = sessionManager.getSessionBySn(saved.getDevice().getSn());
 
-                        int enrollId = userFull.getId().intValue();
-                        String name = userFull.getName();
-                        int backupNum = credential.getBackupNum();
-                        int admin = userFull.getAdminLevel() != null ? userFull.getAdminLevel() : 0;
-                        String record = credential.getRecord();
-                        System.err.println("Enviando Usuario ");
-                        commandSender.sendSetUserInfoCommand(session, enrollId, name, backupNum, admin, record);
-                        System.err.println("Usuario Enviado");
+            if (session != null && session.isOpen()) {
+                try {
+                    if (user.getCredentials() == null || user.getCredentials().isEmpty()) {
+                        System.err.println("Usuario sin credenciales, no se puede enviar al dispositivo.");
+                    } else {
+                        for (UserCredentialModel credential : user.getCredentials()) {
+                            int enrollId = user.getId().intValue();
+                            String name = user.getName();
+                            int backupNum = credential.getBackupNum();
+                            int admin = user.getAdminLevel() != null ? user.getAdminLevel() : 0;
+                            String record = credential.getRecord();
+
+                            System.err.printf("Enviando usuario '%s' (ID=%d, backup=%d) al dispositivo %s%n",
+                                    name, enrollId, backupNum, device.getSn());
+
+                            commandSender.sendSetUserInfoCommand(session, enrollId, name, backupNum, admin, record);
+                        }
+
+                        System.err.println("✅ Usuario enviado correctamente.");
                     }
+                } catch (Exception e) {
+                    System.err.println("❌ Error al enviar usuario al dispositivo: " + e.getMessage());
                 }
-            } catch (Exception e) {
-                System.err.println("Error al enviar usuario al dispositivo: " + e.getMessage());
+            } else {
+                System.out.printf(" Dispositivo %s no conectado. Usuario pendiente de descarga.%n",
+                        saved.getDevice().getSn());
             }
-        } else {
-            System.out.printf(" Dispositivo %s no conectado. Usuario pendiente de descarga.%n",
-                    saved.getDevice().getSn());
+    
+    
+            // Retornar DTO actualizado
+            return DeviceUserAccessMapper.toDTO(saved);
         }
-
-
-        // Retornar DTO actualizado
-        return DeviceUserAccessMapper.toDTO(saved);
-    }
 
     public Optional<DeviceUserAccessModel> update(Long id, DeviceUserAccessModel updatedAccess) {
         return deviceUserAccessRepository.findById(id).map(existing -> {
@@ -157,11 +147,8 @@ public class DeviceUserAccessService {
 
         // Determinar tipo de credencial (si aplica)
         int backupNum = 0; // por defecto huella
-        if (user != null && !user.getDeviceUsers().isEmpty()) {
-            var deviceUser = user.getDeviceUsers().get(0);
-            if (!deviceUser.getCredentials().isEmpty()) {
-                backupNum = deviceUser.getCredentials().get(0).getBackupNum();
-            }
+        if (user != null && !user.getCredentials().isEmpty()) {
+            backupNum = user.getCredentials().get(0).getBackupNum();
         }
 
         if (session != null && session.isOpen()) {

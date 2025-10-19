@@ -25,17 +25,17 @@ public class UserCredentialModel {
     @Column(nullable = false)
     private Integer backupNum;
 
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
-    private CredentialType type;
-
     // según doc: <1620 para THbio3.0
     @Column(length = 1600)
     private String record;
 
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private CredentialType type;
+
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "device_user_id", referencedColumnName = "id", nullable = false)
-    private DeviceUserModel deviceUser;
+    @JoinColumn(name = "user_id", referencedColumnName = "id", nullable = false)
+    private UserModel user;
 
     @Column(nullable = false, updatable = false)
     @CreationTimestamp

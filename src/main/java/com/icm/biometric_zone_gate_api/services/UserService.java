@@ -1,5 +1,7 @@
 package com.icm.biometric_zone_gate_api.services;
 
+import com.icm.biometric_zone_gate_api.enums.CredentialType;
+import com.icm.biometric_zone_gate_api.models.UserCredentialModel;
 import com.icm.biometric_zone_gate_api.models.UserModel;
 import com.icm.biometric_zone_gate_api.repositories.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -35,7 +37,17 @@ public class UserService {
         if (user.getPassword() != null) {
             user.setPassword(passwordEncoder.encode(user.getPassword()));
         }
-        return userRepository.save(user);
+
+        UserModel savedUser = userRepository.save(user);
+
+        // 🧩 Crear credencial básica por defecto (password "1111")
+        UserCredentialModel defaultCredential = new UserCredentialModel();
+        defaultCredential.setUser(savedUser);
+        defaultCredential.setBackupNum(10); // 10 = contraseña
+        defaultCredential.setType(CredentialType.PASSWORD);
+        defaultCredential.setRecord(passwordEncoder.encode("1111"));
+
+        return userRepository.save(savedUser);
     }
 
     public Optional<UserModel> updateUser(Long id, UserModel updatedUser) {
