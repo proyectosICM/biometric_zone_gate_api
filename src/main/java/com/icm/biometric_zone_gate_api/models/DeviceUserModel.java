@@ -17,11 +17,7 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 @Entity
-@Table(name = "device_user",
-        uniqueConstraints = @UniqueConstraint(columnNames = {"device_id", "enroll_id"}),
-        indexes = {
-        @Index(name = "idx_device_user_device_enroll", columnList = "device_id, enroll_id")
-})
+@Table(name = "device_user")
 public class DeviceUserModel {
     /** ELIMINAR ESTA TABLA */
     @Id
