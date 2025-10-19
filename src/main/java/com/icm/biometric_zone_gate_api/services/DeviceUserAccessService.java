@@ -94,8 +94,21 @@ public class DeviceUserAccessService {
                             int admin = user.getAdminLevel() != null ? user.getAdminLevel() : 0;
                             String record = credential.getRecord();
 
+                            // 🔹 Imprimir TODOS los datos antes de enviar
+                            System.out.println("===== Datos del usuario a enviar =====");
+                            System.out.println("ID usuario: " + enrollId);
+                            System.out.println("Nombre: " + name);
+                            System.out.println("Admin level: " + admin);
+                            System.out.println("BackupNum: " + backupNum);
+                            System.out.println("Record: " + record);
+                            System.out.println("Dispositivo: " + device.getSn());
+                            System.out.println("=====================================");
+
+                            /*
                             System.err.printf("Enviando usuario '%s' (ID=%d, backup=%d) al dispositivo %s%n",
                                     name, enrollId, backupNum, device.getSn());
+
+                             */
 
                             commandSender.sendSetUserInfoCommand(session, enrollId, name, backupNum, admin, record);
                         }
