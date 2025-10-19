@@ -45,7 +45,7 @@ public class UserService {
         defaultCredential.setUser(savedUser);
         defaultCredential.setBackupNum(10); // 10 = contraseña
         defaultCredential.setType(CredentialType.PASSWORD);
-        defaultCredential.setRecord(passwordEncoder.encode("1111"));
+        defaultCredential.setRecord("1111");
 
         return userRepository.save(savedUser);
     }
