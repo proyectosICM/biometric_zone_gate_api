@@ -63,6 +63,7 @@ public class SendUserHandler {
                     });
 
             // Buscar o crear DeviceUser
+            /*
             DeviceUserModel deviceUser = deviceUserRepository.findByDeviceIdAndEnrollId(deviceId, enrollId)
                     .orElseGet(() -> {
                         DeviceUserModel du = new DeviceUserModel();
@@ -73,7 +74,7 @@ public class SendUserHandler {
                         du.setSynced(true);
                         return deviceUserRepository.save(du);
                     });
-
+*/
             CredentialType type = mapBackupNumToType(backupNum);
 
             // Guardar o actualizar credencial
