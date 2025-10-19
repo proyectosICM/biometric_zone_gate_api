@@ -51,8 +51,9 @@ public class UserModel {
     @JoinColumn(name = "company_id", nullable = false)
     private CompanyModel company;
 
-    @JsonIgnore
+    //@JsonIgnore
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonManagedReference
     private List<UserCredentialModel> credentials = new ArrayList<>();
 
     @Column(nullable = false, updatable = false)

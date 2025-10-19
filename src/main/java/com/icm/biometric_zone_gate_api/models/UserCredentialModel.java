@@ -1,5 +1,6 @@
 package com.icm.biometric_zone_gate_api.models;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.icm.biometric_zone_gate_api.enums.CredentialType;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
@@ -35,6 +36,7 @@ public class UserCredentialModel {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", referencedColumnName = "id", nullable = false)
+    @JsonBackReference
     private UserModel user;
 
     @Column(nullable = false, updatable = false)
