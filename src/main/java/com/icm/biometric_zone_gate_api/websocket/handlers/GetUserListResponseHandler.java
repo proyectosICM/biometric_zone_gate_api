@@ -85,8 +85,8 @@ public class GetUserListResponseHandler {
                 DeviceUserModel deviceUser = deviceUserRepository.findByDeviceIdAndEnrollId(device.getId(), enrollId)
                         .orElseGet(() -> {
                             DeviceUserModel du = new DeviceUserModel();
-                            du.setDevice(device);
-                            du.setUser(user);
+                            //du.setDevice(device);
+                            //du.setUser(user);
                             du.setEnrollId(enrollId);
                             du.setAdminLevel(admin);
                             du.setSynced(true);
@@ -94,10 +94,11 @@ public class GetUserListResponseHandler {
                         });
 
                 // Si ya existía pero cambió adminLevel
+                /*
                 if (!deviceUser.getAdminLevel().equals(admin)) {
                     deviceUser.setAdminLevel(admin);
                     deviceUserRepository.save(deviceUser);
-                }
+                }*/
 
                 // Registrar o actualizar credencial asociada
                 CredentialType type = mapBackupNumToType(backupNum);
