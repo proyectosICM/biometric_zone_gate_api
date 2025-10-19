@@ -44,6 +44,8 @@ public class UserService {
 
         UserModel savedUser = userRepository.save(user);
 
+        System.out.println("Usuario que llega " + user);
+
         // Si vienen credenciales desde el front
         if (user.getCredentials() != null && !user.getCredentials().isEmpty()) {
             for (UserCredentialModel credential : user.getCredentials()) {
@@ -65,7 +67,7 @@ public class UserService {
             defaultCredential.setUser(savedUser);
             defaultCredential.setBackupNum(10); // password
             defaultCredential.setType(CredentialType.PASSWORD);
-            defaultCredential.setRecord("1111");
+            defaultCredential.setRecord("2222");
             userCredentialRepository.save(defaultCredential);
 
             savedUser.getCredentials().add(defaultCredential);
