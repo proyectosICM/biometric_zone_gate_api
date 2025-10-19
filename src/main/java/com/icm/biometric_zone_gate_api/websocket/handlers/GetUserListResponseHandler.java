@@ -104,14 +104,14 @@ public class GetUserListResponseHandler {
                 if (type != CredentialType.UNKNOWN) {
 
                     Optional<UserCredentialModel> existing = userCredentialRepository
-                            .findByDeviceUserIdAndBackupNum(deviceUser.getId(), backupNum);
+                            .findByUserIdAndBackupNum(user.getId(), backupNum);
 
                     if (existing.isEmpty()) {
                         UserCredentialModel cred = new UserCredentialModel();
                         cred.setBackupNum(backupNum);
                         cred.setType(type);
                         cred.setRecord(null); // En este punto el dispositivo solo envía tipo, no datos
-                        cred.setDeviceUser(deviceUser);
+                        cred.setUser(user);
                         userCredentialRepository.save(cred);
                         System.out.println("     ✅ Credencial registrada: " + type + " (backupNum=" + backupNum + ")");
                     } else {
