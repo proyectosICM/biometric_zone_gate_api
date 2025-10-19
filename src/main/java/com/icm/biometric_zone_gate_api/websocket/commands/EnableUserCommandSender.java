@@ -18,7 +18,7 @@ public class EnableUserCommandSender {
      * @param enrollId ID de enrolamiento del usuario.
      * @param enabled true para habilitar, false para deshabilitar.
      */
-    public void sendEnableUserCommand(WebSocketSession session, int enrollId, boolean enabled) {
+    public void sendEnableUserCommand(WebSocketSession session, Long enrollId, boolean enabled) {
         try {
             int enflag = enabled ? 1 : 0;
 

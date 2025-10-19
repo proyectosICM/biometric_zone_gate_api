@@ -118,28 +118,30 @@ public class DeviceService {
 
     public void broadcastUserNameUpdate(UserModel user) {
         try {
-            List<DeviceUserModel> links = deviceUserRepository.findByUserId(user.getId());
+            List<DeviceUserAccessModel> links = deviceUserAccessRepository.findByUserId(user.getId());
 
             if (links.isEmpty()) {
                 System.out.println("ℹ️ Usuario " + user.getUsername() + " no está asociado a ningún dispositivo.");
                 return;
             }
 
-            for (DeviceUserModel link : links) {
+            for (DeviceUserAccessModel link : links) {
                 DeviceModel device = link.getDevice();
                 String sn = device.getSn();
                 WebSocketSession session = deviceSessionManager.getSessionBySn(sn);
 
                 if (session != null && session.isOpen()) {
                     System.out.println("📡 Enviando SET USERNAME al dispositivo SN=" + sn +
-                            " (enrollId=" + link.getEnrollId() + ", name=" + user.getName() + ")");
+                            " (enrollId=" + link.getUser().getId() + ", name=" + user.getName() + ")");
 
-                    var record = new SetUserNameCommandSender.UserRecord(link.getEnrollId(), user.getName());
+                    var record = new SetUserNameCommandSender.UserRecord(link.getUser().getId(), user.getName());
                     setUserNameCommandSender.sendSetUserNameCommand(session, List.of(record));
                 } else {
                     System.out.println("⚠️ Dispositivo SN=" + sn + " no conectado. No se puede actualizar nombre.");
                 }
             }
+
+
 
         } catch (Exception e) {
             System.err.println("❌ Error al propagar cambio de nombre: " + e.getMessage());
@@ -149,14 +151,14 @@ public class DeviceService {
 
     public void broadcastUserEnableState(UserModel user) {
         try {
-            List<DeviceUserModel> links = deviceUserRepository.findByUserId(user.getId());
+            List<DeviceUserAccessModel> links = deviceUserAccessRepository.findByUserId(user.getId());
 
             if (links.isEmpty()) {
                 System.out.println("ℹ️ Usuario " + user.getUsername() + " no está asociado a ningún dispositivo.");
                 return;
             }
 
-            for (DeviceUserModel link : links) {
+            for (DeviceUserAccessModel link : links) {
                 DeviceModel device = link.getDevice();
                 String sn = device.getSn();
                 WebSocketSession session = deviceSessionManager.getSessionBySn(sn);
@@ -165,9 +167,9 @@ public class DeviceService {
                     boolean enabled = Boolean.TRUE.equals(user.getEnabled());
 
                     System.out.println("📡 Enviando ENABLE USER al dispositivo SN=" + sn +
-                            " (enrollId=" + link.getEnrollId() + ", enabled=" + enabled + ")");
+                            " (enrollId=" + link.getUser().getId() + ", enabled=" + enabled + ")");
 
-                    enableUserCommandSender.sendEnableUserCommand(session, link.getEnrollId(), enabled);
+                    enableUserCommandSender.sendEnableUserCommand(session, link.getUser().getId(), enabled);
 
                 } else {
                     System.out.println("⚠️ Dispositivo SN=" + sn + " no conectado. No se puede actualizar estado.");
