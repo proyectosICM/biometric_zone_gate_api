@@ -55,7 +55,7 @@ public class UserModel {
 
     //@JsonIgnore
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
-    @JsonManagedReference
+    @JsonManagedReference("user-credentials")
     private List<UserCredentialModel> credentials = new ArrayList<>();
 
     @Column(nullable = false, updatable = false)
