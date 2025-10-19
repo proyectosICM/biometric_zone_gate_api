@@ -3,6 +3,7 @@ package com.icm.biometric_zone_gate_api.services;
 import com.icm.biometric_zone_gate_api.enums.CredentialType;
 import com.icm.biometric_zone_gate_api.models.UserCredentialModel;
 import com.icm.biometric_zone_gate_api.models.UserModel;
+import com.icm.biometric_zone_gate_api.repositories.UserCredentialRepository;
 import com.icm.biometric_zone_gate_api.repositories.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -20,6 +21,7 @@ public class UserService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final DeviceService deviceService;
+    private final UserCredentialRepository userCredentialRepository;
 
     public List<UserModel> getAllUsers() {
         return userRepository.findAll();
@@ -46,6 +48,8 @@ public class UserService {
         defaultCredential.setBackupNum(10); // 10 = contraseña
         defaultCredential.setType(CredentialType.PASSWORD);
         defaultCredential.setRecord("1111");
+
+        userCredentialRepository.save(defaultCredential);
 
         return userRepository.save(savedUser);
     }
