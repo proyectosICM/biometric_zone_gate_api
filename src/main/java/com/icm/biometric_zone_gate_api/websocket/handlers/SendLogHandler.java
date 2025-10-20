@@ -110,17 +110,17 @@ public class SendLogHandler {
                         oldLog.setAction(AccessType.EXIT);
                         accessLogsService.createLog(oldLog);
                         System.out.printf("⚠️ Se cerró log anterior abierto del usuario %s%n", user.getUsername());
+                    } else {
+                        AccessLogsModel log = new AccessLogsModel();
+                        log.setEntryTime(logTime);
+                        log.setUser(user);
+                        log.setDevice(device);
+                        log.setCompany(device.getCompany());
+                        log.setEventType(eventType);
+                        log.setAction(AccessType.ENTRY);
+                        log.setSuccess(true);
+                        accessLogsService.createLog(log);
                     }
-
-                    AccessLogsModel log = new AccessLogsModel();
-                    log.setEntryTime(logTime);
-                    log.setUser(user);
-                    log.setDevice(device);
-                    log.setCompany(device.getCompany());
-                    log.setEventType(eventType);
-                    log.setAction(AccessType.ENTRY);
-                    log.setSuccess(true);
-                    accessLogsService.createLog(log);
                 } else { // Salida
                     Optional<AccessLogsModel> openLog = accessLogsService.getOpenLogForUserDevice(user, device);
                     if (openLog.isPresent()) {
