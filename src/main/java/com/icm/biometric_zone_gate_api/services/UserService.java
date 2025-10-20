@@ -14,6 +14,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
@@ -49,35 +50,49 @@ public class UserService {
 
         UserModel savedUser = userRepository.save(user);
 
+        if (savedUser.getCredentials() == null) {
+            savedUser.setCredentials(new ArrayList<>(   ));
+        }
+
         System.out.println("DTO que llega " + dto);
         System.out.println("Usuario que llega " + user);
 
-        if (user.getCredentials() != null && !user.getCredentials().isEmpty()) {
-            for (UserCredentialModel credential : user.getCredentials()) {
-                credential.setUser(savedUser);
-                if (credential.getType() == null) credential.setType(CredentialType.UNKNOWN);
 
-                // Si no viene backupNum, definir según tipo
-                if (credential.getBackupNum() == null) {
-                    if (credential.getType() == CredentialType.PASSWORD) credential.setBackupNum(10);
-                    else if (credential.getType() == CredentialType.CARD) credential.setBackupNum(11);
-                    else credential.setBackupNum(0); // por ejemplo fingerprint
+        // 5️⃣ Manejo de credenciales personalizadas
+        if (dto.getCredentials() != null && !dto.getCredentials().isEmpty()) {
+            for (UserCredentialModel credential : user.getCredentials()) {
+                credential.setUser(savedUser); // 🔥 Enlace necesario
+                if (credential.getType() == null) {
+                    credential.setType(CredentialType.UNKNOWN);
                 }
 
+                // Asignar backupNum según tipo si no se envió
+                if (credential.getBackupNum() == null) {
+                    switch (credential.getType()) {
+                        case PASSWORD -> credential.setBackupNum(10);
+                        case CARD -> credential.setBackupNum(11);
+                        case FINGERPRINT -> credential.setBackupNum(0);
+                        default -> credential.setBackupNum(99);
+                    }
+                }
+
+                // Guardamos la credencial
                 userCredentialRepository.save(credential);
+                savedUser.getCredentials().add(credential);
             }
         } else {
-            // Si NO vienen credenciales, crear una por defecto (password "1111")
+            // 6️⃣ Si no hay credenciales, creamos una por defecto
             UserCredentialModel defaultCredential = new UserCredentialModel();
             defaultCredential.setUser(savedUser);
-            defaultCredential.setBackupNum(10); // password
             defaultCredential.setType(CredentialType.PASSWORD);
-            defaultCredential.setRecord("2222");
-            userCredentialRepository.save(defaultCredential);
+            defaultCredential.setBackupNum(10);
+            defaultCredential.setRecord("1111");
 
+            userCredentialRepository.save(defaultCredential);
             savedUser.getCredentials().add(defaultCredential);
         }
 
+        // 7️⃣ Retornamos el usuario con sus credenciales correctamente enlazadas
         return savedUser;
     }
 
