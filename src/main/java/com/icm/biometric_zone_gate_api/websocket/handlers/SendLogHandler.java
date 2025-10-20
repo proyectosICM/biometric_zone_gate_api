@@ -96,8 +96,22 @@ public class SendLogHandler {
 
                 UserModel user = optUser.get();
 
+                // Buscar log abierto (sin salida) para este usuario y dispositivo
+                Optional<AccessLogsModel> openLogOpt = accessLogsService.getOpenLogForUserDevice(user, device);
+
                 // Crear o actualizar log
                 if (inout == 0) { // Entrada
+                    // Si hay un log abierto anterior, se cierra automáticamente
+                    if (openLogOpt.isPresent()) {
+                        AccessLogsModel oldLog = openLogOpt.get();
+                        oldLog.setExitTime(logTime);
+                        long duration = Duration.between(oldLog.getEntryTime(), logTime).getSeconds();
+                        oldLog.setDurationSeconds(duration);
+                        oldLog.setAction(AccessType.EXIT);
+                        accessLogsService.createLog(oldLog);
+                        System.out.printf("⚠️ Se cerró log anterior abierto del usuario %s%n", user.getUsername());
+                    }
+
                     AccessLogsModel log = new AccessLogsModel();
                     log.setEntryTime(logTime);
                     log.setUser(user);
@@ -134,7 +148,8 @@ public class SendLogHandler {
             e.printStackTrace();
             try {
                 session.sendMessage(new TextMessage("{\"ret\":\"sendlog\",\"result\":false,\"reason\":1}"));
-            } catch (Exception ignored) {}
+            } catch (Exception ignored) {
+            }
         }
     }
 }
