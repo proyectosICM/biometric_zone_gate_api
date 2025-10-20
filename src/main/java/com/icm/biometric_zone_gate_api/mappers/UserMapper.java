@@ -33,19 +33,7 @@ public class UserMapper {
                     .orElseThrow(() -> new RuntimeException("Empresa no encontrada")));
         }
 
-        List<UserCredentialModel> credentials = new ArrayList<>();
-
-        if (dto.getCredentials() != null && !dto.getCredentials().isEmpty()) {
-            for (UserCredentialDTO credDto : dto.getCredentials()) {
-                UserCredentialModel cred = new UserCredentialModel();
-                cred.setType(CredentialType.valueOf(credDto.getType()));
-                cred.setBackupNum(credDto.getBackupNum());
-                cred.setRecord(credDto.getRecord());
-                credentials.add(cred);
-            }
-        }
-
-        user.setCredentials(credentials);
+        user.setCredentials(new ArrayList<>());
 
         return user;
     }

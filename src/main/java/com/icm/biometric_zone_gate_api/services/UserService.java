@@ -100,6 +100,7 @@ public class UserService {
 
         return savedUser;
     }
+    
     @Transactional
     public Optional<UserModel> updateUser(Long id, UserModel updatedUser) {
         return userRepository.findById(id).map(user -> {
