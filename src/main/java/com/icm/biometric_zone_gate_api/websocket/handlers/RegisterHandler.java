@@ -82,7 +82,7 @@
 
                 System.out.println("Registro del dispositivo exitoso: " + sn);
 
-// --- 🔹 Disparar automáticamente comando GET USER LIST ---
+// ---  Disparar automáticamente comando GET USER LIST ---
                 try {
                     Thread.sleep(500); // opcional: pequeña espera de 0.5s
                     getUserListCommandSender.sendGetUserListCommand(session, true);

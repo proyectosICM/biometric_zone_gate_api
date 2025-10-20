@@ -7,6 +7,7 @@ import com.icm.biometric_zone_gate_api.repositories.DeviceRepository;
 import com.icm.biometric_zone_gate_api.repositories.DeviceUserRepository;
 import com.icm.biometric_zone_gate_api.repositories.UserCredentialRepository;
 import com.icm.biometric_zone_gate_api.repositories.UserRepository;
+import com.icm.biometric_zone_gate_api.websocket.commands.GetUserInfoCommandSender;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 import org.springframework.web.socket.WebSocketSession;
@@ -21,6 +22,8 @@ public class GetUserListResponseHandler {
     private final DeviceRepository deviceRepository;
     private final DeviceUserRepository deviceUserRepository;
     private final UserCredentialRepository userCredentialRepository;
+    private final GetUserInfoCommandSender getUserInfoCommandSender;
+
 
     public void handleGetUserListResponse(JsonNode json, WebSocketSession session) {
         try {
@@ -29,7 +32,7 @@ public class GetUserListResponseHandler {
 
             String sn = (String) session.getAttributes().get("sn");
             if (sn == null) {
-                System.err.println("⚠️ No se encontró SN asociado a la sesión: " + session.getId());
+                System.err.println("No se encontró SN asociado a la sesión: " + session.getId());
                 return;
             }
 
@@ -44,11 +47,13 @@ public class GetUserListResponseHandler {
                     int enrollId = userNode.path("enrollid").asInt();
                     int admin = userNode.path("admin").asInt();
                     int backupNum = userNode.path("backupnum").asInt();
+                    getUserInfoCommandSender.sendGetUserInfoCommand(session, enrollId, backupNum);
 
                     System.out.printf("   → User: enrollId=%d, admin=%d, backupNum=%d%n", enrollId, admin, backupNum);
                 }
             }
 
+            /*
             Optional<DeviceModel> deviceOpt = deviceRepository.findBySn(sn);
             if (deviceOpt.isEmpty()) {
                 System.err.println("Dispositivo no encontrado en BD: " + sn);
@@ -57,7 +62,7 @@ public class GetUserListResponseHandler {
 
             DeviceModel device = deviceOpt.get();
             CompanyModel company = device.getCompany();
-
+*/
             for (JsonNode userNode : json.path("record")) {
                 int enrollId = userNode.path("enrollid").asInt();
                 int admin = userNode.path("admin").asInt();
@@ -68,6 +73,7 @@ public class GetUserListResponseHandler {
                         enrollId, admin, backupNum);
 
                 // Buscar o crear el usuario por nombre
+                /*
                 UserModel user = userRepository.findByName(userName)
                         .orElseGet(() -> {
                             UserModel u = new UserModel();
@@ -102,6 +108,7 @@ public class GetUserListResponseHandler {
                 }*/
 
                 // Registrar o actualizar credencial asociada
+                /*
                 CredentialType type = mapBackupNumToType(backupNum);
                 if (type != CredentialType.UNKNOWN) {
 
@@ -121,7 +128,7 @@ public class GetUserListResponseHandler {
                     }
                 } else {
                     System.out.println("     ⚠️ Tipo de credencial desconocido para backupNum=" + backupNum);
-                }
+                }*/
             }
 
         } catch (Exception e) {

@@ -1,5 +1,6 @@
 package com.icm.biometric_zone_gate_api.websocket.commands;
 
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 import org.springframework.web.socket.TextMessage;
 import org.springframework.web.socket.WebSocketSession;
