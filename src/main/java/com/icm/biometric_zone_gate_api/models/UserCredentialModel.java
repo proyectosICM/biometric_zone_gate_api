@@ -38,7 +38,7 @@ public class UserCredentialModel {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", referencedColumnName = "id", nullable = false)
-    @JsonBackReference("user-credentials")
+    //@JsonBackReference("user-credentials")
     private UserModel user;
 
     @Column(nullable = false, updatable = false)
