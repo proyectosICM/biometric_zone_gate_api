@@ -52,15 +52,14 @@ public class UserService {
         if (user.getPassword() != null) {
             user.setPassword(passwordEncoder.encode(user.getPassword()));
         }
-
+        System.out.println("Antes de crear ");
         UserModel savedUser = userRepository.save(user);
+        System.out.println("Usuario creado  ");
+
 
         if (savedUser.getCredentials() == null) {
             savedUser.setCredentials(new ArrayList<>(   ));
         }
-
-
-
 
         // 5️⃣ Manejo de credenciales personalizadas
         if (dto.getCredentials() != null && !dto.getCredentials().isEmpty()) {
