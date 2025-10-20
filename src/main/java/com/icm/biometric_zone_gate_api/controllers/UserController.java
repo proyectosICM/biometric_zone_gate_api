@@ -1,5 +1,6 @@
 package com.icm.biometric_zone_gate_api.controllers;
 
+import com.icm.biometric_zone_gate_api.dto.UserDTO;
 import com.icm.biometric_zone_gate_api.models.UserModel;
 import com.icm.biometric_zone_gate_api.services.UserService;
 import lombok.RequiredArgsConstructor;
@@ -55,7 +56,7 @@ public class UserController {
     }
 
     @PostMapping
-    public ResponseEntity<UserModel> createUser(@RequestBody UserModel user) {
+    public ResponseEntity<UserModel> createUser(@RequestBody UserDTO user) {
         UserModel savedUser = userService.createUser(user);
         return ResponseEntity.ok(savedUser);
     }
