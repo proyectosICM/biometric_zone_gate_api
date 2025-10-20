@@ -1,6 +1,8 @@
 package com.icm.biometric_zone_gate_api.services;
 
+import com.icm.biometric_zone_gate_api.dto.UserDTO;
 import com.icm.biometric_zone_gate_api.enums.CredentialType;
+import com.icm.biometric_zone_gate_api.mappers.UserMapper;
 import com.icm.biometric_zone_gate_api.models.UserCredentialModel;
 import com.icm.biometric_zone_gate_api.models.UserModel;
 import com.icm.biometric_zone_gate_api.repositories.UserCredentialRepository;
@@ -23,6 +25,7 @@ public class UserService {
     private final PasswordEncoder passwordEncoder;
     private final DeviceService deviceService;
     private final UserCredentialRepository userCredentialRepository;
+    private final UserMapper userMapper;
 
     public List<UserModel> getAllUsers() {
         return userRepository.findAll();
@@ -37,16 +40,18 @@ public class UserService {
     }
 
     @Transactional
-    public UserModel createUser(UserModel user) {
+    public UserModel createUser(UserDTO dto) {
+        UserModel user = userMapper.toEntity(dto);
+
         if (user.getPassword() != null) {
             user.setPassword(passwordEncoder.encode(user.getPassword()));
         }
 
         UserModel savedUser = userRepository.save(user);
 
+        System.out.println("DTO que llega " + dto);
         System.out.println("Usuario que llega " + user);
 
-        // Si vienen credenciales desde el front
         if (user.getCredentials() != null && !user.getCredentials().isEmpty()) {
             for (UserCredentialModel credential : user.getCredentials()) {
                 credential.setUser(savedUser);
@@ -73,7 +78,7 @@ public class UserService {
             savedUser.getCredentials().add(defaultCredential);
         }
 
-        return userRepository.save(savedUser);
+        return savedUser;
     }
 
     @Transactional
