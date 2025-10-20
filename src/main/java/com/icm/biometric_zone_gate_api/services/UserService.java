@@ -1,5 +1,6 @@
 package com.icm.biometric_zone_gate_api.services;
 
+import com.icm.biometric_zone_gate_api.dto.UserCredentialDTO;
 import com.icm.biometric_zone_gate_api.dto.UserDTO;
 import com.icm.biometric_zone_gate_api.enums.CredentialType;
 import com.icm.biometric_zone_gate_api.mappers.UserMapper;
@@ -60,42 +61,43 @@ public class UserService {
 
         // 5️⃣ Manejo de credenciales personalizadas
         if (dto.getCredentials() != null && !dto.getCredentials().isEmpty()) {
-            for (UserCredentialModel credential : dto.getCredentials()) {
+            for (UserCredentialDTO credDto : dto.getCredentials()) {
+                UserCredentialModel credential = new UserCredentialModel();
                 credential.setUser(savedUser);
-                if (credential.getType() == null) {
-                    credential.setType(CredentialType.UNKNOWN);
-                }
+                credential.setType(
+                        credDto.getType() != null
+                                ? CredentialType.valueOf(credDto.getType())
+                                : CredentialType.UNKNOWN
+                );
+                credential.setRecord(credDto.getRecord());
 
-                // Asignar backupNum según tipo si no se envió
-                if (credential.getBackupNum() == null) {
+                if (credDto.getBackupNum() == null) {
                     switch (credential.getType()) {
                         case PASSWORD -> credential.setBackupNum(10);
                         case CARD -> credential.setBackupNum(11);
                         case FINGERPRINT -> credential.setBackupNum(0);
                         default -> credential.setBackupNum(99);
                     }
+                } else {
+                    credential.setBackupNum(credDto.getBackupNum());
                 }
 
-                // Guardamos la credencial
                 userCredentialRepository.save(credential);
                 savedUser.getCredentials().add(credential);
             }
         } else {
-            // 6️⃣ Si no hay credenciales, creamos una por defecto
+            // Credencial por defecto
             UserCredentialModel defaultCredential = new UserCredentialModel();
             defaultCredential.setUser(savedUser);
             defaultCredential.setType(CredentialType.PASSWORD);
             defaultCredential.setBackupNum(10);
             defaultCredential.setRecord("1111");
-
             userCredentialRepository.save(defaultCredential);
             savedUser.getCredentials().add(defaultCredential);
         }
 
-        // 7️⃣ Retornamos el usuario con sus credenciales correctamente enlazadas
         return savedUser;
     }
-
     @Transactional
     public Optional<UserModel> updateUser(Long id, UserModel updatedUser) {
         return userRepository.findById(id).map(user -> {
