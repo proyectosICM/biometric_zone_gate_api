@@ -43,7 +43,11 @@ public class UserService {
 
     @Transactional
     public UserModel createUser(UserDTO dto) {
+
         UserModel user = userMapper.toEntity(dto);
+
+        System.out.println("DTO que llega " + dto);
+        System.out.println("Usuario que llega " + user);
 
         if (user.getPassword() != null) {
             user.setPassword(passwordEncoder.encode(user.getPassword()));
@@ -55,8 +59,7 @@ public class UserService {
             savedUser.setCredentials(new ArrayList<>(   ));
         }
 
-        System.out.println("DTO que llega " + dto);
-        System.out.println("Usuario que llega " + user);
+
 
 
         // 5️⃣ Manejo de credenciales personalizadas
