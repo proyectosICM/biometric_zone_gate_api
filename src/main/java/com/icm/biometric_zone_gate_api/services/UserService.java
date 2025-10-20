@@ -60,8 +60,8 @@ public class UserService {
 
         // 5️⃣ Manejo de credenciales personalizadas
         if (dto.getCredentials() != null && !dto.getCredentials().isEmpty()) {
-            for (UserCredentialModel credential : user.getCredentials()) {
-                credential.setUser(savedUser); // 🔥 Enlace necesario
+            for (UserCredentialModel credential : dto.getCredentials()) {
+                credential.setUser(savedUser);
                 if (credential.getType() == null) {
                     credential.setType(CredentialType.UNKNOWN);
                 }
