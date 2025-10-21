@@ -54,7 +54,7 @@ public class GetUserInfoResponseHandler {
                 DeviceModel device = deviceOpt.get();
                 CompanyModel company = device.getCompany();
 
-                // Buscar o crear usuario
+                // --- Buscar usuario por nombre ---
                 UserModel user = userRepository.findByName(name)
                         .orElseGet(() -> {
                             UserModel u = new UserModel();
