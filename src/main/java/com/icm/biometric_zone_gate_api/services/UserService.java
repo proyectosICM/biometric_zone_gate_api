@@ -17,7 +17,9 @@ import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -134,24 +136,46 @@ public class UserService {
             }
 
             // 🧩 Manejar credenciales actualizadas
-            if (updatedUser.getCredentials() != null && !updatedUser.getCredentials().isEmpty()) {
-                // Eliminar credenciales anteriores (para simplificar sincronización)
-                userCredentialRepository.deleteAll(user.getCredentials());
-                user.getCredentials().clear();
+            if (updatedUser.getCredentials() != null) {
+                Map<Long, UserCredentialModel> existingMap = user.getCredentials().stream()
+                        .collect(Collectors.toMap(UserCredentialModel::getId, c -> c));
+
+                List<UserCredentialModel> finalList = new ArrayList<>();
 
                 for (UserCredentialModel newCred : updatedUser.getCredentials()) {
-                    newCred.setUser(user);
-                    if (newCred.getType() == null) newCred.setType(CredentialType.UNKNOWN);
+                    UserCredentialModel existing = null;
 
-                    if (newCred.getBackupNum() == null) {
-                        if (newCred.getType() == CredentialType.PASSWORD) newCred.setBackupNum(10);
-                        else if (newCred.getType() == CredentialType.CARD) newCred.setBackupNum(11);
-                        else newCred.setBackupNum(0);
+                    // Si viene con ID, tratamos de actualizar
+                    if (newCred.getId() != null) {
+                        existing = existingMap.get(newCred.getId());
                     }
 
-                    userCredentialRepository.save(newCred);
-                    user.getCredentials().add(newCred);
+                    if (existing != null) {
+                        // Actualizar campos
+                        existing.setType(newCred.getType() != null ? newCred.getType() : existing.getType());
+                        existing.setRecord(newCred.getRecord() != null ? newCred.getRecord() : existing.getRecord());
+                        existing.setBackupNum(newCred.getBackupNum() != null ? newCred.getBackupNum() : existing.getBackupNum());
+                        finalList.add(existing);
+                    } else {
+                        // Crear nueva credencial
+                        newCred.setUser(user);
+                        if (newCred.getType() == null) newCred.setType(CredentialType.UNKNOWN);
+
+                        if (newCred.getBackupNum() == null) {
+                            switch (newCred.getType()) {
+                                case PASSWORD -> newCred.setBackupNum(10);
+                                case CARD -> newCred.setBackupNum(11);
+                                case FINGERPRINT -> newCred.setBackupNum(0);
+                                default -> newCred.setBackupNum(99);
+                            }
+                        }
+                        finalList.add(newCred);
+                    }
                 }
+
+                // Reemplaza la lista entera para que JPA elimine las no incluidas
+                user.getCredentials().clear();
+                user.getCredentials().addAll(finalList);
             }
 
             UserModel saved = userRepository.save(user);

@@ -33,7 +33,25 @@ public class UserMapper {
                     .orElseThrow(() -> new RuntimeException("Empresa no encontrada")));
         }
 
-        user.setCredentials(new ArrayList<>());
+        // 🔹 Mapear credenciales si existen
+        List<UserCredentialModel> credentials = new ArrayList<>();
+        if (dto.getCredentials() != null && !dto.getCredentials().isEmpty()) {
+            for (UserCredentialDTO cdto : dto.getCredentials()) {
+                UserCredentialModel cred = new UserCredentialModel();
+
+                cred.setId(cdto.getId()); // ✅ conservar ID si existe
+                cred.setType(cdto.getType() != null
+                        ? CredentialType.valueOf(cdto.getType())
+                        : CredentialType.UNKNOWN);
+                cred.setBackupNum(cdto.getBackupNum());
+                cred.setRecord(cdto.getRecord());
+                cred.setUser(user);
+
+                credentials.add(cred);
+            }
+        }
+
+        user.setCredentials(credentials);
 
         return user;
     }
@@ -53,6 +71,7 @@ public class UserMapper {
             List<UserCredentialDTO> creds = new ArrayList<>();
             for (UserCredentialModel c : user.getCredentials()) {
                 UserCredentialDTO cdto = new UserCredentialDTO();
+                cdto.setId(c.getId());
                 cdto.setType(c.getType() != null ? c.getType().toString() : "UNKNOWN");
                 cdto.setBackupNum(c.getBackupNum());
                 cdto.setRecord(c.getRecord());

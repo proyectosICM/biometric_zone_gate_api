@@ -4,6 +4,7 @@ import lombok.Data;
 
 @Data
 public class UserCredentialDTO {
+    private Long id;
     private String type;
     private Integer backupNum;
     private String record;
