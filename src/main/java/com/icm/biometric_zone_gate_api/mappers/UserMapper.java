@@ -20,7 +20,7 @@ public class UserMapper {
 
     public UserModel toEntity(UserDTO dto) {
         UserModel user = new UserModel();
-
+        user.setId(dto.getId());
         user.setName(dto.getName());
         user.setUsername(dto.getUsername());
         user.setEmail(dto.getEmail());
@@ -60,14 +60,19 @@ public class UserMapper {
 
     public UserDTO toDTO(UserModel user) {
         UserDTO dto = new UserDTO();
-
+        dto.setId(user.getId());
         dto.setName(user.getName());
         dto.setUsername(user.getUsername());
         dto.setEmail(user.getEmail());
         dto.setPassword(user.getPassword());
-        dto.setCompanyId(user.getCompany() != null ? user.getCompany().getId() : null);
         dto.setAdminLevel(user.getAdminLevel());
         dto.setEnabled(user.getEnabled());
+
+        if (user.getCompany() != null) {
+            dto.setCompanyId(user.getCompany().getId());
+            dto.setCompanyName(user.getCompany().getName());
+        }
+
 
         if (user.getCredentials() != null && !user.getCredentials().isEmpty()) {
             List<UserCredentialDTO> creds = new ArrayList<>();
