@@ -33,18 +33,6 @@ public class UserCredentialController {
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
     }
-/*
-    @GetMapping("/user/{userId}")
-    public ResponseEntity<List<UserCredentialModel>> getCredentialsByUserId(@PathVariable Long userId) {
-        return ResponseEntity.ok(userCredentialService.getCredentialsByUserId(userId));
-    }
-
-    @GetMapping("/user/{userId}/page")
-    public ResponseEntity<Page<UserCredentialModel>> getCredentialsByUserIdPaged(
-            @PathVariable Long userId, Pageable pageable) {
-        return ResponseEntity.ok(userCredentialService.getCredentialsByUserId(userId, pageable));
-    }
- */
 
     @PostMapping
     public ResponseEntity<UserCredentialModel> createCredential(@RequestBody UserCredentialModel credential) {
@@ -64,5 +52,16 @@ public class UserCredentialController {
         return userCredentialService.deleteCredential(id)
                 ? ResponseEntity.noContent().build()
                 : ResponseEntity.notFound().build();
+    }
+
+    @GetMapping("/user/{userId}")
+    public ResponseEntity<List<UserCredentialModel>> getCredentialsByUserId(@PathVariable Long userId) {
+        return ResponseEntity.ok(userCredentialService.getCredentialsByUserId(userId));
+    }
+
+    @GetMapping("/user/{userId}/page")
+    public ResponseEntity<Page<UserCredentialModel>> getCredentialsByUserIdPaged(
+            @PathVariable Long userId, Pageable pageable) {
+        return ResponseEntity.ok(userCredentialService.getCredentialsByUserId(userId, pageable));
     }
 }

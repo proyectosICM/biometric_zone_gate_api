@@ -11,9 +11,9 @@ import java.util.Optional;
 public interface UserCredentialRepository extends JpaRepository<UserCredentialModel, Long> {
     Optional<UserCredentialModel> findByUserIdAndBackupNum(Long userId, Integer backupNum);
     //Optional<UserCredentialModel> findByUserIdAndDeviceIdAndBackupNum(Long userId, Integer backupNum);
-    /*
+
     List<UserCredentialModel> findByUserId(Long userId);
     Page<UserCredentialModel> findByUserId(Long userId, Pageable pageable);
-    */
+
 
 }

@@ -36,7 +36,7 @@ public class UserCredentialService {
         return userCredentialRepository.findById(id).map(credential -> {
             credential.setBackupNum(updatedCredential.getBackupNum());
             credential.setRecord(updatedCredential.getRecord());
-            //credential.setUser(updatedCredential.getUser());
+            credential.setUser(updatedCredential.getUser());
             return userCredentialRepository.save(credential);
         });
     }
@@ -49,7 +49,7 @@ public class UserCredentialService {
         return false;
     }
 
-    /*
+
     public List<UserCredentialModel> getCredentialsByUserId(Long userId) {
         return userCredentialRepository.findByUserId(userId);
     }
@@ -57,5 +57,5 @@ public class UserCredentialService {
     public Page<UserCredentialModel> getCredentialsByUserId(Long userId, Pageable pageable) {
         return userCredentialRepository.findByUserId(userId, pageable);
     }
-     */
+
 }
