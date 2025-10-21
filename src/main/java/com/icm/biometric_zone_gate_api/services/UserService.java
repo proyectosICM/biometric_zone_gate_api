@@ -56,16 +56,11 @@ public class UserService {
 
         UserModel user = userMapper.toEntity(dto);
 
-        System.out.println("DTO que llega " + dto);
-        System.out.println("Usuario que llega " + user);
-
         if (user.getPassword() != null) {
             user.setPassword(passwordEncoder.encode(user.getPassword()));
         }
-        System.out.println("Antes de crear ");
-        UserModel savedUser = userRepository.save(user);
-        System.out.println("Usuario creado  ");
 
+        UserModel savedUser = userRepository.save(user);
 
         if (savedUser.getCredentials() == null) {
             savedUser.setCredentials(new ArrayList<>(   ));
