@@ -58,7 +58,7 @@ public class GetUserInfoResponseHandler {
                 CompanyModel company = device.getCompany();
 
                 // --- Buscar usuario por nombre ---
-                Optional<UserModel> userOpt = userRepository.findByName(name);
+                Optional<UserModel> userOpt = userRepository.findByNameAndCompany(name, company.getId());
 
                 if (userOpt.isEmpty()) {
                     // 🔹 Crear usuario nuevo porque no existe en servidor
