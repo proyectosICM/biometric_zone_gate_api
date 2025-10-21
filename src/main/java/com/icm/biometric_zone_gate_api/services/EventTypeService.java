@@ -15,7 +15,7 @@ import java.util.Optional;
 public class EventTypeService {
     private final EventTypeRepository eventTypeRepository;
 
-    private static final int MAX_EVENT_TYPES = 16;
+    private static final int MAX_EVENT_TYPES = 17;
 
     public List<EventTypeModel> getAllEventTypes() {
         return eventTypeRepository.findAll();
