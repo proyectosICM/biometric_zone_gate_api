@@ -34,6 +34,7 @@ public class UserMapper {
         }
 
         // 🔹 Mapear credenciales si existen
+        /*
         List<UserCredentialModel> credentials = new ArrayList<>();
         if (dto.getCredentials() != null && !dto.getCredentials().isEmpty()) {
             for (UserCredentialDTO cdto : dto.getCredentials()) {
@@ -52,7 +53,8 @@ public class UserMapper {
         }
 
         user.setCredentials(credentials);
-
+*/
+        user.setCredentials(new ArrayList<>());
         return user;
     }
 
