@@ -37,4 +37,33 @@ public class UserMapper {
 
         return user;
     }
+
+    public UserDTO toDTO(UserModel user) {
+        UserDTO dto = new UserDTO();
+
+        dto.setName(user.getName());
+        dto.setUsername(user.getUsername());
+        dto.setEmail(user.getEmail());
+        dto.setPassword(user.getPassword());
+        dto.setCompanyId(user.getCompany() != null ? user.getCompany().getId() : null);
+        dto.setAdminLevel(user.getAdminLevel());
+        dto.setEnabled(user.getEnabled());
+
+        if (user.getCredentials() != null && !user.getCredentials().isEmpty()) {
+            List<UserCredentialDTO> creds = new ArrayList<>();
+            for (UserCredentialModel c : user.getCredentials()) {
+                UserCredentialDTO cdto = new UserCredentialDTO();
+                cdto.setType(c.getType() != null ? c.getType().toString() : "UNKNOWN");
+                cdto.setBackupNum(c.getBackupNum());
+                cdto.setRecord(c.getRecord());
+                creds.add(cdto);
+            }
+            dto.setCredentials(creds);
+        } else {
+            dto.setCredentials(new ArrayList<>());
+        }
+
+        return dto;
+    }
+
 }

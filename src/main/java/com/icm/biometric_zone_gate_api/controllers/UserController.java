@@ -21,12 +21,12 @@ public class UserController {
     private final UserService userService;
 
     @GetMapping
-    public ResponseEntity<List<UserModel>> getAllUsers() {
+    public ResponseEntity<List<UserDTO>> getAllUsers() {
         return ResponseEntity.ok(userService.getAllUsers());
     }
 
     @GetMapping("page")
-    public ResponseEntity<Page<UserModel>> getAllUsers(   @RequestParam(defaultValue = "0") int page,
+    public ResponseEntity<Page<UserDTO>> getAllUsers(   @RequestParam(defaultValue = "0") int page,
                                                           @RequestParam(defaultValue = "10") int size,
                                                           @RequestParam(required = false) String sortBy,
                                                           @RequestParam(defaultValue = "asc") String direction) {
@@ -100,12 +100,12 @@ public class UserController {
     }
 
     @GetMapping("/company/{companyId}")
-    public ResponseEntity<List<UserModel>> getUsersByCompanyId(@PathVariable Long companyId) {
+    public ResponseEntity<List<UserDTO>> getUsersByCompanyId(@PathVariable Long companyId) {
         return ResponseEntity.ok(userService.getUsersByCompanyId(companyId));
     }
 
     @GetMapping("/company/{companyId}/page")
-    public ResponseEntity<Page<UserModel>> getUsersByCompanyIdPaged(
+    public ResponseEntity<Page<UserDTO>> getUsersByCompanyIdPaged(
             @PathVariable Long companyId,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,

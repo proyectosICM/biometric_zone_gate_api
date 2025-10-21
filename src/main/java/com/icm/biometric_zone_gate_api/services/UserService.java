@@ -29,12 +29,20 @@ public class UserService {
     private final UserCredentialRepository userCredentialRepository;
     private final UserMapper userMapper;
 
-    public List<UserModel> getAllUsers() {
-        return userRepository.findAll();
+    public List<UserDTO> getAllUsers() {
+        List<UserModel> users = userRepository.findAll();
+
+        List<UserDTO> userDTOs = new ArrayList<>();
+        for (UserModel user : users) {
+            userDTOs.add(userMapper.toDTO(user));
+        }
+
+        return userDTOs;
     }
 
-    public Page<UserModel> getAllUsers(Pageable pageable) {
-        return userRepository.findAll(pageable);
+    public Page<UserDTO> getAllUsers(Pageable pageable) {
+        Page<UserModel> page = userRepository.findAll(pageable);
+        return page.map(userMapper::toDTO);
     }
 
     public Optional<UserModel> getUserById(Long id) {
@@ -183,11 +191,19 @@ public class UserService {
         return userRepository.findByUsernameAndPassword(username, password);
     }
 
-    public List<UserModel> getUsersByCompanyId(Long companyId) {
-        return userRepository.findByCompanyId(companyId);
+    public List<UserDTO> getUsersByCompanyId(Long companyId) {
+        List<UserModel> users = userRepository.findByCompanyId(companyId);
+
+        List<UserDTO> userDTOs = new ArrayList<>();
+        for (UserModel user : users) {
+            userDTOs.add(userMapper.toDTO(user));
+        }
+
+        return userDTOs;
     }
 
-    public Page<UserModel> getUsersByCompanyId(Long companyId, Pageable pageable) {
-        return userRepository.findByCompanyId(companyId, pageable);
+    public Page<UserDTO> getUsersByCompanyId(Long companyId, Pageable pageable) {
+        Page<UserModel> page = userRepository.findByCompanyId(companyId, pageable);
+        return page.map(userMapper::toDTO);
     }
 }
