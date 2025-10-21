@@ -9,10 +9,12 @@ import com.icm.biometric_zone_gate_api.models.UserModel;
 import com.icm.biometric_zone_gate_api.repositories.DeviceRepository;
 import com.icm.biometric_zone_gate_api.repositories.UserCredentialRepository;
 import com.icm.biometric_zone_gate_api.repositories.UserRepository;
+import com.icm.biometric_zone_gate_api.websocket.commands.SetUserInfoCommandSender;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 import org.springframework.web.socket.WebSocketSession;
 
+import java.util.Objects;
 import java.util.Optional;
 
 @Component
@@ -22,6 +24,7 @@ public class GetUserInfoResponseHandler {
     private final UserRepository userRepository;
     private final UserCredentialRepository userCredentialRepository;
     private final DeviceRepository deviceRepository;
+    private final SetUserInfoCommandSender setUserInfoCommandSender;
 
     public void handleGetUserInfoResponse(JsonNode json, WebSocketSession session) {
         try {
@@ -55,25 +58,67 @@ public class GetUserInfoResponseHandler {
                 CompanyModel company = device.getCompany();
 
                 // --- Buscar usuario por nombre ---
-                UserModel user = userRepository.findByName(name)
-                        .orElseGet(() -> {
-                            UserModel u = new UserModel();
-                            u.setName(name);
-                            u.setAdminLevel(admin);
-                            u.setEnabled(true);
-                            u.setCompany(company);
-                            return userRepository.save(u);
-                        });
+                Optional<UserModel> userOpt = userRepository.findByName(name);
 
-                userCredentialRepository.findByUserIdAndBackupNum(user.getId(), backupNum)
-                        .orElseGet(() -> {
-                            UserCredentialModel cred = new UserCredentialModel();
-                            cred.setUser(user);
-                            cred.setBackupNum(backupNum);
-                            cred.setRecord(record);
-                            cred.setType(mapBackupNumToType(backupNum));
-                            return userCredentialRepository.save(cred);
-                        });
+                if (userOpt.isEmpty()) {
+                    // 🔹 Crear usuario nuevo porque no existe en servidor
+                    System.out.println("Usuario no existe en BD, creando: " + name);
+
+                    UserModel newUser = new UserModel();
+                    newUser.setName(name);
+                    newUser.setAdminLevel(admin);
+                    newUser.setEnabled(true);
+                    newUser.setCompany(company);
+                    newUser = userRepository.save(newUser);
+
+                    UserCredentialModel newCred = new UserCredentialModel();
+                    newCred.setUser(newUser);
+                    newCred.setBackupNum(backupNum);
+                    newCred.setType(mapBackupNumToType(backupNum));
+                    newCred.setRecord(record);
+                    userCredentialRepository.save(newCred);
+
+                    System.out.println("✅ Usuario creado y credencial registrada en BD: " + name);
+                    return;
+                }
+
+                // --- Usuario ya existe, comparar credenciales ---
+                UserModel existingUser = userOpt.get();
+                Optional<UserCredentialModel> credOpt = userCredentialRepository
+                        .findByUserIdAndBackupNum(existingUser.getId(), backupNum);
+
+                if (credOpt.isEmpty()) {
+                    // 🔹 No tiene esta credencial en BD → registrar
+                    System.out.println("Usuario existente pero sin esta credencial, agregando...");
+
+                    UserCredentialModel cred = new UserCredentialModel();
+                    cred.setUser(existingUser);
+                    cred.setBackupNum(backupNum);
+                    cred.setType(mapBackupNumToType(backupNum));
+                    cred.setRecord(record);
+                    userCredentialRepository.save(cred);
+
+                    System.out.println("✅ Credencial añadida localmente.");
+                } else {
+                    UserCredentialModel existingCred = credOpt.get();
+
+                    if (!Objects.equals(existingCred.getRecord(), record)) {
+                        // ⚠️ Diferencia detectada → imponer versión del servidor
+                        System.out.println("⚠️ Diferencia detectada entre servidor y dispositivo.");
+                        System.out.println("→ Imponiendo versión del servidor al dispositivo...");
+
+                        setUserInfoCommandSender.sendSetUserInfoCommand(
+                                session,
+                                enrollId, // el dispositivo lo necesita igual
+                                existingUser.getName(),
+                                existingCred.getBackupNum(),
+                                existingUser.getAdminLevel(),
+                                existingCred.getRecord()
+                        );
+                    } else {
+                        System.out.println("✅ Usuario y credencial ya están sincronizados.");
+                    }
+                }
 
             } else {
                 int reason = json.path("reason").asInt();
