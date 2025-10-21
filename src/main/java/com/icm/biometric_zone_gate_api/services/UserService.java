@@ -6,6 +6,7 @@ import com.icm.biometric_zone_gate_api.enums.CredentialType;
 import com.icm.biometric_zone_gate_api.mappers.UserMapper;
 import com.icm.biometric_zone_gate_api.models.UserCredentialModel;
 import com.icm.biometric_zone_gate_api.models.UserModel;
+import com.icm.biometric_zone_gate_api.repositories.CompanyRepository;
 import com.icm.biometric_zone_gate_api.repositories.UserCredentialRepository;
 import com.icm.biometric_zone_gate_api.repositories.UserRepository;
 import jakarta.transaction.Transactional;
@@ -30,6 +31,7 @@ public class UserService {
     private final DeviceService deviceService;
     private final UserCredentialRepository userCredentialRepository;
     private final UserMapper userMapper;
+    private final CompanyRepository companyRepository;
 
     public List<UserDTO> getAllUsers() {
         List<UserModel> users = userRepository.findAll();
@@ -105,88 +107,89 @@ public class UserService {
 
         return savedUser;
     }
-    
+
     @Transactional
-    public Optional<UserModel> updateUser(Long id, UserModel updatedUser) {
+    public Optional<UserModel> updateUser(Long id, UserDTO dto) {
         return userRepository.findById(id).map(user -> {
-            boolean nameChanged = updatedUser.getName() != null && !updatedUser.getName().equals(user.getName());
-            boolean enabledChanged = updatedUser.getEnabled() != null && !updatedUser.getEnabled().equals(user.getEnabled());
+            boolean nameChanged = dto.getName() != null && !dto.getName().equals(user.getName());
+            boolean enabledChanged = dto.getEnabled() != null && !dto.getEnabled().equals(user.getEnabled());
 
-            user.setName(updatedUser.getName());
-            user.setEmail(updatedUser.getEmail());
-            user.setAdminLevel(updatedUser.getAdminLevel());
-            user.setEnabled(updatedUser.getEnabled());
-            user.setCompany(updatedUser.getCompany());
+            user.setName(dto.getName());
+            user.setEmail(dto.getEmail());
+            user.setAdminLevel(dto.getAdminLevel());
+            user.setEnabled(dto.getEnabled());
 
-            if (updatedUser.getRole() != null) {
-                user.setRole(updatedUser.getRole());
+            if (dto.getCompanyId() != null) {
+                user.setCompany(companyRepository.findById(dto.getCompanyId())
+                        .orElseThrow(() -> new RuntimeException("Empresa no encontrada")));
             }
 
-            if (updatedUser.getUsername() != null && !updatedUser.getUsername().isEmpty()) {
-                user.setUsername(updatedUser.getUsername());
+            if (dto.getUsername() != null && !dto.getUsername().isEmpty()) {
+                user.setUsername(dto.getUsername());
             }
 
-            if (updatedUser.getPassword() != null && !updatedUser.getPassword().isEmpty()) {
-                user.setPassword(passwordEncoder.encode(updatedUser.getPassword()));
+            if (dto.getPassword() != null && !dto.getPassword().isEmpty()) {
+                user.setPassword(passwordEncoder.encode(dto.getPassword()));
             }
 
-            // 🧩 Manejar credenciales actualizadas
-            if (updatedUser.getCredentials() != null) {
+            // 🧩 Manejar credenciales
+            if (dto.getCredentials() != null) {
                 Map<Long, UserCredentialModel> existingMap = user.getCredentials().stream()
                         .collect(Collectors.toMap(UserCredentialModel::getId, c -> c));
 
                 List<UserCredentialModel> finalList = new ArrayList<>();
 
-                for (UserCredentialModel newCred : updatedUser.getCredentials()) {
-                    UserCredentialModel existing = null;
-
-                    // Si viene con ID, tratamos de actualizar
-                    if (newCred.getId() != null) {
-                        existing = existingMap.get(newCred.getId());
-                    }
+                for (UserCredentialDTO cdto : dto.getCredentials()) {
+                    UserCredentialModel existing = cdto.getId() != null
+                            ? existingMap.get(cdto.getId())
+                            : null;
 
                     if (existing != null) {
                         // Actualizar campos
-                        existing.setType(newCred.getType() != null ? newCred.getType() : existing.getType());
-                        existing.setRecord(newCred.getRecord() != null ? newCred.getRecord() : existing.getRecord());
-                        existing.setBackupNum(newCred.getBackupNum() != null ? newCred.getBackupNum() : existing.getBackupNum());
+                        existing.setType(cdto.getType() != null
+                                ? CredentialType.valueOf(cdto.getType())
+                                : existing.getType());
+                        existing.setRecord(cdto.getRecord());
+                        existing.setBackupNum(cdto.getBackupNum());
                         finalList.add(existing);
                     } else {
-                        // Crear nueva credencial
+                        // Crear nueva
+                        UserCredentialModel newCred = new UserCredentialModel();
                         newCred.setUser(user);
-                        if (newCred.getType() == null) newCred.setType(CredentialType.UNKNOWN);
+                        newCred.setType(cdto.getType() != null
+                                ? CredentialType.valueOf(cdto.getType())
+                                : CredentialType.UNKNOWN);
+                        newCred.setRecord(cdto.getRecord());
 
-                        if (newCred.getBackupNum() == null) {
+                        if (cdto.getBackupNum() == null) {
                             switch (newCred.getType()) {
                                 case PASSWORD -> newCred.setBackupNum(10);
                                 case CARD -> newCred.setBackupNum(11);
                                 case FINGERPRINT -> newCred.setBackupNum(0);
                                 default -> newCred.setBackupNum(99);
                             }
+                        } else {
+                            newCred.setBackupNum(cdto.getBackupNum());
                         }
+
                         finalList.add(newCred);
                     }
                 }
 
-                // Reemplaza la lista entera para que JPA elimine las no incluidas
                 user.getCredentials().clear();
                 user.getCredentials().addAll(finalList);
             }
 
             UserModel saved = userRepository.save(user);
 
-            // 🔔 Si el nombre cambió, propagar a los dispositivos
             if (nameChanged) {
                 deviceService.broadcastUserNameUpdate(saved);
             }
-
             if (enabledChanged) {
                 deviceService.broadcastUserEnableState(saved);
             }
 
             return saved;
-
-
         });
     }
 

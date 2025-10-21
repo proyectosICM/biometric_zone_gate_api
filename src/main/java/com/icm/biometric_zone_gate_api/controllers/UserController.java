@@ -62,8 +62,8 @@ public class UserController {
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<UserModel> updateUser(@PathVariable Long id, @RequestBody UserModel updatedUser) {
-        return userService.updateUser(id, updatedUser)
+    public ResponseEntity<UserModel> updateUser(@PathVariable Long id, @RequestBody UserDTO user) {
+        return userService.updateUser(id, user)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
     }
