@@ -15,14 +15,14 @@ public class EnableUserResponseHandler {
             boolean result = json.path("result").asBoolean(false);
 
             if (result) {
-                System.out.println("✅ Dispositivo confirmó ENABLE/DISABLE USER exitoso.");
+                System.out.println("Dispositivo confirmó ENABLE/DISABLE USER exitoso.");
             } else {
                 int reason = json.path("reason").asInt(-1);
-                System.out.println("⚠️ Falló ENABLE/DISABLE USER. Reason=" + reason);
+                System.out.println("Falló ENABLE/DISABLE USER. Reason=" + reason);
             }
 
         } catch (Exception e) {
-            System.err.println("❌ Error al procesar respuesta de enableuser: " + e.getMessage());
+            System.err.println("Error al procesar respuesta de enableuser: " + e.getMessage());
             e.printStackTrace();
         }
     }

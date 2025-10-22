@@ -9,6 +9,7 @@ import com.icm.biometric_zone_gate_api.repositories.UserRepository;
 import com.icm.biometric_zone_gate_api.websocket.DeviceSessionManager;
 import com.icm.biometric_zone_gate_api.websocket.commands.CleanUserCommandSender;
 import com.icm.biometric_zone_gate_api.websocket.commands.DeleteUserCommandSender;
+import com.icm.biometric_zone_gate_api.websocket.commands.EnableUserCommandSender;
 import com.icm.biometric_zone_gate_api.websocket.commands.SetUserInfoCommandSender;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -32,6 +33,7 @@ public class DeviceUserAccessService {
     private final DeleteUserCommandSender deleteUserCommandSender;
     private final CleanUserCommandSender cleanUserCommandSender;
     private final DeviceUserRepository deviceUserRepository;
+    private final EnableUserCommandSender enableUserCommandSender;
 
     public Optional<DeviceUserAccessModel> findById(Long id) {
         return deviceUserAccessRepository.findById(id);
@@ -113,7 +115,6 @@ public class DeviceUserAccessService {
                         commandSender.sendSetUserInfoCommand(session, enrollId, name, backupNum, admin, record);
                     }
 
-                    System.err.println("✅ Usuario enviado correctamente.");
                 }
             } catch (Exception e) {
                 System.err.println("❌ Error al enviar usuario al dispositivo: " + e.getMessage());
@@ -123,8 +124,6 @@ public class DeviceUserAccessService {
                     saved.getDevice().getSn());
         }
 
-
-        // Retornar DTO actualizado
         return DeviceUserAccessMapper.toDTO(saved);
     }
 
