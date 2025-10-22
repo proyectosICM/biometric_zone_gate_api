@@ -32,6 +32,10 @@ public class DeviceUserAccessModel {
     @JoinColumn(name = "device_id", nullable = false)
     private DeviceModel device;
 
+    private boolean synced;
+
+    private int enrollId;
+
     // weekzone del protocolo (zona horaria semanal)
     private Integer weekZone;
 

@@ -53,82 +53,13 @@ public class GetUserListResponseHandler {
                 }
             }
 
-            /*
-            Optional<DeviceModel> deviceOpt = deviceRepository.findBySn(sn);
-            if (deviceOpt.isEmpty()) {
-                System.err.println("Dispositivo no encontrado en BD: " + sn);
-                return;
-            }
-
-            DeviceModel device = deviceOpt.get();
-            CompanyModel company = device.getCompany();
-*/
             for (JsonNode userNode : json.path("record")) {
                 int enrollId = userNode.path("enrollid").asInt();
                 int admin = userNode.path("admin").asInt();
                 int backupNum = userNode.path("backupnum").asInt();
 
-                String userName = "User-" + enrollId; // si el nombre real no viene del dispositivo
                 System.out.printf("   → Procesando usuario enrollId=%d admin=%d backup=%d%n",
                         enrollId, admin, backupNum);
-
-                // Buscar o crear el usuario por nombre
-                /*
-                UserModel user = userRepository.findByName(userName)
-                        .orElseGet(() -> {
-                            UserModel u = new UserModel();
-                            u.setName(userName);
-                            u.setRole(com.icm.biometric_zone_gate_api.enums.Role.USER);
-                            u.setAdminLevel(admin);
-                            u.setEnabled(true);
-                            u.setCompany(company);
-                            // Asignar empresa por defecto si es obligatorio
-                            // u.setCompany(defaultCompany);
-                            return userRepository.save(u);
-                        });
-
-                // Buscar relación DeviceUser (por device y enrollId)
-                /*
-                DeviceUserModel deviceUser = deviceUserRepository.findByDeviceIdAndEnrollId(device.getId(), enrollId)
-                        .orElseGet(() -> {
-                            DeviceUserModel du = new DeviceUserModel();
-                            //du.setDevice(device);
-                            //du.setUser(user);
-                            du.setEnrollId(enrollId);
-                            du.setAdminLevel(admin);
-                            du.setSynced(true);
-                            return deviceUserRepository.save(du);
-                        });
-*/
-                // Si ya existía pero cambió adminLevel
-                /*
-                if (!deviceUser.getAdminLevel().equals(admin)) {
-                    deviceUser.setAdminLevel(admin);
-                    deviceUserRepository.save(deviceUser);
-                }*/
-
-                // Registrar o actualizar credencial asociada
-                /*
-                CredentialType type = mapBackupNumToType(backupNum);
-                if (type != CredentialType.UNKNOWN) {
-
-                    Optional<UserCredentialModel> existing = userCredentialRepository
-                            .findByUserIdAndBackupNum(user.getId(), backupNum);
-
-                    if (existing.isEmpty()) {
-                        UserCredentialModel cred = new UserCredentialModel();
-                        cred.setBackupNum(backupNum);
-                        cred.setType(type);
-                        cred.setRecord(null); // En este punto el dispositivo solo envía tipo, no datos
-                        cred.setUser(user);
-                        userCredentialRepository.save(cred);
-                        System.out.println("     ✅ Credencial registrada: " + type + " (backupNum=" + backupNum + ")");
-                    } else {
-                        System.out.println("     ℹ️ Credencial existente: " + type + " (backupNum=" + backupNum + ")");
-                    }
-                } else {
-                    System.out.println("     ⚠️ Tipo de credencial desconocido para backupNum=" + backupNum);
-                }*/
             }
 
         } catch (Exception e) {

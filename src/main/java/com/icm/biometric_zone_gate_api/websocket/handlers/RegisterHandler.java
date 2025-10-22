@@ -84,7 +84,7 @@ public class RegisterHandler {
 
             // ---  Disparar automáticamente comando GET USER LIST ---
             try {
-                Thread.sleep(500); // opcional: pequeña espera de 0.5s
+                Thread.sleep(500);
                 getUserListCommandSender.sendGetUserListCommand(session, true);
             } catch (Exception ex) {
                 System.err.println("No se pudo enviar comando getuserlist: " + ex.getMessage());

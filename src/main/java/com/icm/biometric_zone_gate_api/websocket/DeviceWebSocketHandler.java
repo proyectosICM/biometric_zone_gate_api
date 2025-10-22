@@ -19,12 +19,6 @@ public class DeviceWebSocketHandler extends TextWebSocketHandler {
     private final GetNewLogResponseHandler getNewLogResponseHandler;
     private final GetAllLogResponseHandler getAllLogResponseHandler;
 
-    /*
-    @Override
-    public void handleTextMessage(WebSocketSession session, TextMessage message) throws Exception {
-        messageHandler.handle(message.getPayload(), session);
-    }
-*/
     @Override
     public void afterConnectionEstablished(WebSocketSession session) {
         System.out.println("Device connected: " + session.getId());
@@ -44,7 +38,7 @@ public class DeviceWebSocketHandler extends TextWebSocketHandler {
             String cmd = json.path("cmd").asText(null);
             String ret = json.path("ret").asText(null);
 
-            // 🔍 Si el mensaje es respuesta de getnewlog
+            // Si el mensaje es respuesta de getnewlog
             if ("getnewlog".equalsIgnoreCase(cmd) || "getnewlog".equalsIgnoreCase(ret)) {
                 getNewLogResponseHandler.handleGetNewLogResponse(json, session);
                 return;
@@ -55,11 +49,11 @@ public class DeviceWebSocketHandler extends TextWebSocketHandler {
                 return;
             }
 
-            // 🧩 En caso contrario, pasa al manejador general
+            // En caso contrario, pasa al manejador general
             messageHandler.handle(payload, session);
 
         } catch (Exception e) {
-            System.err.println("❌ Error procesando mensaje WebSocket: " + e.getMessage());
+            System.err.println("Error procesando mensaje WebSocket: " + e.getMessage());
             e.printStackTrace();
 
             // Si el mensaje no es JSON, se pasa directamente al manejador genérico
@@ -69,6 +63,6 @@ public class DeviceWebSocketHandler extends TextWebSocketHandler {
 
     @Override
     public void handleTransportError(WebSocketSession session, Throwable exception) {
-        System.err.println("⚠️ Error de transporte WebSocket: " + exception.getMessage());
+        System.err.println("Error de transporte WebSocket: " + exception.getMessage());
     }
 }

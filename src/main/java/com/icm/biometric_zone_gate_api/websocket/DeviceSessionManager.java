@@ -29,15 +29,9 @@ public class DeviceSessionManager {
                 System.err.println("⚠ Error cerrando sesión previa: " + e.getMessage());
             }
         }
-        System.out.println("✅ Sesión registrada para SN " + sn + ", ID: " + session.getId());
+        System.out.println("Sesión registrada para SN " + sn + ", ID: " + session.getId());
     }
 
-    /*
-    public void registerSession(String sn, WebSocketSession session) {
-        sessionMap.put(sn, session);
-        System.out.println("✅ Sesión registrada (puente o directa) para SN " + sn + ", ID: " + session.getId());
-    }
-*/
     /**
      * Elimina la sesión de un SN.
      * Solo elimina si la sesión actual coincide con la registrada (evita eliminar otra sesión nueva).
@@ -46,9 +40,9 @@ public class DeviceSessionManager {
         sessionMap.computeIfPresent(sn, (key, value) -> {
             if (value == session) {
                 System.out.println("❌ Sesión eliminada para SN " + sn + ", ID: " + session.getId());
-                return null; // eliminar
+                return null;
             }
-            return value; // mantener si no coincide
+            return value;
         });
     }
 

@@ -2,11 +2,9 @@ package com.icm.biometric_zone_gate_api.websocket.handlers;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.icm.biometric_zone_gate_api.enums.CredentialType;
-import com.icm.biometric_zone_gate_api.models.CompanyModel;
-import com.icm.biometric_zone_gate_api.models.DeviceModel;
-import com.icm.biometric_zone_gate_api.models.UserCredentialModel;
-import com.icm.biometric_zone_gate_api.models.UserModel;
+import com.icm.biometric_zone_gate_api.models.*;
 import com.icm.biometric_zone_gate_api.repositories.DeviceRepository;
+import com.icm.biometric_zone_gate_api.repositories.DeviceUserAccessRepository;
 import com.icm.biometric_zone_gate_api.repositories.UserCredentialRepository;
 import com.icm.biometric_zone_gate_api.repositories.UserRepository;
 import com.icm.biometric_zone_gate_api.websocket.commands.SetUserInfoCommandSender;
@@ -14,6 +12,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 import org.springframework.web.socket.WebSocketSession;
 
+import java.time.ZonedDateTime;
 import java.util.Objects;
 import java.util.Optional;
 
@@ -25,6 +24,7 @@ public class GetUserInfoResponseHandler {
     private final UserCredentialRepository userCredentialRepository;
     private final DeviceRepository deviceRepository;
     private final SetUserInfoCommandSender setUserInfoCommandSender;
+    private final DeviceUserAccessRepository deviceUserAccessRepository;
 
     public void handleGetUserInfoResponse(JsonNode json, WebSocketSession session) {
         try {
@@ -61,7 +61,7 @@ public class GetUserInfoResponseHandler {
                 Optional<UserModel> userOpt = userRepository.findByNameAndCompany(name, company);
 
                 if (userOpt.isEmpty()) {
-                    // 🔹 Crear usuario nuevo porque no existe en servidor
+                    // Crear usuario nuevo porque no existe en servidor
                     System.out.println("Usuario no existe en BD, creando: " + name);
 
                     UserModel newUser = new UserModel();
@@ -78,17 +78,51 @@ public class GetUserInfoResponseHandler {
                     newCred.setRecord(record);
                     userCredentialRepository.save(newCred);
 
-                    System.out.println("✅ Usuario creado y credencial registrada en BD: " + name);
+                    DeviceUserAccessModel access = new DeviceUserAccessModel();
+                    access.setDevice(device);
+                    access.setUser(newUser);
+                    access.setEnrollId(enrollId);
+                    access.setWeekZone(0);
+                    access.setGroupNumber(0);
+                    access.setStartTime(ZonedDateTime.now());
+                    access.setEndTime(null);
+                    access.setEnabled(true);
+                    access.setSynced(true);
+                    deviceUserAccessRepository.save(access);
+
+                    System.out.println("Usuario creado y credencial registrada en BD: " + name);
                     return;
                 }
 
                 // --- Usuario ya existe, comparar credenciales ---
                 UserModel existingUser = userOpt.get();
+                Optional<DeviceUserAccessModel> accessOpt =
+                        deviceUserAccessRepository.findByUserIdAndDeviceId(existingUser.getId(), device.getId());
+                if (accessOpt.isEmpty()) {
+                    System.out.println("🔹 Usuario no tenía acceso a este dispositivo, registrando...");
+                    DeviceUserAccessModel access = new DeviceUserAccessModel();
+                    access.setDevice(device);
+                    access.setUser(existingUser);
+                    access.setEnrollId(enrollId);
+                    access.setWeekZone(0);
+                    access.setGroupNumber(0);
+                    access.setStartTime(ZonedDateTime.now());
+                    access.setEndTime(null);
+                    access.setEnabled(true);
+                    access.setSynced(true);
+                    deviceUserAccessRepository.save(access);
+                } else {
+                    DeviceUserAccessModel access = accessOpt.get();
+                    access.setSynced(true);
+                    deviceUserAccessRepository.save(access);
+                }
+
+
                 Optional<UserCredentialModel> credOpt = userCredentialRepository
                         .findByUserIdAndBackupNum(existingUser.getId(), backupNum);
 
                 if (credOpt.isEmpty()) {
-                    // 🔹 No tiene esta credencial en BD → registrar
+                    // No tiene esta credencial en BD → registrar
                     System.out.println("Usuario existente pero sin esta credencial, agregando...");
 
                     UserCredentialModel cred = new UserCredentialModel();
@@ -98,18 +132,18 @@ public class GetUserInfoResponseHandler {
                     cred.setRecord(record);
                     userCredentialRepository.save(cred);
 
-                    System.out.println("✅ Credencial añadida localmente.");
+                    System.out.println("Credencial añadida localmente.");
                 } else {
                     UserCredentialModel existingCred = credOpt.get();
 
                     if (!Objects.equals(existingCred.getRecord(), record)) {
-                        // ⚠️ Diferencia detectada → imponer versión del servidor
+                        // Diferencia detectada → imponer versión del servidor
                         System.out.println("⚠️ Diferencia detectada entre servidor y dispositivo.");
                         System.out.println("→ Imponiendo versión del servidor al dispositivo...");
 
                         setUserInfoCommandSender.sendSetUserInfoCommand(
                                 session,
-                                enrollId, // el dispositivo lo necesita igual
+                                enrollId,
                                 existingUser.getName(),
                                 existingCred.getBackupNum(),
                                 existingUser.getAdminLevel(),
