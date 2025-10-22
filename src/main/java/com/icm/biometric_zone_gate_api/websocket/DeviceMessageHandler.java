@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.icm.biometric_zone_gate_api.enums.DeviceStatus;
 import com.icm.biometric_zone_gate_api.services.DeviceService;
+import com.icm.biometric_zone_gate_api.websocket.commands.GetDevInfoCommandSender;
 import com.icm.biometric_zone_gate_api.websocket.handlers.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
@@ -39,6 +40,7 @@ public class DeviceMessageHandler extends TextWebSocketHandler {
     private final GetNewLogResponseHandler getNewLogResponseHandler;
     private final GetAllLogResponseHandler getAllLogResponseHandler;
     private final SetDevInfoResponseHandler setDevInfoResponseHandler;
+    private final GetDevInfoCommandSender getDevInfoCommandSender;
 
     public void handle(String message, WebSocketSession session) {
         try {
@@ -113,12 +115,7 @@ public class DeviceMessageHandler extends TextWebSocketHandler {
 
         System.out.println("Device disconnected: " + session.getId());
         String sn = (String) session.getAttributes().get("sn");
-            /*
-            String sn = deviceSessionManager.getAllConnectedSNs().stream()
-                    .filter(key -> deviceSessionManager.getSessionBySn(key) == session)
-                    .findFirst()
-                    .orElse(null);
-             */
+
         if (sn != null) {
             deviceSessionManager.removeSession(sn, session);
             System.out.println("Sesion retirada: " + sn);
@@ -133,5 +130,12 @@ public class DeviceMessageHandler extends TextWebSocketHandler {
     public void afterConnectionEstablished(WebSocketSession session) {
         System.out.println("Device connected: " + session.getId());
         // SN se asignará en handleRegister cuando llegue el mensaje
+        String sn = (String) session.getAttributes().get("sn");
+        if (sn != null) {
+            System.out.println("🔹 Solicitando GETDEVINFO para el dispositivo con SN: " + sn);
+            getDevInfoCommandSender.sendGetDevInfoCommand(session);
+        } else {
+            System.out.println("⚠️ No se encontró el SN en la sesión; no se puede solicitar GETDEVINFO automáticamente.");
+        }
     }
 }
