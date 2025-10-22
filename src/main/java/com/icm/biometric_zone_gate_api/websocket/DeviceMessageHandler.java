@@ -41,6 +41,12 @@ public class DeviceMessageHandler extends TextWebSocketHandler {
     private final GetAllLogResponseHandler getAllLogResponseHandler;
     private final SetDevInfoResponseHandler setDevInfoResponseHandler;
     private final GetDevInfoCommandSender getDevInfoCommandSender;
+    private final SetDevLockResponseHandler setDevLockResponseHandler;
+    private final GetDevLockResponseHandler getDevLockResponseHandler;
+    private final GetUserLockResponseHandler getUserLockResponseHandler;
+    private final SetUserLockResponseHandler setUserLockResponseHandler;
+    private final DeleteUserLockResponseHandler deleteUserLockResponseHandler;
+    private final CleanUserLockResponseHandler cleanUserLockResponseHandler;
 
     public void handle(String message, WebSocketSession session) {
         try {
@@ -92,6 +98,17 @@ public class DeviceMessageHandler extends TextWebSocketHandler {
 
                 case "setdevinfo" -> setDevInfoResponseHandler.handleSetDevInfoResponse(json);
 
+                case "setdevlock" -> setDevLockResponseHandler.handleSetDevLockResponse(json);
+
+                case "getdevlock" -> getDevLockResponseHandler.handleGetDevLockResponse(json);
+
+                case "getuserlock" -> getUserLockResponseHandler.handleGetUserLockResponse(json, session);
+
+                case "setuserlock" -> setUserLockResponseHandler.handleSetUserLockResponse(json, session);
+
+                case "deleteuserlock" -> deleteUserLockResponseHandler.handleDeleteUserLockResponse(json, session);
+
+                case "cleanuserlock" -> cleanUserLockResponseHandler.handleCleanUserLockResponse(json, session);
 
                 default -> {
                     System.out.println("Unknown command: " + cmd);
