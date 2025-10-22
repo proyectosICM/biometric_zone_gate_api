@@ -30,6 +30,12 @@ public class DeviceModel {
 
     private String modelname;
 
+    private int volume;
+
+    //how many fingerprints per user 1~10，default:3
+
+    private int userfpnum;
+
     // User capacity 1000/3000/5000
     private Integer usersize;
 
