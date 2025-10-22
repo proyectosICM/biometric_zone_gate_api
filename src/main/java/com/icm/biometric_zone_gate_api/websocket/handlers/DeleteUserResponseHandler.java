@@ -16,14 +16,14 @@ public class DeleteUserResponseHandler {
             boolean result = json.path("result").asBoolean(false);
 
             if (result) {
-                System.out.println("✅ Dispositivo confirmó DELETE USER exitoso.");
+                System.out.println("Dispositivo confirmó DELETE USER exitoso.");
             } else {
                 int reason = json.path("reason").asInt(-1);
-                System.out.println("⚠️ Falló DELETE USER. Reason=" + reason);
+                System.out.println("Falló DELETE USER. Reason=" + reason);
             }
 
         } catch (Exception e) {
-            System.err.println("❌ Error al procesar respuesta de deleteuser: " + e.getMessage());
+            System.err.println("Error al procesar respuesta de deleteuser: " + e.getMessage());
             e.printStackTrace();
         }
     }

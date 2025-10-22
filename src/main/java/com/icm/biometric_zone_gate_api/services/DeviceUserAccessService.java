@@ -164,9 +164,13 @@ public class DeviceUserAccessService {
             backupNum = user.getCredentials().get(0).getBackupNum();
         }
 
+        int enrollId = access.getEnrollId(); // 🔹 usamos el enrollId REAL del acceso
+        if (enrollId <= 0) {
+            System.out.println("Acceso sin enrollId válido, no se enviará DELETEUSER al dispositivo.");
+        }
+
         if (session != null && session.isOpen()) {
             try {
-                int enrollId = user.getId().intValue();
 
                 // Enviar comando deleteuser al dispositivo
                 deleteUserCommandSender.sendDeleteUserCommand(session, enrollId, backupNum);
