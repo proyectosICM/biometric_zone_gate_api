@@ -80,7 +80,7 @@ public class DeviceMessageHandler extends TextWebSocketHandler {
 
                 case "opendoor" -> openDoorResponseHandler.handleOpenDoorResponse(json);
 
-                case "getdevinfo" -> getDevInfoResponseHandler.handleGetDevInfoResponse(json);
+                case "getdevinfo" -> getDevInfoResponseHandler.handleGetDevInfoResponse(json, session);
 
                 case "cleanlog" -> cleanLogResponseHandler.handleCleanLogResponse(json);
 

@@ -21,13 +21,13 @@ public class GetDevInfoCommandSender {
         try {
             String message = "{\"cmd\":\"getdevinfo\"}";
 
-            System.out.println("📡 Enviando comando GETDEVINFO al dispositivo...");
+            System.out.println("Enviando comando GETDEVINFO al dispositivo...");
             System.out.println(message);
 
             session.sendMessage(new TextMessage(message));
 
         } catch (Exception e) {
-            System.err.println("❌ Error al enviar GETDEVINFO: " + e.getMessage());
+            System.err.println("Error al enviar GETDEVINFO: " + e.getMessage());
             e.printStackTrace();
         }
     }

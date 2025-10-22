@@ -1,15 +1,21 @@
 package com.icm.biometric_zone_gate_api.websocket.handlers;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.icm.biometric_zone_gate_api.websocket.commands.SetDevInfoCommandSender;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
+import org.springframework.web.socket.WebSocketSession;
 
 /**
  * Maneja la respuesta del dispositivo al comando "getdevinfo".
  */
 @Component
+@RequiredArgsConstructor
 public class GetDevInfoResponseHandler {
 
-    public void handleGetDevInfoResponse(JsonNode json) {
+    private final SetDevInfoCommandSender setDevInfoCommandSender;
+
+    public void handleGetDevInfoResponse(JsonNode json, WebSocketSession session) {
         try {
             boolean result = json.path("result").asBoolean(false);
 
@@ -40,6 +46,20 @@ public class GetDevInfoResponseHandler {
                         """,
                         deviceId, language, volume, screensaver, verifymode,
                         sleep, userfpnum, loghint, reverifytime
+                );
+
+                System.out.println("🔁 Reenviando los mismos parámetros con SETDEVINFO...");
+                setDevInfoCommandSender.sendSetDevInfoCommand(
+                        session,
+                        deviceId,
+                        language,
+                        volume,
+                        screensaver,
+                        verifymode,
+                        sleep,
+                        userfpnum,
+                        loghint,
+                        reverifytime
                 );
             } else {
                 int reason = json.path("reason").asInt(-1);
