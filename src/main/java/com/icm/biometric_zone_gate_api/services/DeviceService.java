@@ -41,6 +41,7 @@ public class DeviceService {
     private final CleanLogCommandSender cleanLogCommandSender;
     private final GetNewLogCommandSender getNewLogCommandSender;
     private final GetAllLogCommandSender getAllLogCommandSender;
+    private final SetDevInfoCommandSender setDevInfoCommandSender;
 
     public DeviceModel createDevice(DeviceModel device) {
         return deviceRepository.save(device);
@@ -67,7 +68,33 @@ public class DeviceService {
             device.setName(updatedDevice.getName());
             device.setSn(updatedDevice.getSn());
             device.setCompany(updatedDevice.getCompany());
-            return deviceRepository.save(device);
+            device.setLanguage(updatedDevice.getLanguage());
+            device.setVolume(updatedDevice.getVolume());
+            device.setUserfpnum(updatedDevice.getUserfpnum());
+
+            DeviceModel saved = deviceRepository.save(device);
+            System.out.println("💾 Dispositivo actualizado en BD: " + saved.getSn());
+
+            WebSocketSession session = deviceSessionManager.getSessionBySn(saved.getSn());
+
+            if (session != null && session.isOpen()) {
+                System.out.println("📡 Dispositivo conectado, enviando SETDEVINFO...");
+                setDevInfoCommandSender.sendSetDevInfoCommand(
+                        session,
+                        1, // o saved.getId() si lo usas como deviceid
+                        saved.getLanguage(),
+                        saved.getVolume(),
+                        0, // screensaver
+                        0, // verifymode
+                        0, // sleep
+                        saved.getUserfpnum(),
+                        0, // loghint
+                        0  // reverifytime
+                );
+            } else {
+                System.out.println("⚠️ El dispositivo no está conectado por WebSocket, no se puede enviar SETDEVINFO.");
+            }
+            return saved;
         });
     }
 
