@@ -5,6 +5,7 @@ import com.icm.biometric_zone_gate_api.enums.DeviceStatus;
 import com.icm.biometric_zone_gate_api.models.DeviceModel;
 import com.icm.biometric_zone_gate_api.services.DeviceService;
 import com.icm.biometric_zone_gate_api.websocket.DeviceSessionManager;
+import com.icm.biometric_zone_gate_api.websocket.commands.GetNewLogCommandSender;
 import com.icm.biometric_zone_gate_api.websocket.commands.GetUserListCommandSender;
 import com.icm.biometric_zone_gate_api.websocket.utils.DeviceValidator;
 import lombok.RequiredArgsConstructor;
@@ -23,6 +24,7 @@ public class RegisterHandler {
     private final DeviceService deviceService;
     private final GetUserListCommandSender getUserListCommandSender;
     private final DeviceSessionManager deviceSessionManager;
+    private final GetNewLogCommandSender getNewLogCommandSender;
 
     public void handleRegister(JsonNode json, WebSocketSession session) {
         try {
@@ -88,6 +90,15 @@ public class RegisterHandler {
                 getUserListCommandSender.sendGetUserListCommand(session, true);
             } catch (Exception ex) {
                 System.err.println("No se pudo enviar comando getuserlist: " + ex.getMessage());
+            }
+
+            // --- Disparar automáticamente comando GET NEW LOG ---
+            try {
+                Thread.sleep(1000); // Esperar un poco para que el equipo procese el registro anterior
+                getNewLogCommandSender.sendGetNewLogCommand(session, true);
+                System.out.println("🚀 Comando GETNEWLOG inicial enviado automáticamente al dispositivo " + sn);
+            } catch (Exception ex) {
+                System.err.println("❌ No se pudo enviar comando getnewlog: " + ex.getMessage());
             }
 
         } catch (Exception e) {

@@ -87,7 +87,6 @@ public class SendLogHandler {
                     continue;
                 }
 
-                // Buscar usuario
                 Optional<UserModel> optUser = userService.getUserById((long) enrollId);
                 if (optUser.isEmpty()) {
                     System.err.println("User not found for enrollId=" + enrollId);
@@ -96,12 +95,9 @@ public class SendLogHandler {
 
                 UserModel user = optUser.get();
 
-                // Buscar log abierto (sin salida) para este usuario y dispositivo
                 Optional<AccessLogsModel> openLogOpt = accessLogsService.getOpenLogForUserDevice(user, device);
 
-                // Crear o actualizar log
                 if (inout == 0) { // Entrada
-                    // Si hay un log abierto anterior, se cierra automáticamente
                     if (openLogOpt.isPresent()) {
                         AccessLogsModel oldLog = openLogOpt.get();
                         oldLog.setExitTime(logTime);
@@ -109,7 +105,7 @@ public class SendLogHandler {
                         oldLog.setDurationSeconds(duration);
                         oldLog.setAction(AccessType.EXIT);
                         accessLogsService.createLog(oldLog);
-                        System.out.printf("⚠️ Se cerró log anterior abierto del usuario %s%n", user.getUsername());
+                        System.out.printf("Se cerró log anterior abierto del usuario %s%n", user.getUsername());
                     } else {
                         AccessLogsModel log = new AccessLogsModel();
                         log.setEntryTime(logTime);
@@ -121,7 +117,7 @@ public class SendLogHandler {
                         log.setSuccess(true);
                         accessLogsService.createLog(log);
                     }
-                } else { // Salida
+                } else {
                     Optional<AccessLogsModel> openLog = accessLogsService.getOpenLogForUserDevice(user, device);
                     if (openLog.isPresent()) {
                         AccessLogsModel log = openLog.get();

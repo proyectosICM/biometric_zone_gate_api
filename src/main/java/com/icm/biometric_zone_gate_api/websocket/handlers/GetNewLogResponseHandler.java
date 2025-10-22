@@ -36,6 +36,8 @@ public class GetNewLogResponseHandler {
 
     private final ConcurrentHashMap<String, Boolean> finishedSessions = new ConcurrentHashMap<>();
 
+    private static final DateTimeFormatter FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+
     public void handleGetNewLogResponse(JsonNode json, WebSocketSession session) {
         try {
             String sessionId = session.getId();
@@ -60,10 +62,7 @@ public class GetNewLogResponseHandler {
             }
 
             int count = json.path("count").asInt(0);
-            int from = json.path("from").asInt(0);
-            int to = json.path("to").asInt(0);
-
-            System.out.printf("✅ GETNEWLOG respuesta: count=%d, from=%d, to=%d%n", count, from, to);
+            System.out.printf("✅ GETNEWLOG respuesta: count=%d%n", count);
 
             // 🧠 Obtener SN del dispositivo asociado a la sesión
             String sn = (String) session.getAttributes().get("sn");
@@ -86,66 +85,61 @@ public class GetNewLogResponseHandler {
 
                 for (JsonNode record : records) {
                     int enrollId = record.path("enrollid").asInt();
-                    String time = record.path("time").asText();
-                    int mode = record.path("mode").asInt();
-                    int inout = record.path("inout").asInt();
-                    int event = record.path("event").asInt();
+                    String timeStr = record.path("time").asText();
+                    int inout = record.path("inout").asInt(0);
+                    int event = record.path("event").asInt(0);
 
-                    System.out.printf(" - ID:%d | Time:%s | Mode:%d | InOut:%d | Event:%d%n",
-                            enrollId, time, mode, inout, event);
+                    System.out.printf(" - ID:%d | Time:%s | InOut:%d | Event:%d%n",
+                            enrollId, timeStr, inout, event);
 
-                    // 📅 Parsear hora
-                    ZonedDateTime logTime = LocalDateTime.parse(time, DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"))
-                            .atZone(ZoneId.systemDefault());
-
-                    // 🔍 Buscar tipo de evento
-                    Optional<EventTypeModel> optEventType = eventTypeService.getEventTypeByCode(event);
-                    EventTypeModel eventType = optEventType.orElse(null);
-                    if (eventType == null) {
-                        System.err.println("⚠️ Tipo de evento no encontrado para code=" + event);
-                    }
-
-                    // Logs del sistema
-                    if (enrollId == 0) {
-                        System.out.println("ℹ️ Log del sistema ignorado (sin usuario).");
+                    if (enrollId == 0 || timeStr.isEmpty()) {
+                        System.out.println("ℹ️ Log del sistema o sin tiempo válido, ignorado.");
                         continue;
                     }
 
-                    // 🔍 Buscar usuario
+                    ZonedDateTime logTime = LocalDateTime.parse(timeStr, FORMATTER)
+                            .atZone(ZoneId.systemDefault());
+
+                    Optional<EventTypeModel> optEventType = eventTypeService.getEventTypeByCode(event);
+                    EventTypeModel eventType = optEventType.orElse(null);
+
+                    // Buscar usuario
                     Optional<UserModel> optUser = userService.getUserById((long) enrollId);
                     if (optUser.isEmpty()) {
                         System.err.println("⚠️ Usuario no encontrado para enrollId=" + enrollId);
                         continue;
                     }
-
                     UserModel user = optUser.get();
 
-                    // 🧾 Crear / actualizar log
-                    if (inout == 0) { // Entrada
-                        AccessLogsModel log = new AccessLogsModel();
-                        log.setEntryTime(logTime);
-                        log.setUser(user);
-                        log.setDevice(device);
-                        log.setCompany(device.getCompany());
-                        log.setEventType(eventType);
-                        log.setAction(AccessType.ENTRY);
-                        log.setSuccess(true);
-                        accessLogsService.createLog(log);
-                        System.out.println("🟩 Log de ENTRADA registrado para usuario " + user.getUsername());
+                    // Verificar si ya existe un log abierto (sin exitTime)
+                    Optional<AccessLogsModel> openLog = accessLogsService.getOpenLogForUserDevice(user, device);
 
-                    } else { // Salida
-                        Optional<AccessLogsModel> openLog = accessLogsService.getOpenLogForUserDevice(user, device);
-                        if (openLog.isPresent()) {
-                            AccessLogsModel log = openLog.get();
-                            log.setExitTime(logTime);
-                            long duration = Duration.between(log.getEntryTime(), logTime).getSeconds();
-                            log.setDurationSeconds(duration);
-                            log.setAction(AccessType.EXIT);
-                            accessLogsService.createLog(log); // o update si tu servicio lo maneja así
-                            System.out.println("🟥 Log de SALIDA registrado para usuario " + user.getUsername());
+                    if (openLog.isPresent()) {
+                        AccessLogsModel existing = openLog.get();
+
+                        // Si llega un nuevo evento después del abierto → cerrarlo
+                        if (logTime.isAfter(existing.getEntryTime())) {
+                            existing.setExitTime(logTime);
+                            existing.setDurationSeconds(Duration.between(existing.getEntryTime(), logTime).getSeconds());
+                            existing.setAction(AccessType.EXIT);
+                            accessLogsService.createLog(existing);
+                            System.out.printf("🟥 Log cerrado automáticamente para usuario %s%n", user.getUsername());
                         } else {
-                            System.out.println("⚠️ No se encontró log de entrada abierto para usuario " + user.getUsername());
+                            System.out.printf("⚠️ Evento antiguo ignorado para usuario %s%n", user.getUsername());
                         }
+
+                    } else {
+                        // Crear nuevo log de entrada
+                        AccessLogsModel newLog = new AccessLogsModel();
+                        newLog.setUser(user);
+                        newLog.setDevice(device);
+                        newLog.setCompany(device.getCompany());
+                        newLog.setEventType(eventType);
+                        newLog.setAction(AccessType.ENTRY);
+                        newLog.setEntryTime(logTime);
+                        newLog.setSuccess(true);
+                        accessLogsService.createLog(newLog);
+                        System.out.printf("🟩 Nuevo log de ENTRADA registrado para usuario %s%n", user.getUsername());
                     }
                 }
 

@@ -26,7 +26,8 @@ public class GetUserInfoResponseHandler {
     private final SetUserInfoCommandSender setUserInfoCommandSender;
     private final DeviceUserAccessRepository deviceUserAccessRepository;
 
-    public void handleGetUserInfoResponse(JsonNode json, WebSocketSession session) {
+    public void
+    handleGetUserInfoResponse(JsonNode json, WebSocketSession session) {
         try {
             boolean result = json.path("result").asBoolean(false);
 
