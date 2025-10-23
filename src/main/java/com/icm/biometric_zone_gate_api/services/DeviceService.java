@@ -181,7 +181,7 @@ public class DeviceService {
             List<DeviceUserAccessModel> links = deviceUserAccessRepository.findByUserId(user.getId());
 
             if (links.isEmpty()) {
-                System.out.println("ℹ️ Usuario " + user.getUsername() + " no está asociado a ningún dispositivo.");
+                System.out.println("ℹUsuario " + user.getUsername() + " no está asociado a ningún dispositivo.");
                 return;
             }
 

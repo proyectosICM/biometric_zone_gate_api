@@ -168,6 +168,7 @@ public class GetUserInfoResponseHandler {
         if (backupNum >= 0 && backupNum <= 9) return CredentialType.FINGERPRINT;
         if (backupNum == 10) return CredentialType.PASSWORD;
         if (backupNum == 11) return CredentialType.CARD;
+        if (backupNum == 50) return CredentialType.PHOTO;
         return CredentialType.UNKNOWN;
     }
 }

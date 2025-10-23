@@ -209,7 +209,6 @@ public class DeviceUserAccessService {
                 .map(DeviceUserAccessMapper::toDTO);
     }
 
-
     public List<DeviceUserAccessDTO> findByUserId(Long userId) {
         List<DeviceUserAccessModel> entities = deviceUserAccessRepository.findByUserId(userId);
         return entities.stream()
