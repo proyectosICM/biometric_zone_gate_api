@@ -154,13 +154,9 @@ public class DeviceUserAccessService {
         var user = access.getUser();
         var device = access.getDevice();
 
-        // Buscar sesión activa del dispositivo
-        var session = sessionManager.getSessionBySn(device.getSn());
-
-        // Determinar tipo de credencial (si aplica)
-        int backupNum = 0; // por defecto huella
-        if (user != null && !user.getCredentials().isEmpty()) {
-            backupNum = user.getCredentials().get(0).getBackupNum();
+        if (user == null || device == null) {
+            System.out.println("Usuario o dispositivo no definidos, abortando eliminación.");
+            return false;
         }
 
         int enrollId = access.getEnrollId(); // 🔹 usamos el enrollId REAL del acceso
@@ -168,15 +164,27 @@ public class DeviceUserAccessService {
             System.out.println("Acceso sin enrollId válido, no se enviará DELETEUSER al dispositivo.");
         }
 
-        if (session != null && session.isOpen()) {
+        // Buscar sesión activa del dispositivo
+        var session = sessionManager.getSessionBySn(device.getSn());
+
+        if (session != null && session.isOpen() && enrollId > 0) {
             try {
+                if (!user.getCredentials().isEmpty()) {
+                    for (var cred : user.getCredentials()) {
+                        int backupNum = cred.getBackupNum();
 
-                // Enviar comando deleteuser al dispositivo
-                deleteUserCommandSender.sendDeleteUserCommand(session, enrollId, backupNum);
+                        // Enviar comando deleteuser para cada credencial
+                        deleteUserCommandSender.sendDeleteUserCommand(session, enrollId, backupNum);
 
-                System.out.printf("🗑️ Enviado comando DELETEUSER (user=%d, backup=%d) al dispositivo %s%n",
-                        enrollId, backupNum, device.getSn());
+                        System.out.printf("🗑️ Enviado comando DELETEUSER (user=%d, backup=%d) al dispositivo %s%n",
+                                enrollId, backupNum, device.getSn());
 
+                        // Si quieres, aquí podrías agregar un pequeño delay con DeviceCommandScheduler
+                        // deviceCommandScheduler.schedule(() -> deleteUserCommandSender.sendDeleteUserCommand(session, enrollId, backupNum), 200);
+                    }
+                } else {
+                    System.out.println("Usuario sin credenciales, no se enviará DELETEUSER al dispositivo.");
+                }
             } catch (Exception e) {
                 System.err.println("Error al enviar deleteuser al dispositivo: " + e.getMessage());
             }
