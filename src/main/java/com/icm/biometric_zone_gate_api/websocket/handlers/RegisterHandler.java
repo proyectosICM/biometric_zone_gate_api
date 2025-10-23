@@ -7,6 +7,7 @@ import com.icm.biometric_zone_gate_api.services.DeviceService;
 import com.icm.biometric_zone_gate_api.websocket.DeviceSessionManager;
 import com.icm.biometric_zone_gate_api.websocket.commands.GetNewLogCommandSender;
 import com.icm.biometric_zone_gate_api.websocket.commands.GetUserListCommandSender;
+import com.icm.biometric_zone_gate_api.websocket.utils.DeviceCommandScheduler;
 import com.icm.biometric_zone_gate_api.websocket.utils.DeviceValidator;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
@@ -25,6 +26,7 @@ public class RegisterHandler {
     private final GetUserListCommandSender getUserListCommandSender;
     private final DeviceSessionManager deviceSessionManager;
     private final GetNewLogCommandSender getNewLogCommandSender;
+    private final DeviceCommandScheduler deviceCommandScheduler;
 
     public void handleRegister(JsonNode json, WebSocketSession session) {
         try {
@@ -77,7 +79,6 @@ public class RegisterHandler {
                 System.out.println("Device not found in DB with SN " + sn + ". Not creating new record.");
             }
 
-            // Tiempo del servidor
             String cloudTime = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
             String response = String.format("{\"ret\":\"reg\",\"result\":true,\"cloudtime\":\"%s\"}", cloudTime);
             session.sendMessage(new TextMessage(response));
@@ -86,19 +87,21 @@ public class RegisterHandler {
 
             // ---  Disparar automáticamente comando GET USER LIST ---
             try {
-                Thread.sleep(500);
-                getUserListCommandSender.sendGetUserListCommand(session, true);
+                deviceCommandScheduler.schedule(() -> {
+                    getUserListCommandSender.sendGetUserListCommand(session, true);
+                }, 500);
             } catch (Exception ex) {
                 System.err.println("No se pudo enviar comando getuserlist: " + ex.getMessage());
             }
 
             // --- Disparar automáticamente comando GET NEW LOG ---
             try {
-                Thread.sleep(1000); // Esperar un poco para que el equipo procese el registro anterior
-                getNewLogCommandSender.sendGetNewLogCommand(session, true);
-                System.out.println("🚀 Comando GETNEWLOG inicial enviado automáticamente al dispositivo " + sn);
+                deviceCommandScheduler.schedule(() -> {
+                    getNewLogCommandSender.sendGetNewLogCommand(session, true);
+                    System.out.println("Comando GETNEWLOG inicial enviado automáticamente al dispositivo " + sn);
+                }, 1000);
             } catch (Exception ex) {
-                System.err.println("❌ No se pudo enviar comando getnewlog: " + ex.getMessage());
+                System.err.println("No se pudo enviar comando getnewlog: " + ex.getMessage());
             }
 
         } catch (Exception e) {
