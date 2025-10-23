@@ -29,7 +29,7 @@ public class UserCredentialModel {
     private Integer backupNum = 11;
 
     // según doc: <1620 para THbio3.0 y 65535 para fotos
-    @Column(length = 65535)
+    @Column(columnDefinition = "MEDIUMTEXT")
     private String record = "1111";
 
     @Enumerated(EnumType.STRING)
