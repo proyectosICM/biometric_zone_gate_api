@@ -35,120 +35,76 @@ public class GetAllLogResponseHandler {
     private final EventTypeService eventTypeService;
 
     private final ConcurrentHashMap<String, Boolean> finishedSessions = new ConcurrentHashMap<>();
+    private static final DateTimeFormatter FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
     public void handleGetAllLogResponse(JsonNode json, WebSocketSession session) {
         try {
             String sessionId = session.getId();
-
             if (finishedSessions.getOrDefault(sessionId, false)) {
-                System.out.println("🛑 Ignorando respuesta de GETALLLOG: ya finalizado para esta sesión.");
+                System.out.println("Ignorando GETALLLOG: ya finalizado.");
                 return;
             }
 
             boolean result = json.path("result").asBoolean(false);
-            String ret = json.path("ret").asText("");
-
-            if (!"getalllog".equalsIgnoreCase(ret)) {
-                System.out.println("⚠️ Respuesta ignorada: no corresponde a 'getalllog'.");
-                return;
-            }
-
-            if (!result) {
-                int reason = json.path("reason").asInt(-1);
-                System.out.printf("⚠️ GETALLLOG falló. reason=%d%n", reason);
+            if (!result || !"getalllog".equalsIgnoreCase(json.path("ret").asText())) {
                 return;
             }
 
             int count = json.path("count").asInt(0);
-            int from = json.path("from").asInt(0);
-            int to = json.path("to").asInt(0);
-
-            System.out.printf("✅ GETALLLOG respuesta: count=%d, from=%d, to=%d%n", count, from, to);
+            if (count == 0) {
+                finishedSessions.put(sessionId, true);
+                return;
+            }
 
             String sn = (String) session.getAttributes().get("sn");
-            if (sn == null) {
-                System.err.println("❌ No se encontró SN en la sesión " + sessionId);
-                return;
-            }
-
             Optional<DeviceModel> optDevice = deviceService.getDeviceBySn(sn);
-            if (optDevice.isEmpty()) {
-                System.err.println("❌ Dispositivo no encontrado con SN=" + sn);
-                return;
-            }
+            if (optDevice.isEmpty()) return;
+
             DeviceModel device = optDevice.get();
+            ArrayNode records = (ArrayNode) json.get("record");
 
-            if (count > 0 && json.has("record") && json.get("record").isArray()) {
-                ArrayNode records = (ArrayNode) json.get("record");
-                System.out.println("📋 Registros recibidos (" + records.size() + "):");
+            for (JsonNode record : records) {
+                int enrollId = record.path("enrollid").asInt();
+                if (enrollId == 0) continue;
 
-                for (JsonNode record : records) {
-                    int enrollId = record.path("enrollid").asInt();
-                    String time = record.path("time").asText();
-                    int mode = record.path("mode").asInt();
-                    int inout = record.path("inout").asInt();
-                    int event = record.path("event").asInt();
+                String time = record.path("time").asText();
+                ZonedDateTime logTime = LocalDateTime.parse(time, FORMATTER).atZone(ZoneId.systemDefault());
 
-                    System.out.printf(" - ID:%d | Time:%s | Mode:%d | InOut:%d | Event:%d%n",
-                            enrollId, time, mode, inout, event);
+                Optional<UserModel> optUser = userService.getUserById((long) enrollId);
+                if (optUser.isEmpty()) continue;
+                UserModel user = optUser.get();
 
-                    ZonedDateTime logTime = LocalDateTime.parse(time, DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"))
-                            .atZone(ZoneId.systemDefault());
-
-                    Optional<EventTypeModel> optEventType = eventTypeService.getEventTypeByCode(event);
-                    EventTypeModel eventType = optEventType.orElse(null);
-
-                    if (enrollId == 0) {
-                        System.out.println("ℹ️ Log del sistema ignorado (sin usuario).");
-                        continue;
-                    }
-
-                    Optional<UserModel> optUser = userService.getUserById((long) enrollId);
-                    if (optUser.isEmpty()) {
-                        System.err.println("⚠️ Usuario no encontrado para enrollId=" + enrollId);
-                        continue;
-                    }
-
-                    UserModel user = optUser.get();
-
-                    if (inout == 0) {
-                        AccessLogsModel log = new AccessLogsModel();
-                        log.setEntryTime(logTime);
-                        log.setUser(user);
-                        log.setDevice(device);
-                        log.setCompany(device.getCompany());
-                        log.setEventType(eventType);
-                        log.setAction(AccessType.ENTRY);
-                        log.setSuccess(true);
-                        accessLogsService.createLog(log);
-                        System.out.println("🟩 Log de ENTRADA registrado para usuario " + user.getUsername());
-                    } else {
-                        Optional<AccessLogsModel> openLog = accessLogsService.getOpenLogForUserDevice(user, device);
-                        if (openLog.isPresent()) {
-                            AccessLogsModel log = openLog.get();
-                            log.setExitTime(logTime);
-                            long duration = Duration.between(log.getEntryTime(), logTime).getSeconds();
-                            log.setDurationSeconds(duration);
-                            log.setAction(AccessType.EXIT);
-                            accessLogsService.createLog(log);
-                            System.out.println("🟥 Log de SALIDA registrado para usuario " + user.getUsername());
-                        } else {
-                            System.out.println("⚠️ No se encontró log de entrada abierto para usuario " + user.getUsername());
-                        }
-                    }
+                // 🔹 DUPLICADO EXACTO → IGNORAR
+                if (accessLogsService.findLogByUserDeviceAndTime(user.getId(), device.getId(), logTime).isPresent()) {
+                    continue;
                 }
 
-                // pide siguiente paquete
-                System.out.println("⏳ Solicitando siguiente paquete de logs (GETALLLOG)...");
-                getAllLogCommandSender.sendGetAllLogCommand(session, false);
+                Optional<AccessLogsModel> openLogOpt = accessLogsService.getOpenLogForUserDevice(user, device);
 
-            } else {
-                System.out.println("📭 No hay más registros. Fin del GETALLLOG.");
-                finishedSessions.put(sessionId, true);
+                if (openLogOpt.isEmpty()) {
+                    // ➕ CREAR ENTRADA
+                    AccessLogsModel entry = new AccessLogsModel();
+                    entry.setUser(user);
+                    entry.setDevice(device);
+                    entry.setCompany(device.getCompany());
+                    entry.setEventType(eventTypeService.getEventTypeByCode(record.path("event").asInt()).orElse(null));
+                    entry.setEntryTime(logTime);
+                    entry.setAction(AccessType.ENTRY);
+                    entry.setSuccess(true);
+                    accessLogsService.createLog(entry);
+                } else {
+                    // CERRAR ANTERIOR = SALIDA
+                    AccessLogsModel entry = openLogOpt.get();
+                    entry.setExitTime(logTime);
+                    entry.setDurationSeconds(Duration.between(entry.getEntryTime(), logTime).getSeconds());
+                    entry.setAction(AccessType.EXIT);
+                    accessLogsService.createLog(entry);
+                }
             }
 
+            getAllLogCommandSender.sendGetAllLogCommand(session, false);
+
         } catch (Exception e) {
-            System.err.println("❌ Error al procesar GETALLLOG: " + e.getMessage());
             e.printStackTrace();
         }
     }
