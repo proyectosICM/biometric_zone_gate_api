@@ -31,121 +31,83 @@ public class SendLogHandler {
     private final AccessLogsService accessLogsService;
     private final EventTypeService eventTypeService;
 
+    private static final DateTimeFormatter FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+
     public void handleSendLog(JsonNode json, WebSocketSession session) {
         try {
             int count = json.path("count").asInt(0);
             JsonNode records = json.path("record");
 
             if (count <= 0 || !records.isArray() || records.size() != count) {
-                System.err.println("Invalid logs: count does not match records");
                 session.sendMessage(new TextMessage("{\"ret\":\"sendlog\",\"result\":false,\"reason\":1}"));
                 return;
             }
 
-            // Obtener el SN de la sesión WebSocket
             String sn = (String) session.getAttributes().get("sn");
-            if (sn == null) {
-                System.err.println("No SN found for session " + session.getId());
-                session.sendMessage(new TextMessage("{\"ret\":\"sendlog\",\"result\":false,\"reason\":1}"));
-                return;
-            }
-
             Optional<DeviceModel> optDevice = deviceService.getDeviceBySn(sn);
             if (optDevice.isEmpty()) {
-                System.err.println("Device not found for SN: " + sn);
                 session.sendMessage(new TextMessage("{\"ret\":\"sendlog\",\"result\":false,\"reason\":1}"));
                 return;
             }
-
             DeviceModel device = optDevice.get();
 
-            System.out.println("Received logs from device: " + sn);
             for (JsonNode record : records) {
-                int enrollId = record.path("enrollid").asInt(0);
-                String time = record.path("time").asText("");
-                int mode = record.path("mode").asInt(0);
-                int inout = record.path("inout").asInt(0);
-                int eventCode = record.path("event").asInt(0);
+                int enrollId = record.path("enrollid").asInt();
+                if (enrollId == 0) continue; // system event
 
-                System.out.printf("Log: enrollid=%d, time=%s, mode=%d, inout=%d, event=%d%n",
-                        enrollId, time, mode, inout, eventCode);
-
-                // Parsear fecha
-                ZonedDateTime logTime = LocalDateTime.parse(time, DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"))
-                        .atZone(ZoneId.systemDefault());
-
-                // Buscar tipo de evento
-                Optional<EventTypeModel> optEventType = eventTypeService.getEventTypeByCode(eventCode);
-                EventTypeModel eventType = optEventType.orElse(null);
-                if (eventType == null) {
-                    System.err.println("Tipo de evento no encontrado para code=" + eventCode);
-                }
-
-                // Si enrollId == 0 → log del sistema (por ejemplo puerta abierta/cerrada)
-                if (enrollId == 0) {
-                    System.out.println("System event from device " + sn + ": event=" + eventCode);
-                    continue;
-                }
+                String timeStr = record.path("time").asText();
+                ZonedDateTime logTime = LocalDateTime.parse(timeStr, FORMATTER).atZone(ZoneId.systemDefault());
 
                 Optional<UserModel> optUser = userService.getUserById((long) enrollId);
-                if (optUser.isEmpty()) {
-                    System.err.println("User not found for enrollId=" + enrollId);
+                if (optUser.isEmpty()) continue;
+                UserModel user = optUser.get();
+
+                // ✅ 1. Evitar duplicado exacto
+                if (accessLogsService.findLogByUserDeviceAndTime(user.getId(), device.getId(), logTime).isPresent()) {
                     continue;
                 }
-
-                UserModel user = optUser.get();
 
                 Optional<AccessLogsModel> openLogOpt = accessLogsService.getOpenLogForUserDevice(user, device);
 
-                if (inout == 0) { // Entrada
-                    if (openLogOpt.isPresent()) {
-                        AccessLogsModel oldLog = openLogOpt.get();
-                        oldLog.setExitTime(logTime);
-                        long duration = Duration.between(oldLog.getEntryTime(), logTime).getSeconds();
-                        oldLog.setDurationSeconds(duration);
-                        oldLog.setAction(AccessType.EXIT);
-                        accessLogsService.createLog(oldLog);
-                        System.out.printf("Se cerró log anterior abierto del usuario %s%n", user.getUsername());
-                    } else {
-                        AccessLogsModel log = new AccessLogsModel();
-                        log.setEntryTime(logTime);
-                        log.setUser(user);
-                        log.setDevice(device);
-                        log.setCompany(device.getCompany());
-                        log.setEventType(eventType);
-                        log.setAction(AccessType.ENTRY);
-                        log.setSuccess(true);
-                        accessLogsService.createLog(log);
+                if (openLogOpt.isEmpty()) {
+                    // ✅ 2. Check rebote: salida recién cerrada en mismo segundo => no crear
+                    if (accessLogsService.findLastClosedLogByUserDevice(user.getId(), device.getId(), logTime).isPresent()) {
+                        continue;
                     }
+
+                    // ➕ CREAR NUEVA ENTRADA
+                    AccessLogsModel entry = new AccessLogsModel();
+                    entry.setUser(user);
+                    entry.setDevice(device);
+                    entry.setCompany(device.getCompany());
+                    entry.setEventType(eventTypeService.getEventTypeByCode(record.path("event").asInt()).orElse(null));
+                    entry.setEntryTime(logTime);
+                    entry.setAction(AccessType.ENTRY);
+                    entry.setSuccess(true);
+                    accessLogsService.createLog(entry);
+
                 } else {
-                    Optional<AccessLogsModel> openLog = accessLogsService.getOpenLogForUserDevice(user, device);
-                    if (openLog.isPresent()) {
-                        AccessLogsModel log = openLog.get();
-                        log.setExitTime(logTime);
-                        long duration = Duration.between(log.getEntryTime(), logTime).getSeconds();
-                        log.setDurationSeconds(duration);
-                        log.setAction(AccessType.EXIT);
-                        accessLogsService.createLog(log); // o update, depende de tu servicio
-                    }
+                    // Cerrar la anterior
+                    AccessLogsModel entry = openLogOpt.get();
+                    long diff = Duration.between(entry.getEntryTime(), logTime).getSeconds();
+
+                    if (diff == 0) continue; // Rebote
+
+                    entry.setExitTime(logTime);
+                    entry.setDurationSeconds(diff);
+                    entry.setAction(AccessType.EXIT);
+                    accessLogsService.createLog(entry);
                 }
             }
 
-            // Server time
-            String cloudTime = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
-
-            // Responder al dispositivo
-            String response = String.format(
-                    "{\"ret\":\"sendlog\",\"result\":true,\"cloudtime\":\"%s\",\"access\":1}",
-                    cloudTime
-            );
-            session.sendMessage(new TextMessage(response));
+            session.sendMessage(new TextMessage(
+                    String.format("{\"ret\":\"sendlog\",\"result\":true,\"cloudtime\":\"%s\",\"access\":1}",
+                            LocalDateTime.now().format(FORMATTER))
+            ));
 
         } catch (Exception e) {
-            e.printStackTrace();
-            try {
-                session.sendMessage(new TextMessage("{\"ret\":\"sendlog\",\"result\":false,\"reason\":1}"));
-            } catch (Exception ignored) {
-            }
+            try { session.sendMessage(new TextMessage("{\"ret\":\"sendlog\",\"result\":false,\"reason\":1}")); }
+            catch (Exception ignored) {}
         }
     }
 }
