@@ -17,6 +17,23 @@ import java.util.Optional;
 @Repository
 public interface AccessLogsRepository extends JpaRepository<AccessLogsModel, Long> {
 
+    @Query("""
+                SELECT a FROM AccessLogsModel a
+                WHERE a.user.id = :userId
+                  AND a.device.id = :deviceId
+                  AND a.entryTime = :time
+            """)
+    Optional<AccessLogsModel> findLogByUserDeviceAndTime(Long userId, Long deviceId, ZonedDateTime time);
+
+    @Query("""
+            SELECT a FROM AccessLogsModel a
+            WHERE a.user.id = :userId
+              AND a.device.id = :deviceId
+              AND a.exitTime = :time
+            """)
+    Optional<AccessLogsModel> findLastClosedLogByUserDevice(Long userId, Long deviceId, ZonedDateTime time);
+
+
     List<AccessLogsModel> findByUserId(Long userId);
 
     Page<AccessLogsModel> findByUserId(Long userId, Pageable pageable);
@@ -48,12 +65,12 @@ public interface AccessLogsRepository extends JpaRepository<AccessLogsModel, Lon
     );
 
     @Query("""
-    SELECT a FROM AccessLogsModel a
-    WHERE a.user.id = :userId 
-      AND a.device.id = :deviceId 
-      AND a.exitTime IS NULL
-    ORDER BY a.entryTime DESC
-    LIMIT 1
-""")
+                SELECT a FROM AccessLogsModel a
+                WHERE a.user.id = :userId 
+                  AND a.device.id = :deviceId 
+                  AND a.exitTime IS NULL
+                ORDER BY a.entryTime DESC
+                LIMIT 1
+            """)
     Optional<AccessLogsModel> findOpenLogByUserAndDevice(@Param("userId") Long userId, @Param("deviceId") Long deviceId);
 }

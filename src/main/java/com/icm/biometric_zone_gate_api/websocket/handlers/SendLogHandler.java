@@ -42,7 +42,6 @@ public class SendLogHandler {
                 return;
             }
 
-            // Obtener el SN de la sesión WebSocket
             String sn = (String) session.getAttributes().get("sn");
             if (sn == null) {
                 System.err.println("No SN found for session " + session.getId());
@@ -59,7 +58,6 @@ public class SendLogHandler {
 
             DeviceModel device = optDevice.get();
 
-            System.out.println("Received logs from device: " + sn);
             for (JsonNode record : records) {
                 int enrollId = record.path("enrollid").asInt(0);
                 String time = record.path("time").asText("");
@@ -67,37 +65,43 @@ public class SendLogHandler {
                 int inout = record.path("inout").asInt(0);
                 int eventCode = record.path("event").asInt(0);
 
-                System.out.printf("Log: enrollid=%d, time=%s, mode=%d, inout=%d, event=%d%n",
-                        enrollId, time, mode, inout, eventCode);
+                // System.out.printf("Log: enrollid=%d, time=%s, mode=%d, inout=%d, event=%d%n", enrollId, time, mode, inout, eventCode);
 
-                // Parsear fecha
                 ZonedDateTime logTime = LocalDateTime.parse(time, DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"))
                         .atZone(ZoneId.systemDefault());
 
-                // Buscar tipo de evento
                 Optional<EventTypeModel> optEventType = eventTypeService.getEventTypeByCode(eventCode);
                 EventTypeModel eventType = optEventType.orElse(null);
+
                 if (eventType == null) {
                     System.err.println("Tipo de evento no encontrado para code=" + eventCode);
                 }
 
                 // Si enrollId == 0 → log del sistema (por ejemplo puerta abierta/cerrada)
-                if (enrollId == 0) {
-                    System.out.println("System event from device " + sn + ": event=" + eventCode);
-                    continue;
-                }
+                if (enrollId == 0) continue;
 
                 Optional<UserModel> optUser = userService.getUserById((long) enrollId);
-                if (optUser.isEmpty()) {
-                    System.err.println("User not found for enrollId=" + enrollId);
-                    continue;
-                }
+
+                if (optUser.isEmpty()) continue;
 
                 UserModel user = optUser.get();
+
+                Optional<AccessLogsModel> duplicate =
+                        accessLogsService.findLogByUserDeviceAndTime(user.getId(), device.getId(), logTime);
+
+                if (duplicate.isPresent()) {
+                    System.out.println("⌛ Log duplicado en el mismo segundo → IGNORADO");
+                    continue;
+                }
 
                 Optional<AccessLogsModel> openLogOpt = accessLogsService.getOpenLogForUserDevice(user, device);
 
                 if (inout == 0) { // Entrada
+
+                    Optional<AccessLogsModel> lastClosed =
+                            accessLogsService.findLastClosedLogByUserDevice(user.getId(), device.getId(), logTime);
+                    if (lastClosed.isPresent()) continue;
+
                     if (openLogOpt.isPresent()) {
                         AccessLogsModel oldLog = openLogOpt.get();
                         oldLog.setExitTime(logTime);

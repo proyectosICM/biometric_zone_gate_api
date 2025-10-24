@@ -19,13 +19,13 @@ public class GetNewLogCommandSender {
         try {
             String message = String.format("{\"cmd\":\"getnewlog\",\"stn\":%s}", start ? "true" : "false");
 
-            System.out.println("📤 Enviando comando GETNEWLOG al dispositivo...");
+            System.out.println("Enviando comando GETNEWLOG al dispositivo...");
             System.out.println(message);
 
             session.sendMessage(new TextMessage(message));
 
         } catch (Exception e) {
-            System.err.println("❌ Error al enviar GETNEWLOG: " + e.getMessage());
+            System.err.println("Error al enviar GETNEWLOG: " + e.getMessage());
             e.printStackTrace();
         }
     }

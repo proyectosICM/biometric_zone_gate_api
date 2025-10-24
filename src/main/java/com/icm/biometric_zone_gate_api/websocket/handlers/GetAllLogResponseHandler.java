@@ -41,7 +41,7 @@ public class GetAllLogResponseHandler {
             String sessionId = session.getId();
 
             if (finishedSessions.getOrDefault(sessionId, false)) {
-                System.out.println("🛑 Ignorando respuesta de GETALLLOG: ya finalizado para esta sesión.");
+                System.out.println("Ignorando respuesta de GETALLLOG: ya finalizado para esta sesión.");
                 return;
             }
 
@@ -49,13 +49,13 @@ public class GetAllLogResponseHandler {
             String ret = json.path("ret").asText("");
 
             if (!"getalllog".equalsIgnoreCase(ret)) {
-                System.out.println("⚠️ Respuesta ignorada: no corresponde a 'getalllog'.");
+                System.out.println("Respuesta ignorada: no corresponde a 'getalllog'.");
                 return;
             }
 
             if (!result) {
                 int reason = json.path("reason").asInt(-1);
-                System.out.printf("⚠️ GETALLLOG falló. reason=%d%n", reason);
+                System.out.printf("GETALLLOG falló. reason=%d%n", reason);
                 return;
             }
 
@@ -63,17 +63,17 @@ public class GetAllLogResponseHandler {
             int from = json.path("from").asInt(0);
             int to = json.path("to").asInt(0);
 
-            System.out.printf("✅ GETALLLOG respuesta: count=%d, from=%d, to=%d%n", count, from, to);
+            System.out.printf("GETALLLOG respuesta: count=%d, from=%d, to=%d%n", count, from, to);
 
             String sn = (String) session.getAttributes().get("sn");
             if (sn == null) {
-                System.err.println("❌ No se encontró SN en la sesión " + sessionId);
+                System.err.println("No se encontró SN en la sesión " + sessionId);
                 return;
             }
 
             Optional<DeviceModel> optDevice = deviceService.getDeviceBySn(sn);
             if (optDevice.isEmpty()) {
-                System.err.println("❌ Dispositivo no encontrado con SN=" + sn);
+                System.err.println("Dispositivo no encontrado con SN=" + sn);
                 return;
             }
             DeviceModel device = optDevice.get();
@@ -99,19 +99,36 @@ public class GetAllLogResponseHandler {
                     EventTypeModel eventType = optEventType.orElse(null);
 
                     if (enrollId == 0) {
-                        System.out.println("ℹ️ Log del sistema ignorado (sin usuario).");
+                        System.out.println("Log del sistema ignorado (sin usuario).");
                         continue;
                     }
 
                     Optional<UserModel> optUser = userService.getUserById((long) enrollId);
                     if (optUser.isEmpty()) {
-                        System.err.println("⚠️ Usuario no encontrado para enrollId=" + enrollId);
+                        System.err.println("Usuario no encontrado para enrollId=" + enrollId);
                         continue;
                     }
 
                     UserModel user = optUser.get();
 
                     if (inout == 0) {
+                        Optional<AccessLogsModel> duplicateExitCheck =
+                                accessLogsService.findLogByUserDeviceAndTime(user.getId(), device.getId(), logTime);
+
+                        if (duplicateExitCheck.isPresent()) {
+                            System.out.println("⚠ Entrada duplicada (ya hubo log en este segundo - rebote) → IGNORADA");
+                            continue;
+                        }
+
+                        // Check si se acaba de cerrar una salida en el mismo instante
+                        Optional<AccessLogsModel> lastClosed =
+                                accessLogsService.findLastClosedLogByUserDevice(user.getId(), device.getId(), logTime);
+
+                        if (lastClosed.isPresent()) {
+                            System.out.println("Entrada ignorada porque hubo una salida en el mismo instante (rebote) → IGNORADA");
+                            continue;
+                        }
+
                         AccessLogsModel log = new AccessLogsModel();
                         log.setEntryTime(logTime);
                         log.setUser(user);
@@ -120,12 +137,36 @@ public class GetAllLogResponseHandler {
                         log.setEventType(eventType);
                         log.setAction(AccessType.ENTRY);
                         log.setSuccess(true);
+
                         accessLogsService.createLog(log);
-                        System.out.println("🟩 Log de ENTRADA registrado para usuario " + user.getUsername());
+                        System.out.println("Log de ENTRADA registrado para usuario " + user.getUsername());
                     } else {
                         Optional<AccessLogsModel> openLog = accessLogsService.getOpenLogForUserDevice(user, device);
                         if (openLog.isPresent()) {
                             AccessLogsModel log = openLog.get();
+
+                            long diffSeconds = Duration.between(log.getEntryTime(), logTime).getSeconds();
+
+                            // 1 mismo instante = rebote
+                            if (diffSeconds == 0) {
+                                System.out.println("Salida duplicada en el mismo segundo → IGNORADA");
+                                continue;
+                            }
+
+                            // 2 Duración negativa o extraña
+                            if (diffSeconds < 0) {
+                                System.out.println("Evento de salida antes que la entrada → IGNORADO");
+                                continue;
+                            }
+
+                            // 3 (opcional) Si ya existe una SALIDA en mismo segundo (seguridad extra)
+                            Optional<AccessLogsModel> lastLogSameTime =
+                                    accessLogsService.findLogByUserDeviceAndTime(user.getId(), device.getId(), logTime);
+                            if (lastLogSameTime.isPresent()) {
+                                System.out.println("Salida duplicada existente en DB → IGNORADA");
+                                continue;
+                            }
+
                             log.setExitTime(logTime);
                             long duration = Duration.between(log.getEntryTime(), logTime).getSeconds();
                             log.setDurationSeconds(duration);

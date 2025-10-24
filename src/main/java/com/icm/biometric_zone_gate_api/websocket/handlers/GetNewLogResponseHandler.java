@@ -123,9 +123,9 @@ public class GetNewLogResponseHandler {
                             existing.setDurationSeconds(Duration.between(existing.getEntryTime(), logTime).getSeconds());
                             existing.setAction(AccessType.EXIT);
                             accessLogsService.createLog(existing);
-                            System.out.printf("🟥 Log cerrado automáticamente para usuario %s%n", user.getUsername());
+                            System.out.printf("Log cerrado automáticamente para usuario %s%n", user.getUsername());
                         } else {
-                            System.out.printf("⚠️ Evento antiguo ignorado para usuario %s%n", user.getUsername());
+                            System.out.printf("Evento antiguo ignorado para usuario %s%n", user.getUsername());
                         }
 
                     } else {

@@ -10,11 +10,11 @@ public class GetAllLogCommandSender {
     public void sendGetAllLogCommand(WebSocketSession session, boolean start) {
         try {
             String message = String.format("{\"cmd\":\"getalllog\",\"stn\":%s}", start ? "true" : "false");
-            System.out.println("📤 Enviando comando GETALLLOG al dispositivo...");
+            System.out.println("Enviando comando GETALLLOG al dispositivo...");
             System.out.println(message);
             session.sendMessage(new TextMessage(message));
         } catch (Exception e) {
-            System.err.println("❌ Error al enviar GETALLLOG: " + e.getMessage());
+            System.err.println("Error al enviar GETALLLOG: " + e.getMessage());
             e.printStackTrace();
         }
     }

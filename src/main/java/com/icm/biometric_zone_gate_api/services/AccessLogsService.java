@@ -53,6 +53,14 @@ public class AccessLogsService {
         return false;
     }
 
+    public Optional<AccessLogsModel> findLogByUserDeviceAndTime(Long userId, Long deviceId, ZonedDateTime time) {
+        return accessLogsRepository.findLogByUserDeviceAndTime(userId, deviceId, time);
+    }
+
+    public Optional<AccessLogsModel> findLastClosedLogByUserDevice(Long userId, Long deviceId, ZonedDateTime time) {
+        return accessLogsRepository.findLastClosedLogByUserDevice(userId, deviceId, time);
+    }
+
     public List<AccessLogsModel> getLogsByUser(Long userId) {
         return accessLogsRepository.findByUserId(userId);
     }
