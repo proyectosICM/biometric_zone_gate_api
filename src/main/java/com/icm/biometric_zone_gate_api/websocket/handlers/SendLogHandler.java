@@ -37,86 +37,115 @@ public class SendLogHandler {
             JsonNode records = json.path("record");
 
             if (count <= 0 || !records.isArray() || records.size() != count) {
+                System.err.println("Invalid logs: count does not match records");
                 session.sendMessage(new TextMessage("{\"ret\":\"sendlog\",\"result\":false,\"reason\":1}"));
                 return;
             }
 
+            // Obtener el SN de la sesión WebSocket
             String sn = (String) session.getAttributes().get("sn");
             if (sn == null) {
+                System.err.println("No SN found for session " + session.getId());
                 session.sendMessage(new TextMessage("{\"ret\":\"sendlog\",\"result\":false,\"reason\":1}"));
                 return;
             }
 
             Optional<DeviceModel> optDevice = deviceService.getDeviceBySn(sn);
             if (optDevice.isEmpty()) {
+                System.err.println("Device not found for SN: " + sn);
                 session.sendMessage(new TextMessage("{\"ret\":\"sendlog\",\"result\":false,\"reason\":1}"));
                 return;
             }
 
             DeviceModel device = optDevice.get();
 
+            System.out.println("Received logs from device: " + sn);
             for (JsonNode record : records) {
                 int enrollId = record.path("enrollid").asInt(0);
                 String time = record.path("time").asText("");
+                int mode = record.path("mode").asInt(0);
                 int inout = record.path("inout").asInt(0);
                 int eventCode = record.path("event").asInt(0);
 
-                if (enrollId == 0) continue;
+                System.out.printf("Log: enrollid=%d, time=%s, mode=%d, inout=%d, event=%d%n",
+                        enrollId, time, mode, inout, eventCode);
 
+                // Parsear fecha
                 ZonedDateTime logTime = LocalDateTime.parse(time, DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"))
                         .atZone(ZoneId.systemDefault());
 
+                // Buscar tipo de evento
+                Optional<EventTypeModel> optEventType = eventTypeService.getEventTypeByCode(eventCode);
+                EventTypeModel eventType = optEventType.orElse(null);
+                if (eventType == null) {
+                    System.err.println("Tipo de evento no encontrado para code=" + eventCode);
+                }
+
+                // Si enrollId == 0 → log del sistema (por ejemplo puerta abierta/cerrada)
+                if (enrollId == 0) {
+                    System.out.println("System event from device " + sn + ": event=" + eventCode);
+                    continue;
+                }
+
                 Optional<UserModel> optUser = userService.getUserById((long) enrollId);
-                if (optUser.isEmpty()) continue;
+                if (optUser.isEmpty()) {
+                    System.err.println("User not found for enrollId=" + enrollId);
+                    continue;
+                }
+
                 UserModel user = optUser.get();
 
-                Optional<AccessLogsModel> duplicate =
-                        accessLogsService.findLogByUserDeviceAndTime(user.getId(), device.getId(), logTime);
-                if (duplicate.isPresent()) continue;
-
-                Optional<EventTypeModel> eventType = eventTypeService.getEventTypeByCode(eventCode);
                 Optional<AccessLogsModel> openLogOpt = accessLogsService.getOpenLogForUserDevice(user, device);
 
-                if (inout == 0) { // ENTRADA
-
-                    Optional<AccessLogsModel> lastClosed =
-                            accessLogsService.findLastClosedLogByUserDevice(user.getId(), device.getId(), logTime);
-                    if (lastClosed.isPresent()) continue;
-
-                    if (openLogOpt.isEmpty()) {
+                if (inout == 0) { // Entrada
+                    if (openLogOpt.isPresent()) {
+                        AccessLogsModel oldLog = openLogOpt.get();
+                        oldLog.setExitTime(logTime);
+                        long duration = Duration.between(oldLog.getEntryTime(), logTime).getSeconds();
+                        oldLog.setDurationSeconds(duration);
+                        oldLog.setAction(AccessType.EXIT);
+                        accessLogsService.createLog(oldLog);
+                        System.out.printf("Se cerró log anterior abierto del usuario %s%n", user.getUsername());
+                    } else {
                         AccessLogsModel log = new AccessLogsModel();
                         log.setEntryTime(logTime);
                         log.setUser(user);
                         log.setDevice(device);
                         log.setCompany(device.getCompany());
-                        log.setEventType(eventType.orElse(null));
+                        log.setEventType(eventType);
                         log.setAction(AccessType.ENTRY);
                         log.setSuccess(true);
                         accessLogsService.createLog(log);
                     }
-
-                } else { // SALIDA
-                    if (openLogOpt.isPresent()) {
-                        AccessLogsModel log = openLogOpt.get();
-                        long diffSec = Duration.between(log.getEntryTime(), logTime).getSeconds();
-                        if (diffSec > 0) {
-                            log.setExitTime(logTime);
-                            log.setDurationSeconds(diffSec);
-                            log.setAction(AccessType.EXIT);
-                            accessLogsService.createLog(log);
-                        }
+                } else {
+                    Optional<AccessLogsModel> openLog = accessLogsService.getOpenLogForUserDevice(user, device);
+                    if (openLog.isPresent()) {
+                        AccessLogsModel log = openLog.get();
+                        log.setExitTime(logTime);
+                        long duration = Duration.between(log.getEntryTime(), logTime).getSeconds();
+                        log.setDurationSeconds(duration);
+                        log.setAction(AccessType.EXIT);
+                        accessLogsService.createLog(log); // o update, depende de tu servicio
                     }
                 }
             }
 
+            // Server time
             String cloudTime = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
-            session.sendMessage(new TextMessage(
-                    "{\"ret\":\"sendlog\",\"result\":true,\"cloudtime\":\"" + cloudTime + "\",\"access\":1}"
-            ));
+
+            // Responder al dispositivo
+            String response = String.format(
+                    "{\"ret\":\"sendlog\",\"result\":true,\"cloudtime\":\"%s\",\"access\":1}",
+                    cloudTime
+            );
+            session.sendMessage(new TextMessage(response));
 
         } catch (Exception e) {
-            try { session.sendMessage(new TextMessage("{\"ret\":\"sendlog\",\"result\":false,\"reason\":1}")); }
-            catch (Exception ignored) {}
+            e.printStackTrace();
+            try {
+                session.sendMessage(new TextMessage("{\"ret\":\"sendlog\",\"result\":false,\"reason\":1}"));
+            } catch (Exception ignored) {
+            }
         }
     }
 }
