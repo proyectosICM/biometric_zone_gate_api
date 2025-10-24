@@ -22,6 +22,11 @@ public class DeviceWebSocketHandler extends TextWebSocketHandler {
     @Override
     public void afterConnectionEstablished(WebSocketSession session) {
         System.out.println("Device connected: " + session.getId());
+        // Allow large biometric payloads (e.g. Base64 encoded templates) from the device.
+        // Spring's default WebSocket session limits are 64 KB, which is insufficient.
+        session.setTextMessageSizeLimit(4 * 1024 * 1024); // 4 MB
+        session.setBinaryMessageSizeLimit(4 * 1024 * 1024);
+        System.out.println("Device connected: " + session.getId());
     }
 
     @Override

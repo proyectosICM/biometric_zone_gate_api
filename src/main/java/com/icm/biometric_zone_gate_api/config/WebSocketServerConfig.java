@@ -1,6 +1,5 @@
 package com.icm.biometric_zone_gate_api.config;
 
-import com.icm.biometric_zone_gate_api.websocket.DeviceMessageHandler;
 import com.icm.biometric_zone_gate_api.websocket.DeviceWebSocketHandler;
 import lombok.RequiredArgsConstructor;
 import jakarta.servlet.ServletContext;
@@ -19,7 +18,6 @@ import org.springframework.web.socket.server.standard.ServletServerContainerFact
 @RequiredArgsConstructor
 public class WebSocketServerConfig implements WebSocketConfigurer {
 
-    private final DeviceMessageHandler deviceMessageHandler;
     private final DeviceWebSocketHandler deviceWebSocketHandler;
 
     @Override
