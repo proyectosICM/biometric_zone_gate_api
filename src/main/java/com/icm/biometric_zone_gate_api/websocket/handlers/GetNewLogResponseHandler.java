@@ -35,7 +35,6 @@ public class GetNewLogResponseHandler {
     private final EventTypeService eventTypeService;
 
     private final ConcurrentHashMap<String, Boolean> finishedSessions = new ConcurrentHashMap<>();
-
     private static final DateTimeFormatter FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
     public void handleGetNewLogResponse(JsonNode json, WebSocketSession session) {
@@ -43,7 +42,7 @@ public class GetNewLogResponseHandler {
             String sessionId = session.getId();
 
             if (finishedSessions.getOrDefault(sessionId, false)) {
-                System.out.println("🛑 Ignorando respuesta de GETNEWLOG: ya se marcó como finalizado.");
+                System.out.println("🛑 Ignorando respuesta de GETNEWLOG: ya finalizado para esta sesión.");
                 return;
             }
 
@@ -64,7 +63,6 @@ public class GetNewLogResponseHandler {
             int count = json.path("count").asInt(0);
             System.out.printf("✅ GETNEWLOG respuesta: count=%d%n", count);
 
-            // 🧠 Obtener SN del dispositivo asociado a la sesión
             String sn = (String) session.getAttributes().get("sn");
             if (sn == null) {
                 System.err.println("❌ No se encontró SN en la sesión " + sessionId);
@@ -81,29 +79,25 @@ public class GetNewLogResponseHandler {
 
             if (count > 0 && json.has("record") && json.get("record").isArray()) {
                 ArrayNode records = (ArrayNode) json.get("record");
-                System.out.println("📋 Registros recibidos (" + records.size() + "):");
+                System.out.println("📋 Registros nuevos recibidos (" + records.size() + "):");
 
                 for (JsonNode record : records) {
                     int enrollId = record.path("enrollid").asInt();
                     String timeStr = record.path("time").asText();
-                    int inout = record.path("inout").asInt(0);
-                    int event = record.path("event").asInt(0);
+                    int inout = record.path("inout").asInt();
+                    int eventCode = record.path("event").asInt();
 
                     System.out.printf(" - ID:%d | Time:%s | InOut:%d | Event:%d%n",
-                            enrollId, timeStr, inout, event);
+                            enrollId, timeStr, inout, eventCode);
 
                     if (enrollId == 0 || timeStr.isEmpty()) {
-                        System.out.println("ℹ️ Log del sistema o sin tiempo válido, ignorado.");
+                        System.out.println("ℹ️ Log del sistema (sin usuario), ignorado.");
                         continue;
                     }
 
                     ZonedDateTime logTime = LocalDateTime.parse(timeStr, FORMATTER)
                             .atZone(ZoneId.systemDefault());
 
-                    Optional<EventTypeModel> optEventType = eventTypeService.getEventTypeByCode(event);
-                    EventTypeModel eventType = optEventType.orElse(null);
-
-                    // Buscar usuario
                     Optional<UserModel> optUser = userService.getUserById((long) enrollId);
                     if (optUser.isEmpty()) {
                         System.err.println("⚠️ Usuario no encontrado para enrollId=" + enrollId);
@@ -111,49 +105,87 @@ public class GetNewLogResponseHandler {
                     }
                     UserModel user = optUser.get();
 
-                    // Verificar si ya existe un log abierto (sin exitTime)
-                    Optional<AccessLogsModel> openLog = accessLogsService.getOpenLogForUserDevice(user, device);
+                    Optional<EventTypeModel> optEventType = eventTypeService.getEventTypeByCode(eventCode);
+                    EventTypeModel eventType = optEventType.orElse(null);
 
-                    if (openLog.isPresent()) {
-                        AccessLogsModel existing = openLog.get();
+                    // 🔎 Evitar duplicados
+                    Optional<AccessLogsModel> duplicate =
+                            accessLogsService.findLogByUserDeviceAndTime(user.getId(), device.getId(), logTime);
+                    if (duplicate.isPresent()) {
+                        System.out.println("⌛ Log duplicado (mismo segundo) → IGNORADO");
+                        continue;
+                    }
 
-                        // Si llega un nuevo evento después del abierto → cerrarlo
-                        if (logTime.isAfter(existing.getEntryTime())) {
-                            existing.setExitTime(logTime);
-                            existing.setDurationSeconds(Duration.between(existing.getEntryTime(), logTime).getSeconds());
-                            existing.setAction(AccessType.EXIT);
-                            accessLogsService.createLog(existing);
-                            System.out.printf("Log cerrado automáticamente para usuario %s%n", user.getUsername());
-                        } else {
-                            System.out.printf("Evento antiguo ignorado para usuario %s%n", user.getUsername());
+                    if (inout == 0) { // 🔵 ENTRADA
+                        // Evitar rebote justo después de salida
+                        Optional<AccessLogsModel> lastClosed =
+                                accessLogsService.findLastClosedLogByUserDevice(user.getId(), device.getId(), logTime);
+                        if (lastClosed.isPresent()) {
+                            System.out.println("Entrada ignorada (rebote después de salida en el mismo segundo)");
+                            continue;
                         }
 
-                    } else {
-                        // Crear nuevo log de entrada
-                        AccessLogsModel newLog = new AccessLogsModel();
-                        newLog.setUser(user);
-                        newLog.setDevice(device);
-                        newLog.setCompany(device.getCompany());
-                        newLog.setEventType(eventType);
-                        newLog.setAction(AccessType.ENTRY);
-                        newLog.setEntryTime(logTime);
-                        newLog.setSuccess(true);
-                        accessLogsService.createLog(newLog);
-                        System.out.printf("🟩 Nuevo log de ENTRADA registrado para usuario %s%n", user.getUsername());
+                        // Si no hay log abierto → crear nuevo
+                        Optional<AccessLogsModel> openLog = accessLogsService.getOpenLogForUserDevice(user, device);
+                        if (openLog.isEmpty()) {
+                            AccessLogsModel log = new AccessLogsModel();
+                            log.setEntryTime(logTime);
+                            log.setUser(user);
+                            log.setDevice(device);
+                            log.setCompany(device.getCompany());
+                            log.setEventType(eventType);
+                            log.setAction(AccessType.ENTRY);
+                            log.setSuccess(true);
+                            accessLogsService.createLog(log);
+                            System.out.println("🟩 Log de ENTRADA registrado para usuario " + user.getUsername());
+                        } else {
+                            System.out.println("Entrada ignorada (ya hay log abierto sin salida)");
+                        }
+
+                    } else { // 🔴 SALIDA
+                        Optional<AccessLogsModel> openLog = accessLogsService.getOpenLogForUserDevice(user, device);
+                        if (openLog.isPresent()) {
+                            AccessLogsModel log = openLog.get();
+
+                            long diffSeconds = Duration.between(log.getEntryTime(), logTime).getSeconds();
+                            if (diffSeconds == 0) {
+                                System.out.println("Salida duplicada en el mismo segundo → IGNORADA");
+                                continue;
+                            }
+                            if (diffSeconds < 0) {
+                                System.out.println("Salida antes de la entrada → IGNORADA");
+                                continue;
+                            }
+
+                            Optional<AccessLogsModel> lastLogSameTime =
+                                    accessLogsService.findLogByUserDeviceAndTime(user.getId(), device.getId(), logTime);
+                            if (lastLogSameTime.isPresent()) {
+                                System.out.println("Salida duplicada existente en DB → IGNORADA");
+                                continue;
+                            }
+
+                            log.setExitTime(logTime);
+                            log.setDurationSeconds(diffSeconds);
+                            log.setAction(AccessType.EXIT);
+                            accessLogsService.createLog(log);
+                            System.out.println("🟥 Log de SALIDA registrado para usuario " + user.getUsername());
+                        } else {
+                            System.out.println("⚠️ No se encontró log de entrada abierto para usuario " + user.getUsername());
+                        }
                     }
                 }
 
                 // 🔁 Solicitar siguiente paquete
-                System.out.println("⏳ Solicitando siguiente paquete de logs...");
+                System.out.println("⏳ Solicitando siguiente paquete de logs (GETNEWLOG)...");
                 getNewLogCommandSender.sendGetNewLogCommand(session, false);
 
             } else {
-                System.out.println("📭 No hay más registros nuevos. Fin del ciclo GETNEWLOG.");
+                System.out.println("📭 No hay más registros nuevos. Fin del GETNEWLOG.");
                 finishedSessions.put(sessionId, true);
             }
 
         } catch (Exception e) {
-            System.err.println("❌ Error al procesar respuesta de GETNEWLOG: " + e.getMessage());
+            System.err.println("❌ Error al procesar GETNEWLOG: " + e.getMessage());
             e.printStackTrace();
         }
     }
