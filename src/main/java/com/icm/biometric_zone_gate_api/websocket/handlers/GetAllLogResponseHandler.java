@@ -46,43 +46,56 @@ public class GetAllLogResponseHandler {
             }
 
             boolean result = json.path("result").asBoolean(false);
-            if (!result || !"getalllog".equalsIgnoreCase(json.path("ret").asText())) {
+            String ret = json.path("ret").asText("");
+            if (!result || !"getalllog".equalsIgnoreCase(ret)) {
                 return;
             }
 
             int count = json.path("count").asInt(0);
             if (count == 0) {
                 finishedSessions.put(sessionId, true);
+                System.out.println("No hay más registros (GETALLLOG).");
                 return;
             }
 
             String sn = (String) session.getAttributes().get("sn");
+            if (sn == null) return;
+
             Optional<DeviceModel> optDevice = deviceService.getDeviceBySn(sn);
             if (optDevice.isEmpty()) return;
-
             DeviceModel device = optDevice.get();
-            ArrayNode records = (ArrayNode) json.get("record");
 
+            ArrayNode records = (ArrayNode) json.get("record");
             for (JsonNode record : records) {
                 int enrollId = record.path("enrollid").asInt();
-                if (enrollId == 0) continue;
+                if (enrollId == 0) continue; // Evento del sistema → ignorar
 
-                String time = record.path("time").asText();
-                ZonedDateTime logTime = LocalDateTime.parse(time, FORMATTER).atZone(ZoneId.systemDefault());
+                String timeStr = record.path("time").asText();
+                ZonedDateTime logTime = LocalDateTime.parse(timeStr, FORMATTER).atZone(ZoneId.systemDefault());
 
                 Optional<UserModel> optUser = userService.getUserById((long) enrollId);
                 if (optUser.isEmpty()) continue;
                 UserModel user = optUser.get();
 
-                // 🔹 DUPLICADO EXACTO → IGNORAR
+                // 🔹 Duplicado EXACTO → IGNORAR
                 if (accessLogsService.findLogByUserDeviceAndTime(user.getId(), device.getId(), logTime).isPresent()) {
+                    System.out.println("Log duplicado → ignorado");
                     continue;
                 }
 
                 Optional<AccessLogsModel> openLogOpt = accessLogsService.getOpenLogForUserDevice(user, device);
 
                 if (openLogOpt.isEmpty()) {
-                    // ➕ CREAR ENTRADA
+                    // 🔹 Posible entrada → verificar si recién hubo salida en mismo segundo
+                    Optional<AccessLogsModel> lastClosed =
+                            accessLogsService.findLastClosedLogByUserDevice(user.getId(), device.getId(), logTime);
+
+                    if (lastClosed.isPresent()) {
+                        System.out.println("Entrada ignorada (rebote tras salida en mismo segundo)");
+                        continue;
+                    }
+
+                    // ✅ Crear nueva ENTRADA
                     AccessLogsModel entry = new AccessLogsModel();
                     entry.setUser(user);
                     entry.setDevice(device);
@@ -91,17 +104,33 @@ public class GetAllLogResponseHandler {
                     entry.setEntryTime(logTime);
                     entry.setAction(AccessType.ENTRY);
                     entry.setSuccess(true);
+
                     accessLogsService.createLog(entry);
+                    System.out.println("➕ Entrada registrada para usuario " + user.getUsername());
+
                 } else {
-                    // CERRAR ANTERIOR = SALIDA
+                    // Hay un log abierto → posible salida
                     AccessLogsModel entry = openLogOpt.get();
+
+                    long diffSeconds = Duration.between(entry.getEntryTime(), logTime).getSeconds();
+
+                    // 🔹 Salida en el mismo segundo que entrada → rebote
+                    if (diffSeconds == 0) {
+                        System.out.println("Salida ignorada (rebote: misma hora que entrada)");
+                        continue;
+                    }
+
+                    // ✅ Cerrar salida
                     entry.setExitTime(logTime);
-                    entry.setDurationSeconds(Duration.between(entry.getEntryTime(), logTime).getSeconds());
+                    entry.setDurationSeconds(diffSeconds);
                     entry.setAction(AccessType.EXIT);
+
                     accessLogsService.createLog(entry);
+                    System.out.println("✅ Salida registrada para usuario " + user.getUsername());
                 }
             }
 
+            // Pedir siguiente paquete
             getAllLogCommandSender.sendGetAllLogCommand(session, false);
 
         } catch (Exception e) {
