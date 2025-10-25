@@ -58,6 +58,14 @@ public class UserModel {
     //@JsonManagedReference("user-credentials")
     private List<UserCredentialModel> credentials = new ArrayList<>();
 
+    @JsonIgnore
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<DeviceUserAccessModel> deviceAccesses = new ArrayList<>();
+
+    @JsonIgnore
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<AccessLogsModel> accessLogs = new ArrayList<>();
+
     @Column(nullable = false, updatable = false)
     @CreationTimestamp
     private ZonedDateTime createdAt;
