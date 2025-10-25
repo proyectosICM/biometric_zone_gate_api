@@ -53,6 +53,7 @@ public class GetNewLogResponseHandler {
             }
 
             int count = json.path("count").asInt(0);
+
             if (count == 0) {
                 finishedSessions.put(sessionId, true);
                 return;
@@ -72,7 +73,7 @@ public class GetNewLogResponseHandler {
                 String timeStr = record.path("time").asText();
                 ZonedDateTime logTime = LocalDateTime.parse(timeStr, FORMATTER).atZone(ZoneId.systemDefault());
 
-                Optional<UserModel> optUser = userService.getUserById((long) enrollId);
+                Optional<UserModel> optUser = userService.findByByEnrollId(enrollId);
                 if (optUser.isEmpty()) continue;
                 UserModel user = optUser.get();
 

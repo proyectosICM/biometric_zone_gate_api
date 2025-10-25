@@ -66,6 +66,7 @@ public class GetUserInfoResponseHandler {
                     System.out.println("Usuario no existe en BD, creando: " + name);
 
                     UserModel newUser = new UserModel();
+                    newUser.setEnrollId(enrollId);
                     newUser.setName(name);
                     newUser.setAdminLevel(admin);
                     newUser.setEnabled(true);

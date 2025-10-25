@@ -230,6 +230,10 @@ public class UserService {
         return userRepository.findByUsername(username);
     }
 
+    public Optional<UserModel> findByByEnrollId(int enrollId) {
+        return userRepository.findByByEnrollId(enrollId);
+    }
+
     public Optional<UserModel> getUserByEmail(String email) {
         return userRepository.findByEmail(email);
     }
