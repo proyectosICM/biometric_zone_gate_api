@@ -73,7 +73,7 @@ public class GetNewLogResponseHandler {
                 String timeStr = record.path("time").asText();
                 ZonedDateTime logTime = LocalDateTime.parse(timeStr, FORMATTER).atZone(ZoneId.systemDefault());
 
-                Optional<UserModel> optUser = userService.findByByEnrollId(enrollId);
+                Optional<UserModel> optUser = userService.findByEnrollId(enrollId);
                 if (optUser.isEmpty()) continue;
                 UserModel user = optUser.get();
 
