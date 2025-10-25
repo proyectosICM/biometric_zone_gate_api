@@ -73,15 +73,20 @@ public class UserService {
             for (UserCredentialDTO credDto : dto.getCredentials()) {
                 UserCredentialModel credential = new UserCredentialModel();
                 credential.setUser(savedUser);
-                credential.setType(
-                        credDto.getType() != null
-                                ? CredentialType.valueOf(credDto.getType())
-                                : CredentialType.UNKNOWN
-                );
+
+                String typeString = credDto.getType() != null ? credDto.getType().trim().toUpperCase() : null;
+                CredentialType finalType;
+                try {
+                    finalType = CredentialType.valueOf(typeString);
+                } catch (Exception e) {
+                    finalType = CredentialType.UNKNOWN;
+                }
+
+                credential.setType(finalType);
                 credential.setRecord(credDto.getRecord());
 
                 if (credDto.getBackupNum() == null) {
-                    switch (credential.getType()) {
+                    switch (finalType) {
                         case PASSWORD -> credential.setBackupNum(10);
                         case CARD -> credential.setBackupNum(11);
                         case FINGERPRINT -> credential.setBackupNum(0);
@@ -154,9 +159,14 @@ public class UserService {
 
                     if (existing != null) {
                         // Actualizar campos
-                        existing.setType(cdto.getType() != null
-                                ? CredentialType.valueOf(cdto.getType())
-                                : existing.getType());
+                        String typeString = cdto.getType() != null ? cdto.getType().trim().toUpperCase() : null;
+                        CredentialType finalType;
+                        try {
+                            finalType = CredentialType.valueOf(typeString);
+                        } catch (Exception e) {
+                            finalType = CredentialType.UNKNOWN;
+                        }
+                        existing.setType(finalType);
                         existing.setRecord(cdto.getRecord());
                         existing.setBackupNum(cdto.getBackupNum());
                         finalList.add(existing);
@@ -164,9 +174,14 @@ public class UserService {
                         // Crear nueva
                         UserCredentialModel newCred = new UserCredentialModel();
                         newCred.setUser(user);
-                        newCred.setType(cdto.getType() != null
-                                ? CredentialType.valueOf(cdto.getType())
-                                : CredentialType.UNKNOWN);
+                        String typeString = cdto.getType() != null ? cdto.getType().trim().toUpperCase() : null;
+                        CredentialType finalType;
+                        try {
+                            finalType = CredentialType.valueOf(typeString);
+                        } catch (Exception e) {
+                            finalType = CredentialType.UNKNOWN;
+                        }
+                        newCred.setType(finalType);
                         newCred.setRecord(cdto.getRecord());
 
                         if (cdto.getBackupNum() == null) {
