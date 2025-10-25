@@ -35,7 +35,9 @@ public class GetNewLogResponseHandler {
     private final EventTypeService eventTypeService;
 
     private final ConcurrentHashMap<String, Boolean> finishedSessions = new ConcurrentHashMap<>();
+
     private static final DateTimeFormatter FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+    private static final int MIN_SECONDS_BETWEEN_EVENTS = 5;
 
     public void handleGetNewLogResponse(JsonNode json, WebSocketSession session) {
         try {
@@ -74,7 +76,7 @@ public class GetNewLogResponseHandler {
                 if (optUser.isEmpty()) continue;
                 UserModel user = optUser.get();
 
-                // ⭐ Evitar duplicado exacto
+                // ✅ Evitar duplicado exacto
                 if (accessLogsService.findLogByUserDeviceAndTime(user.getId(), device.getId(), logTime).isPresent()) {
                     continue;
                 }
@@ -82,12 +84,13 @@ public class GetNewLogResponseHandler {
                 Optional<AccessLogsModel> openLogOpt = accessLogsService.getOpenLogForUserDevice(user, device);
 
                 if (openLogOpt.isEmpty()) {
-                    // Check si acaba de haber una salida en mismo segundo → rebote
+
+                    // ✅ Evitar rebote justo después de una salida
                     if (accessLogsService.findLastClosedLogByUserDevice(user.getId(), device.getId(), logTime).isPresent()) {
                         continue;
                     }
 
-                    // CREAR ENTRADA
+                    // Crear nueva entrada
                     AccessLogsModel entry = new AccessLogsModel();
                     entry.setUser(user);
                     entry.setDevice(device);
@@ -97,16 +100,19 @@ public class GetNewLogResponseHandler {
                     entry.setAction(AccessType.ENTRY);
                     entry.setSuccess(true);
                     accessLogsService.createLog(entry);
+
                 } else {
+                    // Cerrar log si corresponde
                     AccessLogsModel existing = openLogOpt.get();
                     long diffSeconds = Duration.between(existing.getEntryTime(), logTime).getSeconds();
 
-                    if (diffSeconds == 0) {
-                        // rebote
-                        continue;
-                    }
+                    // ❌ No permitir cierre si es antes de la entrada
+                    if (diffSeconds < 0) continue;
 
-                    // CERRAR SALIDA
+                    // ❌ No cerrar dentro de la ventana mínima
+                    if (diffSeconds < MIN_SECONDS_BETWEEN_EVENTS) continue;
+
+                    // ✅ Cerrar correctamente
                     existing.setExitTime(logTime);
                     existing.setDurationSeconds(diffSeconds);
                     existing.setAction(AccessType.EXIT);
