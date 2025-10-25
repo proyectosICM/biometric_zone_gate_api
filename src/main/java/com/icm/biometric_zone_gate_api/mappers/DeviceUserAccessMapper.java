@@ -16,6 +16,7 @@ public class DeviceUserAccessMapper {
         dto.setStartTime(entity.getStartTime());
         dto.setEndTime(entity.getEndTime());
         dto.setEnabled(entity.getEnabled());
+        dto.setEnrollId(entity.getEnrollId());
 
         if (entity.getUser() != null) {
             dto.setUserId(entity.getUser().getId());

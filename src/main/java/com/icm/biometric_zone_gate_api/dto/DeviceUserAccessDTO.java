@@ -21,6 +21,7 @@ public class DeviceUserAccessDTO {
     private String userName;
     private Long deviceId;
     private String deviceName;
+    private int enrollId;
 
 }
 
