@@ -90,7 +90,7 @@ public class DeviceUserAccessService {
                     System.err.println("Usuario sin credenciales, no se puede enviar al dispositivo.");
                 } else {
                     for (UserCredentialModel credential : user.getCredentials()) {
-                        int enrollId = user.getId().intValue();
+                        int enrollId = 0;
                         String name = user.getName();
                         int backupNum = credential.getBackupNum();
                         int admin = user.getAdminLevel() != null ? user.getAdminLevel() : 0;
@@ -105,12 +105,6 @@ public class DeviceUserAccessService {
                         System.out.println("Record: " + record);
                         System.out.println("Dispositivo: " + device.getSn());
                         System.out.println("=====================================");
-
-                            /*
-                            System.err.printf("Enviando usuario '%s' (ID=%d, backup=%d) al dispositivo %s%n",
-                                    name, enrollId, backupNum, device.getSn());
-
-                             */
 
                         commandSender.sendSetUserInfoCommand(session, enrollId, name, backupNum, admin, record);
                     }
