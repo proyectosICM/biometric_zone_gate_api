@@ -123,6 +123,7 @@ public class UserService {
             user.setName(dto.getName());
             user.setAdminLevel(dto.getAdminLevel());
             user.setEnabled(dto.getEnabled());
+            user.setEnrollId(dto.getEnrollId());
 
             if (dto.getCompanyId() != null) {
                 user.setCompany(companyRepository.findById(dto.getCompanyId())
