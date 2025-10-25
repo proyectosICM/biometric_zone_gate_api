@@ -230,8 +230,8 @@ public class UserService {
         return userRepository.findByUsername(username);
     }
 
-    public Optional<UserModel> findByByEnrollId(int enrollId) {
-        return userRepository.findByByEnrollId(enrollId);
+    public Optional<UserModel> findByEnrollId(int enrollId) {
+        return userRepository.findByEnrollId(enrollId);
     }
 
     public Optional<UserModel> getUserByEmail(String email) {
