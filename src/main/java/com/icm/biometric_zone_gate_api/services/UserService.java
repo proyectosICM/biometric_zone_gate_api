@@ -68,7 +68,7 @@ public class UserService {
             savedUser.setCredentials(new ArrayList<>(   ));
         }
 
-        // 5️⃣ Manejo de credenciales personalizadas
+        // Manejo de credenciales personalizadas
         if (dto.getCredentials() != null && !dto.getCredentials().isEmpty()) {
             for (UserCredentialDTO credDto : dto.getCredentials()) {
                 UserCredentialModel credential = new UserCredentialModel();
@@ -173,6 +173,7 @@ public class UserService {
                             switch (newCred.getType()) {
                                 case PASSWORD -> newCred.setBackupNum(10);
                                 case CARD -> newCred.setBackupNum(11);
+                                case PHOTO -> newCred.setBackupNum(50);
                                 case FINGERPRINT -> newCred.setBackupNum(0);
                                 default -> newCred.setBackupNum(99);
                             }
