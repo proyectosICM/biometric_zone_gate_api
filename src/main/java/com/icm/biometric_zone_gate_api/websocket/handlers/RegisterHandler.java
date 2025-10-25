@@ -37,37 +37,31 @@ public class RegisterHandler {
         try {
             String sn = json.path("sn").asText(null);
             if (sn == null || sn.isEmpty()) {
-                System.err.println("Invalid registration: missing SN");
-                session.sendMessage(new TextMessage("{\"ret\":\"reg\", \"result\":false, \"reason\":1}"));
+                session.sendMessage(new TextMessage("{\"ret\":\"reg\",\"result\":false,\"reason\":\"did not reg\"}"));
                 return;
             }
 
             JsonNode devinfo = json.path("devinfo");
             if (!DeviceValidator.validateDevInfo(devinfo)) {
-                System.err.println("Invalid registration: incomplete or incorrect devinfo");
-                session.sendMessage(new TextMessage("{\"ret\":\"reg\", \"result\":false, \"reason\":1}"));
+                session.sendMessage(new TextMessage("{\"ret\":\"reg\",\"result\":false,\"reason\":\"did not reg\"}"));
                 return;
             }
 
             Optional<DeviceModel> existingDeviceOpt = deviceService.getDeviceBySn(sn);
+
             if (existingDeviceOpt.isPresent()) {
                 DeviceModel device = existingDeviceOpt.get();
                 deviceService.updateDeviceStatus(device.getId(), DeviceStatus.CONNECTED);
                 session.getAttributes().put("sn", sn);
                 deviceSessionManager.registerSession(sn, session);
 
-                System.out.println("Existing device marked as CONNECTED: " + sn);
-
-                // ✅ PRIMERO RESPONDEMOS AL REG
+                // ✅ RESPONDEMOS SOLO UNA VEZ
                 String cloudTime = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
-                String response = String.format("{\"ret\":\"reg\",\"result\":true,\"cloudtime\":\"%s\"}", cloudTime);
-                session.sendMessage(new TextMessage(response));
+                session.sendMessage(new TextMessage(
+                        String.format("{\"ret\":\"reg\",\"result\":true,\"cloudtime\":\"%s\",\"nosenduser\":true}", cloudTime)
+                ));
 
-                System.out.println("Registro del dispositivo exitoso: " + sn);
-
-                // ==============================
-                // 🔄  SINCRONIZACIÓN CONTROLADA
-                // ==============================
+                // ✅ LUEGO evaluamos si se sincroniza
                 LocalDateTime now = LocalDateTime.now();
                 int minute = now.getMinute();
                 boolean inSyncWindow = (minute % 10 <= 2);
@@ -78,38 +72,31 @@ public class RegisterHandler {
                             Duration.between(lastSync, now.atZone(ZoneId.systemDefault())).toMinutes() >= MINUTES_BETWEEN_SYNC;
 
                     if (mustSync) {
-                        System.out.println("🟢 Dentro de ventana de sincronización → Enviando GETUSERLIST...");
                         deviceCommandScheduler.schedule(() ->
                                 getUserListCommandSender.sendGetUserListCommand(session, true), 500
                         );
-
                         device.setLastUserSync(ZonedDateTime.now());
                         deviceService.createDevice(device);
-                    } else {
-                        System.out.println("⏸️ Dentro de ventana, pero sincronización reciente (<10min) → NO se envía.");
                     }
-                } else {
-                    System.out.println("⛔ Fuera de ventana de sincronización → NO se envía GETUSERLIST.");
                 }
 
             } else {
-                System.out.println("⛔ Dispositivo no registrado en BD → NO se sincroniza.");
-                // Igual respondemos REG OK para que no se quede colgado
+                // ✅ El dispositivo NO EXISTE → igual respondemos SOLO UNA VEZ
                 String cloudTime = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
-                session.sendMessage(new TextMessage(String.format("{\"ret\":\"reg\",\"result\":true,\"cloudtime\":\"%s\"}", cloudTime)));
+                session.sendMessage(new TextMessage(
+                        String.format("{\"ret\":\"reg\",\"result\":true,\"cloudtime\":\"%s\",\"nosenduser\":true}", cloudTime)
+                ));
                 return;
             }
 
-            // --- GETNEWLOG SIEMPRE ---
+            // ✅ GETNEWLOG SIEMPRE DESPUÉS
             deviceCommandScheduler.schedule(() -> {
                 getNewLogCommandSender.sendGetNewLogCommand(session, true);
-                System.out.println("Comando GETNEWLOG inicial enviado automáticamente al dispositivo " + sn);
             }, 1000);
 
         } catch (Exception e) {
-            e.printStackTrace();
             try {
-                session.sendMessage(new TextMessage("{\"ret\":\"reg\", \"result\":false, \"reason\":1}"));
+                session.sendMessage(new TextMessage("{\"ret\":\"reg\",\"result\":false,\"reason\":\"did not reg\"}"));
             } catch (Exception ignored) {}
         }
     }
