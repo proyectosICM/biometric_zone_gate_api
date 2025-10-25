@@ -76,7 +76,7 @@ public class GetNewLogResponseHandler {
                 if (optUser.isEmpty()) continue;
                 UserModel user = optUser.get();
 
-                // ✅ Evitar duplicado exacto
+                // Evitar duplicado exacto
                 if (accessLogsService.findLogByUserDeviceAndTime(user.getId(), device.getId(), logTime).isPresent()) {
                     continue;
                 }
@@ -85,7 +85,7 @@ public class GetNewLogResponseHandler {
 
                 if (openLogOpt.isEmpty()) {
 
-                    // ✅ Evitar rebote justo después de una salida
+                    // Evitar rebote justo después de una salida
                     if (accessLogsService.findLastClosedLogByUserDevice(user.getId(), device.getId(), logTime).isPresent()) {
                         continue;
                     }
@@ -106,13 +106,13 @@ public class GetNewLogResponseHandler {
                     AccessLogsModel existing = openLogOpt.get();
                     long diffSeconds = Duration.between(existing.getEntryTime(), logTime).getSeconds();
 
-                    // ❌ No permitir cierre si es antes de la entrada
+                    // No permitir cierre si es antes de la entrada
                     if (diffSeconds < 0) continue;
 
-                    // ❌ No cerrar dentro de la ventana mínima
+                    // No cerrar dentro de la ventana mínima
                     if (diffSeconds < MIN_SECONDS_BETWEEN_EVENTS) continue;
 
-                    // ✅ Cerrar correctamente
+                    // Cerrar correctamente
                     existing.setExitTime(logTime);
                     existing.setDurationSeconds(diffSeconds);
                     existing.setAction(AccessType.EXIT);

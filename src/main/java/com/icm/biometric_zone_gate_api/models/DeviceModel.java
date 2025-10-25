@@ -26,6 +26,8 @@ public class DeviceModel {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    private ZonedDateTime lastUserSync;
+
     private String sn;
 
     private int volume;

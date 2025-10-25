@@ -14,7 +14,10 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.socket.TextMessage;
 import org.springframework.web.socket.WebSocketSession;
 
+import java.time.Duration;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Optional;
 
@@ -27,6 +30,8 @@ public class RegisterHandler {
     private final DeviceSessionManager deviceSessionManager;
     private final GetNewLogCommandSender getNewLogCommandSender;
     private final DeviceCommandScheduler deviceCommandScheduler;
+
+    private static final int MINUTES_BETWEEN_SYNC = 10;
 
     public void handleRegister(JsonNode json, WebSocketSession session) {
         try {
@@ -44,72 +49,68 @@ public class RegisterHandler {
                 return;
             }
 
-            // Extraer todos los campos del devinfo
-            String model = devinfo.path("modelname").asText("");
-            String firmware = devinfo.path("firmware").asText("");
-            int usersize = devinfo.path("usersize").asInt(0);
-            int fpsize = devinfo.path("fpsize").asInt(0);
-            int cardsize = devinfo.path("cardsize").asInt(0);
-            int pwdsize = devinfo.path("pwdsize").asInt(0);
-            int logsize = devinfo.path("logsize").asInt(0);
-            int useduser = devinfo.path("useduser").asInt(0);
-            int usedfp = devinfo.path("usedfp").asInt(0);
-            int usedcard = devinfo.path("usedcard").asInt(0);
-            int usedpwd = devinfo.path("usedpwd").asInt(0);
-            int usedlog = devinfo.path("usedlog").asInt(0);
-            int usednewlog = devinfo.path("usednewlog").asInt(0);
-            String fpalgo = devinfo.path("fpalgo").asText("");
-            String time = devinfo.path("time").asText("");
-
-            System.out.println("Registration received:");
-            System.out.println("   SN: " + sn);
-            System.out.println("   Model: " + model);
-            System.out.println("   Firmware: " + firmware);
-            System.out.println("   User capacity: " + usersize);
-
-            // Manejo de BD
             Optional<DeviceModel> existingDeviceOpt = deviceService.getDeviceBySn(sn);
             if (existingDeviceOpt.isPresent()) {
                 DeviceModel device = existingDeviceOpt.get();
                 deviceService.updateDeviceStatus(device.getId(), DeviceStatus.CONNECTED);
                 session.getAttributes().put("sn", sn);
                 deviceSessionManager.registerSession(sn, session);
+
                 System.out.println("Existing device marked as CONNECTED: " + sn);
+
+                // ✅ PRIMERO RESPONDEMOS AL REG
+                String cloudTime = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
+                String response = String.format("{\"ret\":\"reg\",\"result\":true,\"cloudtime\":\"%s\"}", cloudTime);
+                session.sendMessage(new TextMessage(response));
+
+                System.out.println("Registro del dispositivo exitoso: " + sn);
+
+                // ==============================
+                // 🔄  SINCRONIZACIÓN CONTROLADA
+                // ==============================
+                LocalDateTime now = LocalDateTime.now();
+                int minute = now.getMinute();
+                boolean inSyncWindow = (minute % 10 <= 2);
+
+                if (inSyncWindow) {
+                    ZonedDateTime lastSync = device.getLastUserSync();
+                    boolean mustSync = (lastSync == null) ||
+                            Duration.between(lastSync, now.atZone(ZoneId.systemDefault())).toMinutes() >= MINUTES_BETWEEN_SYNC;
+
+                    if (mustSync) {
+                        System.out.println("🟢 Dentro de ventana de sincronización → Enviando GETUSERLIST...");
+                        deviceCommandScheduler.schedule(() ->
+                                getUserListCommandSender.sendGetUserListCommand(session, true), 500
+                        );
+
+                        device.setLastUserSync(ZonedDateTime.now());
+                        deviceService.createDevice(device);
+                    } else {
+                        System.out.println("⏸️ Dentro de ventana, pero sincronización reciente (<10min) → NO se envía.");
+                    }
+                } else {
+                    System.out.println("⛔ Fuera de ventana de sincronización → NO se envía GETUSERLIST.");
+                }
+
             } else {
-                System.out.println("Device not found in DB with SN " + sn + ". Not creating new record.");
+                System.out.println("⛔ Dispositivo no registrado en BD → NO se sincroniza.");
+                // Igual respondemos REG OK para que no se quede colgado
+                String cloudTime = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
+                session.sendMessage(new TextMessage(String.format("{\"ret\":\"reg\",\"result\":true,\"cloudtime\":\"%s\"}", cloudTime)));
+                return;
             }
 
-            String cloudTime = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
-            String response = String.format("{\"ret\":\"reg\",\"result\":true,\"cloudtime\":\"%s\"}", cloudTime);
-            session.sendMessage(new TextMessage(response));
-
-            System.out.println("Registro del dispositivo exitoso: " + sn);
-
-            // ---  Disparar automáticamente comando GET USER LIST ---
-            try {
-                deviceCommandScheduler.schedule(() -> {
-                    getUserListCommandSender.sendGetUserListCommand(session, true);
-                }, 500);
-            } catch (Exception ex) {
-                System.err.println("No se pudo enviar comando getuserlist: " + ex.getMessage());
-            }
-
-            // --- Disparar automáticamente comando GET NEW LOG ---
-            try {
-                deviceCommandScheduler.schedule(() -> {
-                    getNewLogCommandSender.sendGetNewLogCommand(session, true);
-                    System.out.println("Comando GETNEWLOG inicial enviado automáticamente al dispositivo " + sn);
-                }, 1000);
-            } catch (Exception ex) {
-                System.err.println("No se pudo enviar comando getnewlog: " + ex.getMessage());
-            }
+            // --- GETNEWLOG SIEMPRE ---
+            deviceCommandScheduler.schedule(() -> {
+                getNewLogCommandSender.sendGetNewLogCommand(session, true);
+                System.out.println("Comando GETNEWLOG inicial enviado automáticamente al dispositivo " + sn);
+            }, 1000);
 
         } catch (Exception e) {
             e.printStackTrace();
             try {
                 session.sendMessage(new TextMessage("{\"ret\":\"reg\", \"result\":false, \"reason\":1}"));
-            } catch (Exception ignored) {
-            }
+            } catch (Exception ignored) {}
         }
     }
 }
