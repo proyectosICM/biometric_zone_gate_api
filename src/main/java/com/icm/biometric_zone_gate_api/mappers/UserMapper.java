@@ -26,6 +26,8 @@ public class UserMapper {
         user.setPassword(dto.getPassword());
         user.setAdminLevel(dto.getAdminLevel());
         user.setEnabled(dto.getEnabled());
+        user.setEnrollId(dto.getEnrollId());
+
 
         if (dto.getCompanyId() != null) {
             user.setCompany(companyRepository.findById(dto.getCompanyId())
@@ -45,6 +47,7 @@ public class UserMapper {
         dto.setPassword(user.getPassword());
         dto.setAdminLevel(user.getAdminLevel());
         dto.setEnabled(user.getEnabled());
+        dto.setEnrollId(user.getEnrollId());
 
         if (user.getCompany() != null) {
             dto.setCompanyId(user.getCompany().getId());

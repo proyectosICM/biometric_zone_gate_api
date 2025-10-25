@@ -90,7 +90,7 @@ public class DeviceUserAccessService {
                     System.err.println("Usuario sin credenciales, no se puede enviar al dispositivo.");
                 } else {
                     for (UserCredentialModel credential : user.getCredentials()) {
-                        int enrollId = 0;
+                        int enrollId = user.getEnrollId();
                         String name = user.getName();
                         int backupNum = credential.getBackupNum();
                         int admin = user.getAdminLevel() != null ? user.getAdminLevel() : 0;

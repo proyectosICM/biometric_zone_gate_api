@@ -115,11 +115,13 @@ public class GetUserInfoResponseHandler {
                 } else {
                     DeviceUserAccessModel access = accessOpt.get();
 
+                    /*
                     if (access.getEnrollId() <= 0 || access.getEnrollId() != enrollId) {
                         System.out.printf("🔄 Actualizando enrollId del servidor: %d → %d%n",
                                 access.getEnrollId(), enrollId);
                         access.setEnrollId(enrollId);
                     }
+                     */
 
                     access.setSynced(true);
                     deviceUserAccessRepository.save(access);
