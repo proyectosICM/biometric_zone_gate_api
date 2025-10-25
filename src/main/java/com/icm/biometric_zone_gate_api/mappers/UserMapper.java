@@ -2,7 +2,6 @@ package com.icm.biometric_zone_gate_api.mappers;
 
 import com.icm.biometric_zone_gate_api.dto.UserCredentialDTO;
 import com.icm.biometric_zone_gate_api.dto.UserDTO;
-import com.icm.biometric_zone_gate_api.enums.CredentialType;
 import com.icm.biometric_zone_gate_api.models.UserCredentialModel;
 import com.icm.biometric_zone_gate_api.models.UserModel;
 import com.icm.biometric_zone_gate_api.repositories.CompanyRepository;
@@ -33,27 +32,6 @@ public class UserMapper {
                     .orElseThrow(() -> new RuntimeException("Empresa no encontrada")));
         }
 
-        // 🔹 Mapear credenciales si existen
-        /*
-        List<UserCredentialModel> credentials = new ArrayList<>();
-        if (dto.getCredentials() != null && !dto.getCredentials().isEmpty()) {
-            for (UserCredentialDTO cdto : dto.getCredentials()) {
-                UserCredentialModel cred = new UserCredentialModel();
-
-                cred.setId(cdto.getId()); // ✅ conservar ID si existe
-                cred.setType(cdto.getType() != null
-                        ? CredentialType.valueOf(cdto.getType())
-                        : CredentialType.UNKNOWN);
-                cred.setBackupNum(cdto.getBackupNum());
-                cred.setRecord(cdto.getRecord());
-                cred.setUser(user);
-
-                credentials.add(cred);
-            }
-        }
-
-        user.setCredentials(credentials);
-*/
         user.setCredentials(new ArrayList<>());
         return user;
     }

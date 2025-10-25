@@ -85,6 +85,7 @@ public class UserService {
                         case PASSWORD -> credential.setBackupNum(10);
                         case CARD -> credential.setBackupNum(11);
                         case FINGERPRINT -> credential.setBackupNum(0);
+                        case PHOTO -> credential.setBackupNum(50);
                         default -> credential.setBackupNum(99);
                     }
                 } else {
@@ -115,7 +116,6 @@ public class UserService {
             boolean enabledChanged = dto.getEnabled() != null && !dto.getEnabled().equals(user.getEnabled());
 
             user.setName(dto.getName());
-            user.setEmail(dto.getEmail());
             user.setAdminLevel(dto.getAdminLevel());
             user.setEnabled(dto.getEnabled());
 
@@ -124,7 +124,15 @@ public class UserService {
                         .orElseThrow(() -> new RuntimeException("Empresa no encontrada")));
             }
 
-            if (dto.getUsername() != null && !dto.getUsername().isEmpty()) {
+            if (dto.getEmail() != null
+                    && !dto.getEmail().isEmpty()
+                    && !dto.getEmail().equalsIgnoreCase(user.getEmail())) {
+                user.setEmail(dto.getEmail());
+            }
+
+            if (dto.getUsername() != null
+                    && !dto.getUsername().isEmpty()
+                    && !dto.getUsername().equalsIgnoreCase(user.getUsername())) {
                 user.setUsername(dto.getUsername());
             }
 
