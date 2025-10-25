@@ -22,6 +22,8 @@ import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Optional;
 
+// ... (imports y demás igual)
+
 @Component
 @RequiredArgsConstructor
 public class SendLogHandler {
@@ -32,6 +34,9 @@ public class SendLogHandler {
     private final EventTypeService eventTypeService;
 
     private static final DateTimeFormatter FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+
+    // 🔧 UMBRAL configurable (30 segundos recomendado)
+    private static final int MIN_SECONDS_BETWEEN_EVENTS = 30;
 
     public void handleSendLog(JsonNode json, WebSocketSession session) {
         try {
@@ -53,16 +58,17 @@ public class SendLogHandler {
 
             for (JsonNode record : records) {
                 int enrollId = record.path("enrollid").asInt();
-                if (enrollId == 0) continue; // system event
+                if (enrollId == 0) continue;
 
                 String timeStr = record.path("time").asText();
-                ZonedDateTime logTime = LocalDateTime.parse(timeStr, FORMATTER).atZone(ZoneId.systemDefault());
+                ZonedDateTime logTime = LocalDateTime.parse(timeStr, FORMATTER)
+                        .atZone(ZoneId.systemDefault());
 
                 Optional<UserModel> optUser = userService.getUserById((long) enrollId);
                 if (optUser.isEmpty()) continue;
                 UserModel user = optUser.get();
 
-                // ✅ 1. Evitar duplicado exacto
+                // ✅ 1. evitar duplicado exacto
                 if (accessLogsService.findLogByUserDeviceAndTime(user.getId(), device.getId(), logTime).isPresent()) {
                     continue;
                 }
@@ -70,12 +76,13 @@ public class SendLogHandler {
                 Optional<AccessLogsModel> openLogOpt = accessLogsService.getOpenLogForUserDevice(user, device);
 
                 if (openLogOpt.isEmpty()) {
-                    // ✅ 2. Check rebote: salida recién cerrada en mismo segundo => no crear
+
+                    // ✅ 2. evitar rebote inmediato después de una salida
                     if (accessLogsService.findLastClosedLogByUserDevice(user.getId(), device.getId(), logTime).isPresent()) {
                         continue;
                     }
 
-                    // ➕ CREAR NUEVA ENTRADA
+                    // ➕ nueva entrada
                     AccessLogsModel entry = new AccessLogsModel();
                     entry.setUser(user);
                     entry.setDevice(device);
@@ -87,14 +94,18 @@ public class SendLogHandler {
                     accessLogsService.createLog(entry);
 
                 } else {
-                    // Cerrar la anterior
+                    // verificar duración mínima
                     AccessLogsModel entry = openLogOpt.get();
-                    long diff = Duration.between(entry.getEntryTime(), logTime).getSeconds();
+                    long diffSeconds = Duration.between(entry.getEntryTime(), logTime).getSeconds();
 
-                    if (diff == 0) continue; // Rebote
+                    if (diffSeconds < MIN_SECONDS_BETWEEN_EVENTS) {
+                        // ⛔ rebote aunque no sea exactamente 0 segundos
+                        continue;
+                    }
 
+                    // ✅ cerrar log
                     entry.setExitTime(logTime);
-                    entry.setDurationSeconds(diff);
+                    entry.setDurationSeconds(diffSeconds);
                     entry.setAction(AccessType.EXIT);
                     accessLogsService.createLog(entry);
                 }
@@ -106,8 +117,9 @@ public class SendLogHandler {
             ));
 
         } catch (Exception e) {
-            try { session.sendMessage(new TextMessage("{\"ret\":\"sendlog\",\"result\":false,\"reason\":1}")); }
-            catch (Exception ignored) {}
+            try {
+                session.sendMessage(new TextMessage("{\"ret\":\"sendlog\",\"result\":false,\"reason\":1}"));
+            } catch (Exception ignored) {}
         }
     }
 }
