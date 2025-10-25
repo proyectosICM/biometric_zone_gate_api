@@ -77,6 +77,7 @@ public class DeviceUserAccessService {
 
         entity.setUser(user);
         entity.setDevice(device);
+        entity.setEnrollId(user.getEnrollId());
 
         // Guardar en base de datos
         DeviceUserAccessModel saved = deviceUserAccessRepository.save(entity);

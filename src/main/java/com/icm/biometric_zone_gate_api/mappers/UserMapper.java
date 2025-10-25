@@ -28,7 +28,6 @@ public class UserMapper {
         user.setEnabled(dto.getEnabled());
         user.setEnrollId(dto.getEnrollId());
 
-
         if (dto.getCompanyId() != null) {
             user.setCompany(companyRepository.findById(dto.getCompanyId())
                     .orElseThrow(() -> new RuntimeException("Empresa no encontrada")));
