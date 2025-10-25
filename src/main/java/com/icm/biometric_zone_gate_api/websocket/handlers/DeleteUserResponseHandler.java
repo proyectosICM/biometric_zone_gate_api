@@ -13,7 +13,12 @@ public class DeleteUserResponseHandler {
 
     public void handleDeleteUserResponse(JsonNode json) {
         try {
+            String ret = json.path("ret").asText("");
             boolean result = json.path("result").asBoolean(false);
+
+            if (!"deleteuser".equalsIgnoreCase(ret)) {
+                return;
+            }
 
             if (result) {
                 System.out.println("Dispositivo confirmó DELETE USER exitoso.");
@@ -24,7 +29,6 @@ public class DeleteUserResponseHandler {
 
         } catch (Exception e) {
             System.err.println("Error al procesar respuesta de deleteuser: " + e.getMessage());
-            e.printStackTrace();
         }
     }
 }

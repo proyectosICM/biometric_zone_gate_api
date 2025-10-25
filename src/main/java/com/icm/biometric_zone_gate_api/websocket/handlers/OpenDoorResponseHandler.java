@@ -11,18 +11,20 @@ public class OpenDoorResponseHandler {
 
     public void handleOpenDoorResponse(JsonNode json) {
         try {
+            String ret = json.path("ret").asText("");
             boolean result = json.path("result").asBoolean(false);
 
+            if (!"opendoor".equalsIgnoreCase(ret)) return;
+
             if (result) {
-                System.out.println("✅ Dispositivo confirmó OPENDOOR exitoso (puerta abierta).");
+                System.out.println("Dispositivo confirmó OPENDOOR exitoso.");
             } else {
                 int reason = json.path("reason").asInt(-1);
-                System.out.println("⚠️ Falló OPENDOOR. Reason=" + reason);
+                System.out.println("Falló OPENDOOR. Reason=" + reason);
             }
 
         } catch (Exception e) {
-            System.err.println("❌ Error al procesar respuesta de OPENDOOR: " + e.getMessage());
-            e.printStackTrace();
+            System.err.println("Error al procesar respuesta OPENDOOR: " + e.getMessage());
         }
     }
 }

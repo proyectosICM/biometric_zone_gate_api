@@ -1,5 +1,6 @@
 package com.icm.biometric_zone_gate_api.repositories;
 
+import com.icm.biometric_zone_gate_api.enums.DeviceStatus;
 import com.icm.biometric_zone_gate_api.models.DeviceModel;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -12,7 +13,10 @@ import java.util.Optional;
 @Repository
 public interface DeviceRepository extends JpaRepository<DeviceModel, Long> {
     DeviceModel findByName(String name);
+
     Optional<DeviceModel> findBySn(String sn);
+
+    List<DeviceModel> findByStatus(DeviceStatus status);
 
     List<DeviceModel> findByCompanyId(Long companyId);
 

@@ -13,13 +13,18 @@ public class SetUserInfoResponseHandler {
 
     public void handleSetUserInfoResponse(JsonNode json) {
         try {
+            String ret = json.path("ret").asText("");
             boolean result = json.path("result").asBoolean(false);
 
+            if (!"setuserinfo".equalsIgnoreCase(ret)) {
+                return;
+            }
+
             if (result) {
-                System.out.println("Dispositivo confirmó SET USER INFO exitoso.");
+                System.out.println("Dispositivo confirmó SETUSERINFO (descarga OK)");
             } else {
                 int reason = json.path("reason").asInt(-1);
-                System.out.println("Falló SET USER INFO. Reason=" + reason);
+                System.out.println("Dispositivo rechazó SETUSERINFO. Reason=" + reason);
             }
 
         } catch (Exception e) {
