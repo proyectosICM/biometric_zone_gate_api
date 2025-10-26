@@ -161,7 +161,7 @@ public class DeviceService {
                     System.out.println("📡 Enviando SET USERNAME al dispositivo SN=" + sn +
                             " (enrollId=" + link.getUser().getId() + ", name=" + user.getName() + ")");
 
-                    var record = new SetUserNameCommandSender.UserRecord(link.getUser().getId(), user.getName());
+                    var record = new SetUserNameCommandSender.UserRecord(link.getUser().getEnrollId(), user.getName());
                     setUserNameCommandSender.sendSetUserNameCommand(session, List.of(record));
                 } else {
                     System.out.println("⚠️ Dispositivo SN=" + sn + " no conectado. No se puede actualizar nombre.");
@@ -196,7 +196,7 @@ public class DeviceService {
                     System.out.println("📡 Enviando ENABLE USER al dispositivo SN=" + sn +
                             " (enrollId=" + link.getUser().getId() + ", enabled=" + enabled + ")");
 
-                    enableUserCommandSender.sendEnableUserCommand(session, link.getUser().getId(), enabled);
+                    enableUserCommandSender.sendEnableUserCommand(session, link.getUser().getEnrollId(), enabled);
 
                 } else {
                     System.out.println("⚠️ Dispositivo SN=" + sn + " no conectado. No se puede actualizar estado.");
