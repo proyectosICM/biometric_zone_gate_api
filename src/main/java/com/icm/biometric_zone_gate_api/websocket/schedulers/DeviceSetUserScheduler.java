@@ -68,7 +68,7 @@ public class DeviceSetUserScheduler {
 
             // Accesos pendientes de sync (enabled && synced=false)
             List<DeviceUserAccessModel> pending = deviceUserAccessRepository
-                    .findByDeviceIdAndEnabledTrueAndSyncedFalse(device.getId());
+                    .findPendingWithUserAndCredentials(device.getId());
 
             if (pending.isEmpty()) {
                 // Nada que enviar todavía → NO marcamos ventana
