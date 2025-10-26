@@ -68,7 +68,7 @@ public class DeviceMessageHandler extends TextWebSocketHandler {
 
                 case "getuserinfo" -> getUserInfoResponseHandler.handleGetUserInfoResponse(json, session);
 
-                case "setuserinfo" -> setUserInfoResponseHandler.handleSetUserInfoResponse(json);
+                case "setuserinfo" -> setUserInfoResponseHandler.handleSetUserInfoResponse(json, session);
 
                 case "deleteuser" -> deleteUserResponseHandler.handleDeleteUserResponse(json);
 

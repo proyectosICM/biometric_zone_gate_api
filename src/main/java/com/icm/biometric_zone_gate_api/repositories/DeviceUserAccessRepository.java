@@ -13,9 +13,12 @@ public interface DeviceUserAccessRepository extends JpaRepository<DeviceUserAcce
     Optional<DeviceUserAccessModel> findByDeviceIdAndEnrollId(Long deviceId, int enrollId);
     List<DeviceUserAccessModel> findByPendingDeleteTrueAndDeviceId(Long deviceId);
 
+    Optional<DeviceUserAccessModel> findByDeviceSnAndEnrollIdAndPendingDeleteFalse(String sn, int enrollId);
+
+
     List<DeviceUserAccessModel> findByDeviceIdAndPendingDeleteTrue(Long deviceId);
     Optional<DeviceUserAccessModel> findByEnrollIdAndPendingDeleteTrue(int enrollId);
-
+    Optional<DeviceUserAccessModel> findByEnrollIdAndPendingDeleteFalse(int enrollId);
     Optional<DeviceUserAccessModel> findByenrollId(int userId);
 
     Optional<DeviceUserAccessModel> findByUserIdAndDeviceId(Long userId, Long deviceId);
