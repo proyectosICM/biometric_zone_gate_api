@@ -25,10 +25,13 @@ public class PendingEnableScheduler {
     @Scheduled(fixedDelay = 5000)
     @Transactional
     public void retryPendingEnableFlags() {
+
         var connected = deviceRepository.findByStatus(DeviceStatus.CONNECTED);
         if (connected.isEmpty()) return;
 
         for (var device : connected) {
+            if (device.getSn() == null || device.getSn().isBlank()) continue;
+
             var session = sessionManager.getSessionBySn(device.getSn());
             if (session == null || !session.isOpen()) continue;
 
@@ -36,11 +39,16 @@ public class PendingEnableScheduler {
             if (pendings.isEmpty()) continue;
 
             for (var access : pendings) {
-                // seguridad: si se marcó para borrar, NO sincronizamos estado
                 if (Boolean.TRUE.equals(access.isPendingDelete())) continue;
 
                 var user = access.getUser();
-                if (user == null) continue;
+
+                if (user == null || user.getId() == null) {
+                    System.out.printf("Access sin usuario válido → removiendo pendingStateSync id=%d%n", access.getId());
+                    access.setPendingStateSync(false);
+                    deviceUserAccessRepository.save(access);
+                    continue;
+                }
 
                 int enrollId = access.getEnrollId();
                 if (enrollId <= 0) continue;
