@@ -1,6 +1,5 @@
 package com.icm.biometric_zone_gate_api.websocket.schedulers;
 
-import com.icm.biometric_zone_gate_api.enums.CredentialType;
 import com.icm.biometric_zone_gate_api.enums.DeviceStatus;
 import com.icm.biometric_zone_gate_api.models.DeviceModel;
 import com.icm.biometric_zone_gate_api.models.DeviceUserAccessModel;
@@ -47,23 +46,24 @@ public class DeviceSetUserScheduler {
             return; // fuera de ventana → no hacemos nada
         }
 
-        // Identificador de ventana por hora (ej. HH*6 + slot) para no repetir dentro de 04–06
-        int windowSlot = (now.getHour() * 6) + ((minute / 10) * 1); // cada decena es un slot
+        // Identificador de ventana por hora (ej. HH*6 + slot)
+        int windowSlot = (now.getHour() * 6) + (minute / 10); // cada decena es un slot
 
         // Dispositivos conectados
         List<DeviceModel> connected = deviceRepository.findByStatus(DeviceStatus.CONNECTED);
         if (connected.isEmpty()) return;
 
         for (DeviceModel device : connected) {
+
             // ¿ya atendimos esta ventana para este device?
             Integer last = lastWindowByDevice.get(device.getId());
             if (last != null && last == windowSlot) {
-                continue; // ya lo hicimos en esta ventana
+                continue; // ya se procesó en esta ventana
             }
 
             WebSocketSession session = sessionManager.getSessionBySn(device.getSn());
             if (session == null || !session.isOpen()) {
-                continue;
+                continue; // aún no está conectado → reintentará en el próximo minuto dentro de la misma ventana
             }
 
             // Accesos pendientes de sync (enabled && synced=false)
@@ -71,8 +71,7 @@ public class DeviceSetUserScheduler {
                     .findByDeviceIdAndEnabledTrueAndSyncedFalse(device.getId());
 
             if (pending.isEmpty()) {
-                // Nada que enviar → marcamos que ya pasamos por aquí esta ventana
-                lastWindowByDevice.put(device.getId(), windowSlot);
+                // Nada que enviar todavía → NO marcamos ventana
                 continue;
             }
 
@@ -81,37 +80,35 @@ public class DeviceSetUserScheduler {
 
             long delay = 0L; // vamos escalonando para no saturar
             final long STEP_MS = 120L;
+            boolean anySent = false;
 
             for (DeviceUserAccessModel access : pending) {
                 UserModel user = access.getUser();
                 if (user == null || user.getCredentials() == null || user.getCredentials().isEmpty()) {
-                    // sin credenciales → marcar synced para no intentar eternamente (o decide tu política)
+                    // Sin credenciales → marcamos synced para no intentar eternamente
                     access.setSynced(true);
                     deviceUserAccessRepository.save(access);
                     continue;
                 }
 
-                // EnrollId a usar: primero el del access, si no >0, cae al del usuario
                 final int enrollId = (access.getEnrollId() > 0)
                         ? access.getEnrollId()
                         : (user.getEnrollId() != 0 ? user.getEnrollId() : 0);
 
                 if (enrollId <= 0) {
-                    System.out.printf("⚠️ Access %d no tiene enrollId válido (user %d). Omitido.%n",
-                            access.getId(), user.getId());
-                    // No lo marcamos synced; quedará pendiente hasta que se complete el enrollId
+                    // No lo marcamos synced; se reintentará más tarde
                     continue;
                 }
 
-                // Enviar TODAS las credenciales del usuario, una por comando (como pide el protocolo)
                 for (UserCredentialModel cred : user.getCredentials()) {
-                    final int backup = cred.getBackupNum(); // 0..9 fp, 10 pwd, 11 card, 50 photo
+                    final String record = cred.getRecord();
+                    if (record == null || record.isEmpty()) continue;
+
+                    anySent = true; // ✅ ahora sí marcamos que se envió algo
+
+                    final int backup = cred.getBackupNum();
                     final String name = safeName(user.getName());
                     final int adminLevel = (user.getAdminLevel() != null) ? user.getAdminLevel() : 0;
-                    final String record = cred.getRecord();
-
-                    // NO enviamos credenciales vacías
-                    if (record == null || record.isEmpty()) continue;
 
                     deviceCommandScheduler.schedule(() -> {
                         try {
@@ -127,8 +124,6 @@ public class DeviceSetUserScheduler {
                     delay += STEP_MS;
                 }
 
-                // Al terminar la cola de envíos para este access, marcamos synced=true
-                // (opcional: podrías esperar ACKs “ret:setuserinfo” si los gestionas)
                 final long markDelay = delay + 50L;
                 deviceCommandScheduler.schedule(() -> {
                     try {
@@ -139,18 +134,18 @@ public class DeviceSetUserScheduler {
                     }
                 }, markDelay);
 
-                // Pequeño espacio entre usuarios
                 delay += 200L;
             }
 
-            // Marcamos que este device ya fue atendido en esta ventana
-            lastWindowByDevice.put(device.getId(), windowSlot);
+            // ✅ SOLO si enviamos algo, marcamos como atendido esta ventana
+            if (anySent) {
+                lastWindowByDevice.put(device.getId(), windowSlot);
+            }
         }
     }
 
     private String safeName(String name) {
         if (name == null) return "";
-        // Escapar comillas para JSON plano en el command sender
         return name.replace("\"", "\\\"");
     }
 }
