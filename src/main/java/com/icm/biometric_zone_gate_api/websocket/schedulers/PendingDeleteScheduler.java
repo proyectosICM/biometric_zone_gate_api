@@ -45,7 +45,8 @@ public class PendingDeleteScheduler {
                             enrollId,
                             cred.getBackupNum()
                     );
-                    System.out.printf("♻️ Reintentando DELETE (enrollId=%d, backup=%d) dev=%s%n",
+                    System.out.printf("" +
+                                    "zReintentando DELETE (enrollId=%d, backup=%d) dev=%s%n",
                             enrollId, cred.getBackupNum(), device.getSn());
                 });
             }

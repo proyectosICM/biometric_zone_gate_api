@@ -34,6 +34,8 @@
 
         private boolean synced;
 
+        private boolean pendingStateSync;
+
         private boolean pendingDelete;
 
         private int enrollId;

@@ -437,4 +437,12 @@ public class DeviceService {
     }
 
      */
+
+    public List<DeviceUserAccessModel> getAccessLinksByUserId(Long userId) {
+        return deviceUserAccessRepository.findByUserId(userId);
+    }
+
+    public DeviceUserAccessModel saveAccess(DeviceUserAccessModel access) {
+        return deviceUserAccessRepository.save(access);
+    }
 }

@@ -16,6 +16,17 @@ public interface DeviceUserAccessRepository extends JpaRepository<DeviceUserAcce
 
     Optional<DeviceUserAccessModel> findByDeviceSnAndEnrollIdAndPendingDeleteFalse(String sn, int enrollId);
 
+    @Query("""
+           select dua
+           from DeviceUserAccessModel dua
+           join fetch dua.user u
+           join dua.device d
+           where d.sn = :sn
+             and dua.enrollId = :enrollId
+             and dua.pendingDelete = false
+           """)
+    Optional<DeviceUserAccessModel> findByDeviceSnAndEnrollIdAndPendingDeleteFalseFetchUser(String sn, int enrollId);
+
 
     List<DeviceUserAccessModel> findByDeviceIdAndPendingDeleteTrue(Long deviceId);
 
@@ -78,6 +89,17 @@ public interface DeviceUserAccessRepository extends JpaRepository<DeviceUserAcce
                   AND a.synced = false
             """)
     List<DeviceUserAccessModel> findPendingDeleteWithUserAndCredentials(Long deviceId);
+
+    // 🔹 Para scheduler ENABLE: trae accesos de este device con pendingStateSync = true y NO pendingDelete
+    @Query("""
+           select dua
+           from DeviceUserAccessModel dua
+           join fetch dua.user u
+           where dua.device.id = :deviceId
+             and dua.pendingStateSync = true
+             and dua.pendingDelete = false
+           """)
+    List<DeviceUserAccessModel> findPendingStateSyncWithUser(Long deviceId);
 
 
 }

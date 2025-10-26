@@ -210,8 +210,20 @@ public class UserService {
             if (nameChanged) {
                 deviceService.broadcastUserNameUpdate(saved);
             }
+            /*
             if (enabledChanged) {
                 deviceService.broadcastUserEnableState(saved);
+            }*/
+
+            if (enabledChanged) {
+                var links = deviceService.getAccessLinksByUserId(saved.getId()); // método helper abajo
+                for (var link : links) {
+                    // Si está marcado para eliminar, NO programamos enable
+                    if (Boolean.TRUE.equals(link.isPendingDelete())) continue;
+                    link.setPendingStateSync(true);
+                    // opcional: link.setSynced(false); // si quieres reflejar que falta sincronía global
+                    deviceService.saveAccess(link);
+                }
             }
 
             return saved;
