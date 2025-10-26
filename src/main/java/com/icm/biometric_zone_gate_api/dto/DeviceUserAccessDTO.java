@@ -22,6 +22,7 @@ public class DeviceUserAccessDTO {
     private Long deviceId;
     private String deviceName;
     private int enrollId;
-
+    private boolean synced;
+    private boolean pendingDelete;
 }
 

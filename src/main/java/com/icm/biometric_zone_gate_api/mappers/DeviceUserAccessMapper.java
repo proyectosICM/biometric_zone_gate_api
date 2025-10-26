@@ -17,11 +17,13 @@ public class DeviceUserAccessMapper {
         dto.setEndTime(entity.getEndTime());
         dto.setEnabled(entity.getEnabled());
         dto.setEnrollId(entity.getEnrollId());
+        dto.setSynced(entity.isSynced());
+        dto.setPendingDelete(entity.isPendingDelete());
 
         if (entity.getUser() != null) {
             dto.setUserId(entity.getUser().getId());
             dto.setName(entity.getUser().getName());
-            dto.setUserName(entity.getUser().getName());
+            dto.setUserName(entity.getUser().getUsername());
         }
 
         if (entity.getDevice() != null) {
@@ -43,7 +45,9 @@ public class DeviceUserAccessMapper {
         entity.setStartTime(dto.getStartTime());
         entity.setEndTime(dto.getEndTime());
         entity.setEnabled(dto.getEnabled());
-
+        entity.setEnrollId(dto.getEnrollId());
+        entity.setSynced(dto.isSynced());
+        entity.setPendingDelete(dto.isPendingDelete());
         // user y device deben asignarse fuera del mapper, normalmente usando repositorios
         return entity;
     }
