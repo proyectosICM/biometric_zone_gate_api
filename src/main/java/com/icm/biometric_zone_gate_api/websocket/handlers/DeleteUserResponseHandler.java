@@ -1,6 +1,7 @@
 package com.icm.biometric_zone_gate_api.websocket.handlers;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.icm.biometric_zone_gate_api.repositories.DeviceUserAccessRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
@@ -11,6 +12,8 @@ import org.springframework.stereotype.Component;
 @RequiredArgsConstructor
 public class DeleteUserResponseHandler {
 
+    private final DeviceUserAccessRepository deviceUserAccessRepository;
+
     public void handleDeleteUserResponse(JsonNode json) {
         try {
             String ret = json.path("ret").asText("");
@@ -20,8 +23,15 @@ public class DeleteUserResponseHandler {
                 return;
             }
 
+            int enrollId = json.path("enrollid").asInt(-1);
+
             if (result) {
-                System.out.println("Dispositivo confirmó DELETE USER exitoso.");
+                // ✅ ACK DELETE => eliminación física definitiva
+                deviceUserAccessRepository.findByEnrollIdAndPendingDeleteTrue(enrollId)
+                        .ifPresent(access -> {
+                            deviceUserAccessRepository.delete(access);
+                            System.out.printf("🗑️ Acceso enrollId=%d eliminado DEFINITIVAMENTE%n", enrollId);
+                        });
             } else {
                 int reason = json.path("reason").asInt(-1);
                 System.out.println("Falló DELETE USER. Reason=" + reason);

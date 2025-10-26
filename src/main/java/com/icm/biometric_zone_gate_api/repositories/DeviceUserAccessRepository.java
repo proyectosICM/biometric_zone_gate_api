@@ -10,6 +10,11 @@ import java.util.List;
 import java.util.Optional;
 
 public interface DeviceUserAccessRepository extends JpaRepository<DeviceUserAccessModel, Long> {
+    Optional<DeviceUserAccessModel> findByDeviceIdAndEnrollId(Long deviceId, int enrollId);
+    List<DeviceUserAccessModel> findByPendingDeleteTrueAndDeviceId(Long deviceId);
+
+    List<DeviceUserAccessModel> findByDeviceIdAndPendingDeleteTrue(Long deviceId);
+    Optional<DeviceUserAccessModel> findByEnrollIdAndPendingDeleteTrue(int enrollId);
 
     Optional<DeviceUserAccessModel> findByenrollId(int userId);
 

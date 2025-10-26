@@ -135,6 +135,7 @@ public class DeviceUserAccessService {
         });
     }
 
+    /*
     public boolean deleteById(Long id) {
         var accessOpt = deviceUserAccessRepository.findById(id);
 
@@ -190,6 +191,57 @@ public class DeviceUserAccessService {
         // Finalmente eliminar en base de datos
         deviceUserAccessRepository.deleteById(id);
         System.out.printf("Eliminado DeviceUserAccess con ID=%d de la base de datos.%n", id);
+
+        return true;
+    }
+    */
+
+    public boolean deleteById(Long id) {
+        var accessOpt = deviceUserAccessRepository.findById(id);
+
+        if (accessOpt.isEmpty()) {
+            System.out.println("No existe DeviceUserAccess con ID: " + id);
+            return false;
+        }
+
+        var access = accessOpt.get();
+        var user = access.getUser();
+        var device = access.getDevice();
+
+        if (user == null || device == null) {
+            System.out.println("Usuario o dispositivo no definidos, abortando eliminación.");
+            return false;
+        }
+
+        int enrollId = access.getEnrollId();
+        if (enrollId <= 0) {
+            System.out.println("Acceso sin enrollId válido, no se enviará DELETEUSER al dispositivo.");
+            return false;
+        }
+
+        // marcar pendiente en BD antes de intentar enviar
+        access.setPendingDelete(true);
+        access.setSynced(false);
+        deviceUserAccessRepository.save(access);
+
+        // Intento inmediato si hay sesión
+        var session = sessionManager.getSessionBySn(device.getSn());
+
+        if (session != null && session.isOpen() && enrollId > 0) {
+            try {
+                // Aquí ya NO se envían todas las credenciales una por una
+                // Ahora se enviará desde el SCHEDULER REINTENTABLE o desde el dispatcher
+                System.out.printf("🗑️ Delete marcado como pendiente. Intento de envío será gestionado por dispatcher para device=%s%n",
+                        device.getSn());
+
+                // Después crearemos: dispatcher.enqueueDelete(device, enrollId)
+                // para que se meta a la cola
+            } catch (Exception e) {
+                System.err.println("Error preparando delete: " + e.getMessage());
+            }
+        } else {
+            System.out.printf("Dispositivo %s no conectado. Delete queda en cola para reintento.%n", device.getSn());
+        }
 
         return true;
     }
