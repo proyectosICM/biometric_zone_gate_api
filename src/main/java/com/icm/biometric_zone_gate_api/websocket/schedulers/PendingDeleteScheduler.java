@@ -28,7 +28,7 @@ public class PendingDeleteScheduler {
             var session = sessionManager.getSessionBySn(device.getSn());
             if (session == null || !session.isOpen()) continue;
 
-            var pending = deviceUserAccessRepository.findByDeviceIdAndPendingDeleteTrue(device.getId());
+            var pending = deviceUserAccessRepository.findPendingDeleteWithUserAndCredentials(device.getId());
             if (pending.isEmpty()) continue;
 
             for (var access : pending) {

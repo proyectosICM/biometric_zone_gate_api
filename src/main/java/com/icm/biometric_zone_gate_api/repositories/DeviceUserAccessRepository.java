@@ -11,14 +11,18 @@ import java.util.Optional;
 
 public interface DeviceUserAccessRepository extends JpaRepository<DeviceUserAccessModel, Long> {
     Optional<DeviceUserAccessModel> findByDeviceIdAndEnrollId(Long deviceId, int enrollId);
+
     List<DeviceUserAccessModel> findByPendingDeleteTrueAndDeviceId(Long deviceId);
 
     Optional<DeviceUserAccessModel> findByDeviceSnAndEnrollIdAndPendingDeleteFalse(String sn, int enrollId);
 
 
     List<DeviceUserAccessModel> findByDeviceIdAndPendingDeleteTrue(Long deviceId);
+
     Optional<DeviceUserAccessModel> findByEnrollIdAndPendingDeleteTrue(int enrollId);
+
     Optional<DeviceUserAccessModel> findByEnrollIdAndPendingDeleteFalse(int enrollId);
+
     Optional<DeviceUserAccessModel> findByenrollId(int userId);
 
     Optional<DeviceUserAccessModel> findByUserIdAndDeviceId(Long userId, Long deviceId);
@@ -64,5 +68,16 @@ public interface DeviceUserAccessRepository extends JpaRepository<DeviceUserAcce
             "AND a.pendingDelete = false " +
             "AND u.credentials IS NOT EMPTY")
     List<DeviceUserAccessModel> findPendingWithUserAndCredentialsAndPendingDeleteFalse(Long deviceId);
+
+    @Query("""
+                SELECT a FROM DeviceUserAccessModel a
+                JOIN FETCH a.user u
+                JOIN FETCH u.credentials c
+                WHERE a.device.id = :deviceId
+                  AND a.pendingDelete = true
+                  AND a.synced = false
+            """)
+    List<DeviceUserAccessModel> findPendingDeleteWithUserAndCredentials(Long deviceId);
+
 
 }
