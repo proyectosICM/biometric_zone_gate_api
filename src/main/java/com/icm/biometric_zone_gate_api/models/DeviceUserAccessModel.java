@@ -34,6 +34,8 @@
 
         private boolean synced;
 
+        private boolean pendingDelete = true;
+
         private int enrollId;
 
         // weekzone del protocolo (zona horaria semanal)
