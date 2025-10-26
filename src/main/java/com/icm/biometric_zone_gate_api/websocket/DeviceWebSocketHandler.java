@@ -2,6 +2,8 @@ package com.icm.biometric_zone_gate_api.websocket;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.icm.biometric_zone_gate_api.enums.DeviceStatus;
+import com.icm.biometric_zone_gate_api.services.DeviceService;
 import com.icm.biometric_zone_gate_api.websocket.handlers.GetAllLogResponseHandler;
 import com.icm.biometric_zone_gate_api.websocket.handlers.GetNewLogResponseHandler;
 import lombok.RequiredArgsConstructor;
@@ -18,6 +20,8 @@ public class DeviceWebSocketHandler extends TextWebSocketHandler {
     private final DeviceMessageHandler messageHandler;
     private final GetNewLogResponseHandler getNewLogResponseHandler;
     private final GetAllLogResponseHandler getAllLogResponseHandler;
+    private final DeviceSessionManager deviceSessionManager;
+    private final DeviceService deviceService;
 
     @Override
     public void afterConnectionEstablished(WebSocketSession session) {
@@ -32,6 +36,20 @@ public class DeviceWebSocketHandler extends TextWebSocketHandler {
     @Override
     public void afterConnectionClosed(WebSocketSession session, org.springframework.web.socket.CloseStatus status) {
         System.out.println("Device disconnected: " + session.getId());
+
+        String sn = (String) session.getAttributes().get("sn");
+        if (sn != null) {
+            // Remover la sesión del manager
+            deviceSessionManager.removeSession(sn, session);
+
+            // Actualizar estado en BD
+            deviceService.getDeviceBySn(sn).ifPresent(device -> {
+                deviceService.updateDeviceStatus(device.getId(), DeviceStatus.DISCONNECTED);
+                System.out.println("📴 Device " + sn + " marcado como DISCONNECTED en BD");
+            });
+        } else {
+            System.err.println("⚠️ Sesión cerrada pero sin SN asociado: " + session.getId());
+        }
     }
 
     @Override
