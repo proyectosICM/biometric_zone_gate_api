@@ -56,10 +56,10 @@ public class SetUserNameCommandSender {
      * Representa un registro individual de usuario para setusername.
      */
     public static class UserRecord {
-        public Long enrollid;
+        public int enrollid;
         public String name;
 
-        public UserRecord(Long enrollid, String name) {
+        public UserRecord(int enrollid, String name) {
             this.enrollid = enrollid;
             this.name = name;
         }
