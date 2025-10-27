@@ -42,6 +42,7 @@
 
         private int enrollId;
 
+        /*
         // weekzone del protocolo (zona horaria semanal)
         private Integer weekZone;
 
@@ -51,6 +52,8 @@
         // vigencia de acceso
         private ZonedDateTime startTime;
         private ZonedDateTime endTime;
+
+         */
 
         private Boolean enabled = true;
     }

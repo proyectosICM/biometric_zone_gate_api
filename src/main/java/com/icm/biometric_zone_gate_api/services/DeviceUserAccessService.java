@@ -126,10 +126,6 @@ public class DeviceUserAccessService {
         return deviceUserAccessRepository.findById(id).map(existing -> {
             existing.setUser(updatedAccess.getUser());
             existing.setDevice(updatedAccess.getDevice());
-            existing.setWeekZone(updatedAccess.getWeekZone());
-            existing.setGroupNumber(updatedAccess.getGroupNumber());
-            existing.setStartTime(updatedAccess.getStartTime());
-            existing.setEndTime(updatedAccess.getEndTime());
             existing.setEnabled(updatedAccess.getEnabled());
             return deviceUserAccessRepository.save(existing);
         });
