@@ -108,7 +108,7 @@ public interface DeviceUserAccessRepository extends JpaRepository<DeviceUserAcce
                 JOIN FETCH u.credentials c
                 WHERE a.device.id = :deviceId
                   AND a.pendingDelete = true
-                  AND a.synced = false
+                  AND a.synced = true
             """)
     List<DeviceUserAccessModel> findPendingDeleteWithUserAndCredentials(Long deviceId);
 
