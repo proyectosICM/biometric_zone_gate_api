@@ -9,6 +9,7 @@ import com.icm.biometric_zone_gate_api.repositories.UserCredentialRepository;
 import com.icm.biometric_zone_gate_api.repositories.UserRepository;
 import com.icm.biometric_zone_gate_api.websocket.commands.SetUserInfoCommandSender;
 import com.icm.biometric_zone_gate_api.websocket.dispatchers.SetUserInfoReplicaDispatcher;
+import com.icm.biometric_zone_gate_api.websocket.dispatchers.SetUserNameReplicaDispatcher;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 import org.springframework.web.socket.WebSocketSession;
@@ -26,7 +27,8 @@ public class GetUserInfoResponseHandler {
     private final DeviceRepository deviceRepository;
     private final SetUserInfoCommandSender setUserInfoCommandSender;
     private final DeviceUserAccessRepository deviceUserAccessRepository;
-    private final SetUserInfoReplicaDispatcher replicaDispatcher; // ✅ NUEVO
+    private final SetUserInfoReplicaDispatcher replicaDispatcher;
+    private final SetUserNameReplicaDispatcher   nameReplicaDispatcher;
 
     public void handleGetUserInfoResponse(JsonNode json, WebSocketSession session) {
         try {
@@ -101,6 +103,25 @@ public class GetUserInfoResponseHandler {
             // Si ya existe:
             UserModel existingUser = userOpt.get();
 
+            if (!Objects.equals(existingUser.getName(), name)) {
+                System.out.printf("✏️ Cambio de nombre detectado: '%s' → '%s'%n",
+                        existingUser.getName(), name);
+
+                existingUser.setName(name);
+                userRepository.save(existingUser);
+
+                // Replicar a otros dispositivos
+                deviceUserAccessRepository.findByUserId(existingUser.getId())
+                        .forEach(link -> {
+                            DeviceModel target = link.getDevice();
+                            if (!Objects.equals(target.getSn(), sn)) {
+                                nameReplicaDispatcher.register(target.getSn(), enrollId, name);
+                                link.setPendingNameSync(true);
+                                deviceUserAccessRepository.save(link);
+                            }
+                        });
+            }
+
             deviceUserAccessRepository.findByUserIdAndDeviceId(existingUser.getId(), device.getId())
                     .ifPresentOrElse(
                             access -> {
@@ -134,13 +155,9 @@ public class GetUserInfoResponseHandler {
 
             } else {
                 UserCredentialModel existingCred = credOpt.get();
-
                 if (!Objects.equals(existingCred.getRecord(), record)) {
-                    System.out.println("⚠ Cambio detectado → actualizando local + REPLICANDO");
-
                     existingCred.setRecord(record);
                     userCredentialRepository.save(existingCred);
-
                     registerReplicaForOtherDevices(existingUser, sn, enrollId, backupNum);
                 }
             }

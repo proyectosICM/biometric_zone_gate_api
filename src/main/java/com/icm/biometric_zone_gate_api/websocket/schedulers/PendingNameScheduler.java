@@ -7,10 +7,12 @@ import com.icm.biometric_zone_gate_api.websocket.DeviceSessionManager;
 import com.icm.biometric_zone_gate_api.websocket.commands.SetUserNameCommandSender;
 import com.icm.biometric_zone_gate_api.websocket.dispatchers.SetUserNameDispatcher;
 import com.icm.biometric_zone_gate_api.websocket.commands.SetUserNameCommandSender.UserRecord;
+import com.icm.biometric_zone_gate_api.websocket.dispatchers.SetUserNameReplicaDispatcher;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
+import org.springframework.web.socket.WebSocketSession;
 
 import java.util.List;
 
@@ -24,6 +26,9 @@ public class PendingNameScheduler {
     private final SetUserNameCommandSender setUserNameCommandSender;
     private final SetUserNameDispatcher dispatcher;
 
+    // 🚀 NUEVO: dispatcher de réplicas (prioridad alta)
+    private final SetUserNameReplicaDispatcher replicaDispatcher;
+
     @Scheduled(fixedDelay = 5000)
     @Transactional
     public void retryPendingNameChanges() {
@@ -35,8 +40,31 @@ public class PendingNameScheduler {
             final String sn = device.getSn();
             if (sn == null || sn.isBlank()) continue;
 
-            var session = sessionManager.getSessionBySn(sn);
+            WebSocketSession session = sessionManager.getSessionBySn(sn);
             if (session == null || !session.isOpen()) continue;
+
+            boolean sentAny = false;
+            while (replicaDispatcher.hasPending(sn)) {
+                var next = replicaDispatcher.poll(sn);
+                if (next.isEmpty()) break;
+
+                var item = next.get();
+                try {
+                    setUserNameCommandSender.sendSetUserNameCommand(
+                            session, List.of(new UserRecord(item.getEnrollId(), item.getName()))
+                    );
+                    // Registra en dispatcher de ACK para limpiar pendingNameSync al confirmar
+                    dispatcher.register(sn, item.getEnrollId(), item.getName());
+
+                    System.out.printf("🔁 [REPLICA] SETUSERNAME sn=%s enrollId=%d name='%s'%n",
+                            sn, item.getEnrollId(), item.getName());
+                    sentAny = true;
+                } catch (Exception e) {
+                    System.err.printf("❌ Error enviando REPLICA setusername (sn=%s, enrollId=%d): %s%n",
+                            sn, item.getEnrollId(), e.getMessage());
+                }
+            }
+            if (sentAny) continue;
 
             var pendings = deviceUserAccessRepository.findPendingNameSyncWithUser(device.getId());
             if (pendings.isEmpty()) continue;
