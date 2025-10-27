@@ -65,7 +65,7 @@ public class UserService {
         UserModel savedUser = userRepository.save(user);
 
         if (savedUser.getCredentials() == null) {
-            savedUser.setCredentials(new ArrayList<>(   ));
+            savedUser.setCredentials(new ArrayList<>());
         }
 
         // Manejo de credenciales personalizadas
@@ -120,7 +120,7 @@ public class UserService {
 
             boolean nameChanged = dto.getName() != null && !dto.getName().equals(user.getName());
             boolean enabledChanged = dto.getEnabled() != null && !dto.getEnabled().equals(user.getEnabled());
-            boolean credentialsChanged = false;
+            boolean credentialsChanged = false;  // 🔥 se inicializa acá
 
             user.setName(dto.getName());
             user.setAdminLevel(dto.getAdminLevel());
@@ -148,7 +148,7 @@ public class UserService {
                 user.setPassword(passwordEncoder.encode(dto.getPassword()));
             }
 
-            // Manejar credenciales
+            // 🧩 Manejar credenciales
             if (dto.getCredentials() != null) {
                 Map<Long, UserCredentialModel> existingMap = user.getCredentials().stream()
                         .collect(Collectors.toMap(UserCredentialModel::getId, c -> c));
@@ -161,7 +161,17 @@ public class UserService {
                             : null;
 
                     if (existing != null) {
-                        // Actualizar campos
+                        // Detectar si hubo cambios
+                        boolean recordChanged =
+                                !existing.getRecord().equals(cdto.getRecord()) ||
+                                        !existing.getBackupNum().equals(cdto.getBackupNum()) ||
+                                        !existing.getType().name().equalsIgnoreCase(cdto.getType());
+
+                        if (recordChanged) {
+                            credentialsChanged = true;
+                        }
+
+                        // Actualizar
                         String typeString = cdto.getType() != null ? cdto.getType().trim().toUpperCase() : null;
                         CredentialType finalType;
                         try {
@@ -174,7 +184,9 @@ public class UserService {
                         existing.setBackupNum(cdto.getBackupNum());
                         finalList.add(existing);
                     } else {
-                        // Crear nueva
+                        // Nueva credencial => también cuenta como cambio
+                        credentialsChanged = true;
+
                         UserCredentialModel newCred = new UserCredentialModel();
                         newCred.setUser(user);
                         String typeString = cdto.getType() != null ? cdto.getType().trim().toUpperCase() : null;
@@ -209,6 +221,7 @@ public class UserService {
 
             UserModel saved = userRepository.save(user);
 
+            // Nombre
             if (nameChanged) {
                 var links = deviceService.getAccessLinksByUserId(saved.getId());
                 for (var link : links) {
@@ -218,23 +231,22 @@ public class UserService {
                 }
             }
 
+            // Habilitación / Deshabilitación
             if (enabledChanged) {
-                var links = deviceService.getAccessLinksByUserId(saved.getId()); // método helper abajo
+                var links = deviceService.getAccessLinksByUserId(saved.getId());
                 for (var link : links) {
-                    // Si está marcado para eliminar, NO programamos enable
                     if (Boolean.TRUE.equals(link.isPendingDelete())) continue;
                     link.setPendingStateSync(true);
-                    // opcional: link.setSynced(false); // si quieres reflejar que falta sincronía global
                     deviceService.saveAccess(link);
                 }
             }
 
-
+            // 🔄 Credenciales (huella, tarjeta, password, etc.)
             if (credentialsChanged) {
                 var links = deviceService.getAccessLinksByUserId(saved.getId());
                 for (var link : links) {
                     if (Boolean.TRUE.equals(link.isPendingDelete())) continue;
-                    link.setSynced(false); // 🟢 esto hace que DeviceSetUserScheduler lo reenvíe
+                    link.setSynced(false); // 🔥 el scheduler reenvía setuserinfo
                     deviceService.saveAccess(link);
                 }
             }
@@ -242,6 +254,7 @@ public class UserService {
             return saved;
         });
     }
+
 
     public boolean deleteUser(Long id) {
         if (userRepository.existsById(id)) {
