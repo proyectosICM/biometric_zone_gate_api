@@ -32,8 +32,21 @@ public class DeleteUserResponseHandler {
             }
 
             int enrollId = json.path("enrollid").asInt(-1);
+            int backupNum = json.path("backupnum").asInt(-1);
 
             if (result) {
+
+                if (backupNum == 13) {
+                    deviceUserAccessRepository
+                            .findByDeviceSnAndEnrollIdAndPendingDeleteTrue(sn, enrollId)
+                            .ifPresent(access -> {
+                                deviceUserAccessRepository.delete(access);
+                                System.out.printf("🗑️ [FULL DELETE] Eliminado definitivamente enrollId=%d en %s%n",
+                                        enrollId, sn);
+                            });
+                    return;
+                }
+
                 // ✅ ACK DELETE => eliminación física definitiva
                 deviceUserAccessRepository.findByDeviceSnAndEnrollIdAndPendingDeleteTrue(sn, enrollId)
                         .ifPresent(access -> {
