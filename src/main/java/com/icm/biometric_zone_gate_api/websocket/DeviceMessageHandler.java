@@ -70,7 +70,7 @@ public class DeviceMessageHandler extends TextWebSocketHandler {
 
                 case "setuserinfo" -> setUserInfoResponseHandler.handleSetUserInfoResponse(json, session);
 
-                case "deleteuser" -> deleteUserResponseHandler.handleDeleteUserResponse(json);
+                case "deleteuser" -> deleteUserResponseHandler.handleDeleteUserResponse(json, session);
 
                 case "getusername" -> getUserNameResponseHandler.handleGetUserNameResponse(json);
 
