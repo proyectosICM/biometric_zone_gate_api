@@ -10,6 +10,7 @@ import com.icm.biometric_zone_gate_api.repositories.DeviceUserAccessRepository;
 import com.icm.biometric_zone_gate_api.websocket.DeviceSessionManager;
 import com.icm.biometric_zone_gate_api.websocket.commands.SetUserInfoCommandSender;
 import com.icm.biometric_zone_gate_api.websocket.utils.DeviceCommandScheduler;
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
@@ -36,6 +37,7 @@ public class DeviceSetUserScheduler {
      * Corre cada minuto, pero sólo actúa si estamos en la ventana [04..06] de cada decena (y 14..16, 24..26, etc.).
      */
     @Scheduled(cron = "0 * * * * *") // en el segundo 0 de cada minuto
+    @Transactional
     public void pushUsersToDevicesInWindow() {
         LocalDateTime now = LocalDateTime.now();
         int minute = now.getMinute();
