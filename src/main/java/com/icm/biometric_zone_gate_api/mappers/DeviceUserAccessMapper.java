@@ -11,10 +11,6 @@ public class DeviceUserAccessMapper {
 
         DeviceUserAccessDTO dto = new DeviceUserAccessDTO();
         dto.setId(entity.getId());
-        dto.setWeekZone(entity.getWeekZone());
-        dto.setGroupNumber(entity.getGroupNumber());
-        dto.setStartTime(entity.getStartTime());
-        dto.setEndTime(entity.getEndTime());
         dto.setEnabled(entity.getEnabled());
         dto.setEnrollId(entity.getEnrollId());
         dto.setSynced(entity.isSynced());
@@ -40,10 +36,6 @@ public class DeviceUserAccessMapper {
 
         DeviceUserAccessModel entity = new DeviceUserAccessModel();
         entity.setId(dto.getId());
-        entity.setWeekZone(dto.getWeekZone());
-        entity.setGroupNumber(dto.getGroupNumber());
-        entity.setStartTime(dto.getStartTime());
-        entity.setEndTime(dto.getEndTime());
         entity.setEnabled(dto.getEnabled());
         entity.setEnrollId(dto.getEnrollId());
         entity.setSynced(dto.isSynced());
