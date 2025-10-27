@@ -26,6 +26,15 @@ public interface DeviceUserAccessRepository extends JpaRepository<DeviceUserAcce
        """)
     Optional<DeviceUserAccessModel> findByDeviceSnAndEnrollIdAndPendingDeleteTrue(String sn, int enrollId);
 
+    @Query("""
+       select dua
+       from DeviceUserAccessModel dua
+       join fetch dua.user u
+       where dua.device.id = :deviceId
+         and dua.pendingNameSync = true
+       """)
+    List<DeviceUserAccessModel> findPendingNameSyncWithUser(Long deviceId);
+
 
     @Query("""
            select dua

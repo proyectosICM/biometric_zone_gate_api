@@ -34,7 +34,6 @@ public class SetUserInfoResponseHandler {
 
             // Consumir el pending del dispatcher (primero de la cola FIFO)
             var opt = dispatcher.ack(sn);
-
             if (opt.isEmpty()) {
                 System.err.println("ACK recibido pero no hay pending en dispatcher");
                 return;
