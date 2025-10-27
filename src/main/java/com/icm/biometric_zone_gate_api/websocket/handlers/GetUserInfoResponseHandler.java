@@ -90,9 +90,9 @@ public class GetUserInfoResponseHandler {
                 access.setDevice(device);
                 access.setUser(newUser);
                 access.setEnrollId(enrollId);
-                access.setWeekZone(0);
-                access.setGroupNumber(0);
-                access.setStartTime(ZonedDateTime.now());
+                //access.setWeekZone(0);
+                //access.setGroupNumber(0);
+                //access.setStartTime(ZonedDateTime.now());
                 access.setEnabled(true);
                 access.setSynced(true);
                 deviceUserAccessRepository.save(access);
