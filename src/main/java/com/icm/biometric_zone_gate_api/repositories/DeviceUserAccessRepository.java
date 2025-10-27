@@ -82,13 +82,15 @@ public interface DeviceUserAccessRepository extends JpaRepository<DeviceUserAcce
             """)
     List<DeviceUserAccessModel> findPendingWithUserAndCredentials(Long deviceId);
 
-    @Query("SELECT a FROM DeviceUserAccessModel a " +
-            "JOIN FETCH a.user u " +
-            "WHERE a.device.id = :deviceId " +
-            "AND a.enabled = true " +
-            "AND a.synced = false " +
-            "AND a.pendingDelete = false " +
-            "AND u.credentials IS NOT EMPTY")
+    @Query("""
+            SELECT DISTINCT a FROM DeviceUserAccessModel a
+            JOIN FETCH a.user u
+            LEFT JOIN FETCH u.credentials c
+            WHERE a.device.id = :deviceId
+            AND a.enabled = true
+            AND a.synced = false
+            AND a.pendingDelete = false
+            """)
     List<DeviceUserAccessModel> findPendingWithUserAndCredentialsAndPendingDeleteFalse(Long deviceId);
 
     @Query("""

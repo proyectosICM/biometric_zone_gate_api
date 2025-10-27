@@ -207,13 +207,23 @@ public class UserService {
 
             UserModel saved = userRepository.save(user);
 
+                   /*
             if (nameChanged) {
                 deviceService.broadcastUserNameUpdate(saved);
             }
-            /*
+
             if (enabledChanged) {
                 deviceService.broadcastUserEnableState(saved);
             }*/
+
+            if (nameChanged) {
+                var links = deviceService.getAccessLinksByUserId(saved.getId());
+                for (var link : links) {
+                    if (Boolean.TRUE.equals(link.isPendingDelete())) continue;
+                    link.setPendingNameSync(true);
+                    deviceService.saveAccess(link);
+                }
+            }
 
             if (enabledChanged) {
                 var links = deviceService.getAccessLinksByUserId(saved.getId()); // método helper abajo
