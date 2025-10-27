@@ -3,17 +3,17 @@ package com.icm.biometric_zone_gate_api.websocket.handlers;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.icm.biometric_zone_gate_api.repositories.DeviceUserAccessRepository;
 import com.icm.biometric_zone_gate_api.websocket.dispatchers.SetUserInfoDispatcher;
+import com.icm.biometric_zone_gate_api.websocket.dispatchers.SetUserInfoReplicaDispatcher;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 import org.springframework.web.socket.WebSocketSession;
 
-/**
- * Maneja la respuesta del dispositivo al comando "setuserinfo".
- */
 @Component
 @RequiredArgsConstructor
 public class SetUserInfoResponseHandler {
-    private final SetUserInfoDispatcher dispatcher;
+
+    private final SetUserInfoDispatcher dispatcher;              // sincronización normal
+    private final SetUserInfoReplicaDispatcher replicaDispatcher; // réplicas desde otros dispositivos
     private final DeviceUserAccessRepository deviceUserAccessRepository;
 
     public void handleSetUserInfoResponse(JsonNode json, WebSocketSession session) {
@@ -25,48 +25,53 @@ public class SetUserInfoResponseHandler {
                 return;
             }
 
-            // Obtener SN desde la sesión
             String sn = (String) session.getAttributes().get("sn");
             if (sn == null) {
-                System.err.println("No se puede asociar ACK de setuserinfo: SN no encontrado en sesión");
+                System.err.println("❌ No SN en sesión para ACK setuserinfo");
                 return;
             }
 
-            // Consumir el pending del dispatcher (primero de la cola FIFO)
-            var opt = dispatcher.ack(sn);
-            if (opt.isEmpty()) {
-                System.err.println("ACK recibido pero no hay pending en dispatcher");
-                return;
-            }
+            int enrollId = json.path("enrollid").asInt(-1);
+            int backupNum = json.path("backupnum").asInt(-1);
 
-            var pending = opt.get();
-            int enrollId = pending.getEnrollId();
-            int backupNum = pending.getBackupNum();
-
-            if (result) {
-                System.out.printf("✅ CONFIRMADO: setuserinfo (sn=%s, enroll=%d, backup=%d)%n (descarga)",
-                        sn, enrollId, backupNum);
-                // AHORA: si la cola terminó vacía → recién marcamos synced=true
-                boolean stillPending = dispatcher.hasPending(sn, enrollId);
-
-                if (!stillPending) {
-                    deviceUserAccessRepository
-                            .findByDeviceSnAndEnrollIdAndPendingDeleteFalse(sn, enrollId)
-                            .ifPresent(access -> {
-                                access.setSynced(true);
-                                deviceUserAccessRepository.save(access);
-                                System.out.printf("✅ Todos los backup confirmados → synced=true para enrollId=%d en %s%n",
-                                        enrollId, sn);
-                            });
-                }
-            } else {
+            if (!result) {
                 int reason = json.path("reason").asInt(-1);
-                System.out.println("Dispositivo rechazó SETUSERINFO. Reason=" + reason);
+                System.out.printf("❌ Dispositivo rechazó SETUSERINFO (sn=%s, enroll=%d, backup=%d) reason=%d%n",
+                        sn, enrollId, backupNum, reason);
+                return;
+            }
+
+            // ✅ 1) ¿Este ACK corresponde a una réplica?
+            var replicaPending = replicaDispatcher.poll(sn);
+            if (replicaPending.isPresent()) {
+                var r = replicaPending.get();
+                System.out.printf("✅ ACK Replica confirmada (sn=%s, enroll=%d, backup=%d) [NO se marca synced]\n",
+                        sn, r.getEnrollId(), r.getBackupNum());
+                return; // NO seguimos al flujo normal
+            }
+
+            // ✅ 2) Si no era réplica → flujo normal
+            var normalPending = dispatcher.ack(sn);
+            if (normalPending.isEmpty()) {
+                System.out.printf("⚠️ ACK recibido sin pending normal ni réplica (sn=%s, enrollId=%d)\n", sn, enrollId);
+                return;
+            }
+
+            boolean stillPending = dispatcher.hasPending(sn, enrollId);
+            if (!stillPending) {
+                // ya no quedan más credenciales → marcamos synced=true
+                deviceUserAccessRepository
+                        .findByDeviceSnAndEnrollIdAndPendingDeleteFalse(sn, enrollId)
+                        .ifPresent(access -> {
+                            access.setSynced(true);
+                            deviceUserAccessRepository.save(access);
+                            System.out.printf("✅ setuserinfo completado → synced=true (sn=%s, enrollId=%d)\n",
+                                    sn, enrollId);
+                        });
             }
 
         } catch (Exception e) {
-            System.err.println("Error al procesar respuesta de setuserinfo: " + e.getMessage());
-            e.printStackTrace();
+            System.err.println("Error procesando ACK setuserinfo: " + e.getMessage());
         }
     }
 }

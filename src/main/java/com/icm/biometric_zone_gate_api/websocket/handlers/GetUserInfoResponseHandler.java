@@ -8,6 +8,7 @@ import com.icm.biometric_zone_gate_api.repositories.DeviceUserAccessRepository;
 import com.icm.biometric_zone_gate_api.repositories.UserCredentialRepository;
 import com.icm.biometric_zone_gate_api.repositories.UserRepository;
 import com.icm.biometric_zone_gate_api.websocket.commands.SetUserInfoCommandSender;
+import com.icm.biometric_zone_gate_api.websocket.dispatchers.SetUserInfoReplicaDispatcher;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 import org.springframework.web.socket.WebSocketSession;
@@ -25,9 +26,9 @@ public class GetUserInfoResponseHandler {
     private final DeviceRepository deviceRepository;
     private final SetUserInfoCommandSender setUserInfoCommandSender;
     private final DeviceUserAccessRepository deviceUserAccessRepository;
+    private final SetUserInfoReplicaDispatcher replicaDispatcher; // ✅ NUEVO
 
-    public void
-    handleGetUserInfoResponse(JsonNode json, WebSocketSession session) {
+    public void handleGetUserInfoResponse(JsonNode json, WebSocketSession session) {
         try {
             boolean result = json.path("result").asBoolean(false);
 
@@ -37,141 +38,131 @@ public class GetUserInfoResponseHandler {
                 return;
             }
 
-            if (result) {
-                int enrollId = json.path("enrollid").asInt();
-                int backupNum = json.path("backupnum").asInt();
-                int admin = json.path("admin").asInt();
-                String name = json.path("name").asText();
-                String record = json.path("record").asText();
+            int enrollId = json.path("enrollid").asInt();
+            int backupNum = json.path("backupnum").asInt();
+            int admin = json.path("admin").asInt();
+            String name = json.path("name").asText();
+            String record = json.path("record").asText();
 
-                System.out.printf("Respuesta GET USER INFO:\n EnrollId=%d, BackupNum=%d, Admin=%d, Name=%s, Record=%s%n",
-                        enrollId, backupNum, admin, name, record);
+            System.out.printf("Respuesta GET USER INFO:\n EnrollId=%d, BackupNum=%d, Admin=%d, Name=%s, Record=%s%n",
+                    enrollId, backupNum, admin, name, record);
 
-                String sn = (String) session.getAttributes().get("sn");
-                if (sn == null) {
-                    System.err.println("No se encontró SN asociado a la sesión: " + session.getId());
-                    return;
-                }
+            String sn = (String) session.getAttributes().get("sn");
+            if (sn == null) {
+                System.err.println("No se encontró SN asociado a la sesión: " + session.getId());
+                return;
+            }
 
+            Optional<DeviceModel> deviceOpt = deviceRepository.findBySn(sn);
+            if (deviceOpt.isEmpty()) {
+                System.err.println("Dispositivo no encontrado en BD para SN=" + sn);
+                return;
+            }
 
-                Optional<DeviceModel> deviceOpt = deviceRepository.findBySn(sn);
-                DeviceModel device = deviceOpt.get();
-                CompanyModel company = device.getCompany();
+            DeviceModel device = deviceOpt.get();
+            CompanyModel company = device.getCompany();
 
-                // --- Buscar usuario por nombre ---
-                Optional<UserModel> userOpt = userRepository.findByNameAndCompany(name, company);
+            // Buscar usuario por nombre
+            Optional<UserModel> userOpt = userRepository.findByNameAndCompany(name, company);
 
-                if (userOpt.isEmpty()) {
-                    // Crear usuario nuevo porque no existe en servidor
-                    System.out.println("Usuario no existe en BD, creando: " + name);
+            if (userOpt.isEmpty()) {
+                // CREAR usuario porque NO existe
+                System.out.println("Usuario no existe en BD, creando: " + name);
 
-                    UserModel newUser = new UserModel();
-                    newUser.setEnrollId(enrollId);
-                    newUser.setName(name);
-                    newUser.setAdminLevel(admin);
-                    newUser.setEnabled(true);
-                    newUser.setCompany(company);
-                    newUser = userRepository.save(newUser);
+                UserModel newUser = new UserModel();
+                newUser.setEnrollId(enrollId);
+                newUser.setName(name);
+                newUser.setAdminLevel(admin);
+                newUser.setEnabled(true);
+                newUser.setCompany(company);
+                newUser = userRepository.save(newUser);
 
-                    UserCredentialModel newCred = new UserCredentialModel();
-                    newCred.setUser(newUser);
-                    newCred.setBackupNum(backupNum);
-                    newCred.setType(mapBackupNumToType(backupNum));
-                    newCred.setRecord(record);
-                    userCredentialRepository.save(newCred);
+                UserCredentialModel newCred = new UserCredentialModel();
+                newCred.setUser(newUser);
+                newCred.setBackupNum(backupNum);
+                newCred.setType(mapBackupNumToType(backupNum));
+                newCred.setRecord(record);
+                userCredentialRepository.save(newCred);
 
-                    DeviceUserAccessModel access = new DeviceUserAccessModel();
-                    access.setDevice(device);
-                    access.setUser(newUser);
-                    access.setEnrollId(enrollId);
-                    access.setWeekZone(0);
-                    access.setGroupNumber(0);
-                    access.setStartTime(ZonedDateTime.now());
-                    access.setEndTime(null);
-                    access.setEnabled(true);
-                    access.setSynced(true);
-                    deviceUserAccessRepository.save(access);
+                DeviceUserAccessModel access = new DeviceUserAccessModel();
+                access.setDevice(device);
+                access.setUser(newUser);
+                access.setEnrollId(enrollId);
+                access.setWeekZone(0);
+                access.setGroupNumber(0);
+                access.setStartTime(ZonedDateTime.now());
+                access.setEnabled(true);
+                access.setSynced(true);
+                deviceUserAccessRepository.save(access);
 
-                    System.out.println("Usuario creado y credencial registrada en BD: " + name);
-                    return;
-                }
+                return;
+            }
 
-                // --- Usuario ya existe, comparar credenciales ---
-                UserModel existingUser = userOpt.get();
-                Optional<DeviceUserAccessModel> accessOpt =
-                        deviceUserAccessRepository.findByUserIdAndDeviceId(existingUser.getId(), device.getId());
-                if (accessOpt.isEmpty()) {
-                    System.out.println("🔹 Usuario no tenía acceso a este dispositivo, registrando...");
-                    DeviceUserAccessModel access = new DeviceUserAccessModel();
-                    access.setDevice(device);
-                    access.setUser(existingUser);
-                    access.setEnrollId(enrollId);
-                    access.setWeekZone(0);
-                    access.setGroupNumber(0);
-                    access.setStartTime(ZonedDateTime.now());
-                    access.setEndTime(null);
-                    access.setEnabled(true);
-                    access.setSynced(true);
-                    deviceUserAccessRepository.save(access);
-                } else {
-                    DeviceUserAccessModel access = accessOpt.get();
+            // Si ya existe:
+            UserModel existingUser = userOpt.get();
 
-                    /*
-                    if (access.getEnrollId() <= 0 || access.getEnrollId() != enrollId) {
-                        System.out.printf("🔄 Actualizando enrollId del servidor: %d → %d%n",
-                                access.getEnrollId(), enrollId);
-                        access.setEnrollId(enrollId);
-                    }
-                     */
+            deviceUserAccessRepository.findByUserIdAndDeviceId(existingUser.getId(), device.getId())
+                    .ifPresentOrElse(
+                            access -> {
+                                access.setSynced(true);
+                                deviceUserAccessRepository.save(access);
+                            },
+                            () -> {
+                                DeviceUserAccessModel newAccess = new DeviceUserAccessModel();
+                                newAccess.setDevice(device);
+                                newAccess.setUser(existingUser);
+                                newAccess.setEnrollId(enrollId);
+                                newAccess.setEnabled(true);
+                                newAccess.setSynced(true);
+                                deviceUserAccessRepository.save(newAccess);
+                            }
+                    );
 
-                    access.setSynced(true);
-                    deviceUserAccessRepository.save(access);
-                }
+            Optional<UserCredentialModel> credOpt =
+                    userCredentialRepository.findByUserIdAndBackupNum(existingUser.getId(), backupNum);
 
+            if (credOpt.isEmpty()) {
+                System.out.println("Nueva credencial detectada → guardando y marcando replicación");
+                UserCredentialModel newCred = new UserCredentialModel();
+                newCred.setUser(existingUser);
+                newCred.setBackupNum(backupNum);
+                newCred.setType(mapBackupNumToType(backupNum));
+                newCred.setRecord(record);
+                userCredentialRepository.save(newCred);
 
-                Optional<UserCredentialModel> credOpt = userCredentialRepository
-                        .findByUserIdAndBackupNum(existingUser.getId(), backupNum);
-
-                if (credOpt.isEmpty()) {
-                    // No tiene esta credencial en BD → registrar
-                    System.out.println("Usuario existente pero sin esta credencial, agregando...");
-
-                    UserCredentialModel cred = new UserCredentialModel();
-                    cred.setUser(existingUser);
-                    cred.setBackupNum(backupNum);
-                    cred.setType(mapBackupNumToType(backupNum));
-                    cred.setRecord(record);
-                    userCredentialRepository.save(cred);
-
-                    System.out.println("Credencial añadida localmente.");
-                } else {
-                    UserCredentialModel existingCred = credOpt.get();
-
-                    if (!Objects.equals(existingCred.getRecord(), record)) {
-                        // Diferencia detectada → imponer versión del servidor
-                        System.out.println("⚠️ Diferencia detectada entre servidor y dispositivo.");
-                        System.out.println("→ Imponiendo versión del servidor al dispositivo...");
-
-                        setUserInfoCommandSender.sendSetUserInfoCommand(
-                                session,
-                                enrollId,
-                                existingUser.getName(),
-                                existingCred.getBackupNum(),
-                                existingUser.getAdminLevel(),
-                                existingCred.getRecord()
-                        );
-                    } else {
-                        System.out.println("✅ Usuario y credencial ya están sincronizados.");
-                    }
-                }
+                registerReplicaForOtherDevices(existingUser, sn, enrollId, backupNum);
 
             } else {
-                int reason = json.path("reason").asInt();
-                System.out.println("Fallo GET USER INFO, reason=" + reason);
+                UserCredentialModel existingCred = credOpt.get();
+
+                if (!Objects.equals(existingCred.getRecord(), record)) {
+                    System.out.println("⚠ Cambio detectado → actualizando local + REPLICANDO");
+
+                    existingCred.setRecord(record);
+                    userCredentialRepository.save(existingCred);
+
+                    registerReplicaForOtherDevices(existingUser, sn, enrollId, backupNum);
+                }
             }
+
         } catch (Exception e) {
             e.printStackTrace();
         }
+    }
+
+    private void registerReplicaForOtherDevices(UserModel user, String originSn, int enrollId, int backupNum) {
+        var accesses = deviceUserAccessRepository.findByUserId(user.getId());
+        accesses.stream()
+                .map(DeviceUserAccessModel::getDevice)
+                .filter(d -> !Objects.equals(d.getSn(), originSn))
+                .forEach(device -> {
+                    replicaDispatcher.register(device.getSn(), enrollId, backupNum);
+                    deviceUserAccessRepository.findByUserIdAndDeviceId(user.getId(), device.getId())
+                            .ifPresent(access -> {
+                                access.setSynced(false);
+                                deviceUserAccessRepository.save(access);
+                            });
+                });
     }
 
     private CredentialType mapBackupNumToType(int backupNum) {
