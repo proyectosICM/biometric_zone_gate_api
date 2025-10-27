@@ -288,18 +288,6 @@ public class DeviceUserAccessService {
         return page.map(DeviceUserAccessMapper::toDTO);
     }
 
-    public List<DeviceUserAccessDTO> findByGroupNumber(Integer groupNumber) {
-        List<DeviceUserAccessModel> entities = deviceUserAccessRepository.findByGroupNumber(groupNumber);
-        return entities.stream()
-                .map(DeviceUserAccessMapper::toDTO)
-                .collect(Collectors.toList());
-    }
-
-    public Page<DeviceUserAccessDTO> findByGroupNumber(Integer groupNumber, Pageable pageable) {
-        Page<DeviceUserAccessModel> page = deviceUserAccessRepository.findByGroupNumber(groupNumber, pageable);
-        return page.map(DeviceUserAccessMapper::toDTO);
-    }
-
     public List<DeviceUserAccessDTO> findByEnabledTrue() {
         List<DeviceUserAccessModel> entities = deviceUserAccessRepository.findByEnabledTrue();
         return entities.stream()

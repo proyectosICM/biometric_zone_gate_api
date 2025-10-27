@@ -68,10 +68,6 @@ public interface DeviceUserAccessRepository extends JpaRepository<DeviceUserAcce
 
     Page<DeviceUserAccessModel> findByDeviceId(Long deviceId, Pageable pageable);
 
-    List<DeviceUserAccessModel> findByGroupNumber(Integer groupNumber);
-
-    Page<DeviceUserAccessModel> findByGroupNumber(Integer groupNumber, Pageable pageable);
-
     List<DeviceUserAccessModel> findByEnabledTrue();
 
     Page<DeviceUserAccessModel> findByEnabledTrue(Pageable pageable);

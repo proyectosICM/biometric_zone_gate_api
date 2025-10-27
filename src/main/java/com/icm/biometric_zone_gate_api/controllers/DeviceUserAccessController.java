@@ -123,26 +123,6 @@ public class DeviceUserAccessController {
         return ResponseEntity.ok(deviceUserAccessService.findByDeviceIdAndEnabledTrue(deviceId, pageable));
     }
 
-    @GetMapping("/group/{groupNumber}")
-    public ResponseEntity<List<DeviceUserAccessDTO>> getByGroupNumber(@PathVariable Integer groupNumber) {
-        return ResponseEntity.ok(deviceUserAccessService.findByGroupNumber(groupNumber));
-    }
-
-    @GetMapping("/group/{groupNumber}/paged")
-    public ResponseEntity<Page<DeviceUserAccessDTO>> getByGroupNumberPaged(
-            @PathVariable Integer groupNumber,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size,
-            @RequestParam(required = false) String sortBy,
-            @RequestParam(defaultValue = "asc") String direction) {
-
-        Pageable pageable = (sortBy != null && !sortBy.isEmpty()) ?
-                PageRequest.of(page, size, direction.equalsIgnoreCase("desc") ? Sort.by(sortBy).descending() : Sort.by(sortBy).ascending()) :
-                PageRequest.of(page, size);
-
-        return ResponseEntity.ok(deviceUserAccessService.findByGroupNumber(groupNumber, pageable));
-    }
-
     @GetMapping("/enabled")
     public ResponseEntity<List<DeviceUserAccessDTO>> getEnabled() {
         return ResponseEntity.ok(deviceUserAccessService.findByEnabledTrue());
