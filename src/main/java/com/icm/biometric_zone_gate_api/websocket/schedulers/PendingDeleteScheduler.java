@@ -33,13 +33,39 @@ public class PendingDeleteScheduler {
 
             for (var access : pending) {
                 var user = access.getUser();
-                if (user == null) continue;
+
+                if (user == null) {
+                    System.out.printf("Usuario de accessId=%d ya no existe. Eliminando acceso huérfano...%n", access.getId());
+                    deviceUserAccessRepository.delete(access);
+                    continue;
+                }
+
+                // si nunca se sincronizó → no tiene sentido mandar DELETE al dispositivo
+                if (!Boolean.TRUE.equals(access.isSynced())) {
+                    System.out.printf("ℹ️ Access (enrollId=%d) nunca sincronizado → se elimina solo en BD%n",
+                            access.getEnrollId());
+                    deviceUserAccessRepository.delete(access);
+                    continue;
+                }
 
                 int enrollId = access.getEnrollId();
                 if (enrollId <= 0) continue;
 
+                var creds = user.getCredentials();
+                if (creds == null || creds.isEmpty()) {
+                    System.out.printf("Access enrollId=%d sin credenciales. Eliminando acceso...%n", enrollId);
+                    deviceUserAccessRepository.delete(access);
+                    continue;
+                }
+
+                deleteUserCommandSender.sendDeleteUserCommand(
+                        session,
+                        enrollId,
+                        13 // <-- backupnum = 13 = delete ALL (fp + card + password)
+                );
                 // Enviar un delete por cada credential
-                user.getCredentials().forEach(cred -> {
+                /*
+                creds.forEach(cred -> {
                     deleteUserCommandSender.sendDeleteUserCommand(
                             session,
                             enrollId,
@@ -48,6 +74,8 @@ public class PendingDeleteScheduler {
                     System.out.printf("Reintentando DELETE (enrollId=%d, backup=%d) dev=%s%n",
                             enrollId, cred.getBackupNum(), device.getSn());
                 });
+
+                 */
             }
         }
     }

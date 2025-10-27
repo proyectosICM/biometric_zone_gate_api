@@ -222,14 +222,13 @@ public class DeviceUserAccessService {
         // Primero verificamos si realmente llegó a sincronizarse
         if (!Boolean.TRUE.equals(access.isSynced())) {
             // Nunca se envió al dispositivo → eliminar solo en BD
-            System.out.printf("🧹 Acceso enrollId=%d nunca fue sincronizado → eliminación solo en BD%n", enrollId);
+            System.out.printf("Acceso enrollId=%d nunca fue sincronizado → eliminación solo en BD%n", enrollId);
             deviceUserAccessRepository.delete(access);
             return true;
         }
 
         // marcar pendiente en BD antes de intentar enviar
         access.setPendingDelete(true);
-        access.setSynced(false);
         deviceUserAccessRepository.save(access);
 
         // Intento inmediato si hay sesión
