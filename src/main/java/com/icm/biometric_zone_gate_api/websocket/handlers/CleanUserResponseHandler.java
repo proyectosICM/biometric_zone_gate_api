@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.icm.biometric_zone_gate_api.repositories.DeviceRepository;
 import com.icm.biometric_zone_gate_api.repositories.DeviceUserAccessRepository;
 import com.icm.biometric_zone_gate_api.websocket.dispatchers.CleanUserDispatcher;
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 import org.springframework.web.socket.WebSocketSession;
@@ -19,6 +20,7 @@ public class CleanUserResponseHandler {
     private final DeviceRepository deviceRepository;
     private final DeviceUserAccessRepository deviceUserAccessRepository;
 
+    @Transactional
     public void handleCleanUserResponse(JsonNode json, WebSocketSession session) {
         try {
             boolean result = json.path("result").asBoolean(false);
