@@ -11,6 +11,7 @@ import com.icm.biometric_zone_gate_api.websocket.commands.CleanUserCommandSender
 import com.icm.biometric_zone_gate_api.websocket.commands.DeleteUserCommandSender;
 import com.icm.biometric_zone_gate_api.websocket.commands.EnableUserCommandSender;
 import com.icm.biometric_zone_gate_api.websocket.commands.SetUserInfoCommandSender;
+import com.icm.biometric_zone_gate_api.websocket.dispatchers.CleanUserDispatcher;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
@@ -34,6 +35,7 @@ public class DeviceUserAccessService {
     private final CleanUserCommandSender cleanUserCommandSender;
     private final DeviceUserRepository deviceUserRepository;
     private final EnableUserCommandSender enableUserCommandSender;
+    private final CleanUserDispatcher cleanUserDispatcher;
 
     public Optional<DeviceUserAccessModel> findById(Long id) {
         return deviceUserAccessRepository.findById(id);
@@ -301,6 +303,21 @@ public class DeviceUserAccessService {
     }
 
     public void cleanDeviceUsersBySn(Long id) {
+        DeviceModel device = deviceRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Dispositivo no encontrado"));
+        device.setPendingClean(true);
+        deviceRepository.save(device);
+
+        var session = sessionManager.getSessionBySn(device.getSn());
+
+        if (session != null && session.isOpen()) {
+            cleanUserCommandSender.sendCleanUserCommand(session);
+            cleanUserDispatcher.register(device.getSn());
+        }
+    }
+
+/*
+    public void cleanDeviceUsersBySn(Long id) {
         // Buscar el dispositivo por ID
         DeviceModel device = deviceRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Dispositivo no encontrado con ID: " + id));
@@ -314,9 +331,9 @@ public class DeviceUserAccessService {
             try {
                 // Enviar comando CLEAN USER al dispositivo
                 cleanUserCommandSender.sendCleanUserCommand(session);
-                System.out.println("🧹 Comando CLEAN USER enviado al dispositivo " + sn);
+                System.out.println("Comando CLEAN USER enviado al dispositivo " + sn);
             } catch (Exception e) {
-                System.err.println("❌ Error al enviar CLEAN USER: " + e.getMessage());
+                System.err.println("Error al enviar CLEAN USER: " + e.getMessage());
             }
         } else {
             System.out.println("⚠️ Dispositivo " + sn + " no conectado. Comando pendiente.");
@@ -331,7 +348,11 @@ public class DeviceUserAccessService {
             System.out.println("ℹ️ No hay registros de DeviceUserAccess para eliminar para dispositivo " + sn);
         }
 
-        // Eliminar todos los DeviceUser asociados al dispositivo
+
+    }
+*/
+
+    // Eliminar todos los DeviceUser asociados al dispositivo
         /*
         List<DeviceUserModel> deviceUsers = deviceUserRepository.findByDeviceId(device.getId());
         if (!deviceUsers.isEmpty()) {
@@ -341,6 +362,5 @@ public class DeviceUserAccessService {
             System.out.println("ℹ️ No hay registros de DeviceUser para eliminar para dispositivo " + sn);
         }
          */
-    }
 
 }

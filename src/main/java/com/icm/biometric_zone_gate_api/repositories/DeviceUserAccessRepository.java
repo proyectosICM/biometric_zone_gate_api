@@ -4,12 +4,18 @@ import com.icm.biometric_zone_gate_api.models.DeviceUserAccessModel;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 
 import java.util.List;
 import java.util.Optional;
 
 public interface DeviceUserAccessRepository extends JpaRepository<DeviceUserAccessModel, Long> {
+
+    @Modifying
+    @Query("DELETE FROM DeviceUserAccessModel a WHERE a.device.id = :deviceId")
+    void deleteByDeviceId(Long deviceId);
+
     Optional<DeviceUserAccessModel> findByDeviceIdAndEnrollId(Long deviceId, int enrollId);
 
     List<DeviceUserAccessModel> findByPendingDeleteTrueAndDeviceId(Long deviceId);
