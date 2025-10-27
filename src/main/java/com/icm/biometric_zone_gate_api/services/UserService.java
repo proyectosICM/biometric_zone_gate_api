@@ -117,8 +117,10 @@ public class UserService {
     @Transactional
     public Optional<UserModel> updateUser(Long id, UserDTO dto) {
         return userRepository.findById(id).map(user -> {
+
             boolean nameChanged = dto.getName() != null && !dto.getName().equals(user.getName());
             boolean enabledChanged = dto.getEnabled() != null && !dto.getEnabled().equals(user.getEnabled());
+            boolean credentialsChanged = false;
 
             user.setName(dto.getName());
             user.setAdminLevel(dto.getAdminLevel());
@@ -146,7 +148,7 @@ public class UserService {
                 user.setPassword(passwordEncoder.encode(dto.getPassword()));
             }
 
-            // 🧩 Manejar credenciales
+            // Manejar credenciales
             if (dto.getCredentials() != null) {
                 Map<Long, UserCredentialModel> existingMap = user.getCredentials().stream()
                         .collect(Collectors.toMap(UserCredentialModel::getId, c -> c));
@@ -207,15 +209,6 @@ public class UserService {
 
             UserModel saved = userRepository.save(user);
 
-                   /*
-            if (nameChanged) {
-                deviceService.broadcastUserNameUpdate(saved);
-            }
-
-            if (enabledChanged) {
-                deviceService.broadcastUserEnableState(saved);
-            }*/
-
             if (nameChanged) {
                 var links = deviceService.getAccessLinksByUserId(saved.getId());
                 for (var link : links) {
@@ -232,6 +225,16 @@ public class UserService {
                     if (Boolean.TRUE.equals(link.isPendingDelete())) continue;
                     link.setPendingStateSync(true);
                     // opcional: link.setSynced(false); // si quieres reflejar que falta sincronía global
+                    deviceService.saveAccess(link);
+                }
+            }
+
+
+            if (credentialsChanged) {
+                var links = deviceService.getAccessLinksByUserId(saved.getId());
+                for (var link : links) {
+                    if (Boolean.TRUE.equals(link.isPendingDelete())) continue;
+                    link.setSynced(false); // 🟢 esto hace que DeviceSetUserScheduler lo reenvíe
                     deviceService.saveAccess(link);
                 }
             }
