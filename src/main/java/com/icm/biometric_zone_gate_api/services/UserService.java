@@ -4,6 +4,8 @@ import com.icm.biometric_zone_gate_api.dto.UserCredentialDTO;
 import com.icm.biometric_zone_gate_api.dto.UserDTO;
 import com.icm.biometric_zone_gate_api.enums.CredentialType;
 import com.icm.biometric_zone_gate_api.mappers.UserMapper;
+import com.icm.biometric_zone_gate_api.models.DeviceModel;
+import com.icm.biometric_zone_gate_api.models.DeviceUserAccessModel;
 import com.icm.biometric_zone_gate_api.models.UserCredentialModel;
 import com.icm.biometric_zone_gate_api.models.UserModel;
 import com.icm.biometric_zone_gate_api.repositories.CompanyRepository;
@@ -120,6 +122,7 @@ public class UserService {
 
             boolean nameChanged = dto.getName() != null && !dto.getName().equals(user.getName());
             boolean enabledChanged = dto.getEnabled() != null && !dto.getEnabled().equals(user.getEnabled());
+            boolean adminLevelChanged = dto.getAdminLevel() != null && !dto.getAdminLevel().equals(user.getAdminLevel());
             boolean credentialsChanged = false;  // 🔥 se inicializa acá
 
             user.setName(dto.getName());
@@ -251,6 +254,39 @@ public class UserService {
                 }
             }
 
+            if (adminLevelChanged && saved.getAdminLevel() != null && saved.getAdminLevel() == 1) {
+
+                Long companyId = saved.getCompany().getId();
+
+                // todos los dispositivos de esa empresa
+                List<DeviceModel> devices = deviceService.listByCompany(companyId);
+
+                for (DeviceModel device : devices) {
+
+                    // si ya existe acceso, no lo creamos otra vez
+                    boolean exists = deviceService
+                            .getAccessLinksByUserId(saved.getId())
+                            .stream()
+                            .anyMatch(link -> link.getDevice().getId().equals(device.getId()));
+
+                    if (exists) continue;
+
+                    DeviceUserAccessModel newAccess = new DeviceUserAccessModel();
+                    newAccess.setDevice(device);
+                    newAccess.setUser(saved);
+                    newAccess.setEnrollId(saved.getEnrollId());
+                    newAccess.setEnabled(true);
+                    newAccess.setSynced(false);
+                    newAccess.setPendingDelete(false);
+                    newAccess.setPendingNameSync(false);
+                    newAccess.setPendingStateSync(false);
+
+                    deviceService.saveAccess(newAccess);
+
+                    System.out.printf("✅ Admin %s auto-asociado al dispositivo %s%n",
+                            saved.getName(), device.getSn());
+                }
+            }
             return saved;
         });
     }
