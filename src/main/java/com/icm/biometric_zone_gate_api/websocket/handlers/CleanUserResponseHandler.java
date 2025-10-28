@@ -50,6 +50,8 @@ public class CleanUserResponseHandler {
                     device.setPendingClean(false);
                     deviceRepository.save(device);
                     System.out.printf("🧹 AccessLinks eliminados para device=%s%n", sn);
+
+                    registerAdminsPostClean(device);
                 });
             } else {
                 int reason = json.path("reason").asInt(-1);
