@@ -8,6 +8,7 @@ import com.icm.biometric_zone_gate_api.models.UserModel;
 import com.icm.biometric_zone_gate_api.repositories.DeviceRepository;
 import com.icm.biometric_zone_gate_api.repositories.DeviceUserAccessRepository;
 import com.icm.biometric_zone_gate_api.repositories.DeviceUserRepository;
+import com.icm.biometric_zone_gate_api.repositories.UserRepository;
 import com.icm.biometric_zone_gate_api.websocket.DeviceSessionManager;
 import com.icm.biometric_zone_gate_api.websocket.commands.*;
 import com.icm.biometric_zone_gate_api.websocket.dispatchers.InitSystemDispatcher;
@@ -44,9 +45,12 @@ public class DeviceService {
     private final GetAllLogCommandSender getAllLogCommandSender;
     private final SetDevInfoCommandSender setDevInfoCommandSender;
     private final InitSystemDispatcher initSystemDispatcher;
+    private final UserRepository userRepository;
 
     public DeviceModel createDevice(DeviceModel device) {
-        return deviceRepository.save(device);
+        DeviceModel saved = deviceRepository.save(device);
+        registerAdminsForNewDevice(saved);
+        return saved;
     }
 
     public List<DeviceModel> getAllDevices() {
@@ -169,9 +173,6 @@ public class DeviceService {
                     System.out.println("⚠️ Dispositivo SN=" + sn + " no conectado. No se puede actualizar nombre.");
                 }
             }
-
-
-
         } catch (Exception e) {
             System.err.println("❌ Error al propagar cambio de nombre: " + e.getMessage());
             e.printStackTrace();
@@ -322,9 +323,9 @@ public class DeviceService {
         if (session != null && session.isOpen()) {
             try {
                 openDoorCommandSender.sendOpenDoorCommand(session);
-                System.out.println("🔓 Comando OPENDOOR enviado al dispositivo " + sn);
+                System.out.println("Comando OPENDOOR enviado al dispositivo " + sn);
             } catch (Exception e) {
-                System.err.println("❌ Error al enviar OPENDOOR: " + e.getMessage());
+                System.err.println("Error al enviar OPENDOOR: " + e.getMessage());
             }
         } else {
             System.out.println("⚠️ Dispositivo " + sn + " no conectado. Comando OPENDOOR pendiente.");
@@ -450,4 +451,38 @@ public class DeviceService {
     public DeviceUserAccessModel saveAccess(DeviceUserAccessModel access) {
         return deviceUserAccessRepository.save(access);
     }
+
+    private void registerAdminsForNewDevice(DeviceModel device) {
+        Long companyId = device.getCompany().getId();
+
+        List<UserModel> admins = userRepository.findByCompanyIdAndAdminLevel(companyId, 1);
+
+        for (UserModel admin : admins) {
+            if (admin.getCredentials() == null || admin.getCredentials().isEmpty()) {
+                System.out.printf("⚠ Admin %s no tiene credenciales válidas → NO se registra%n",
+                        admin.getName());
+                continue;
+            }
+
+            DeviceUserAccessModel newAccess = new DeviceUserAccessModel();
+            newAccess.setDevice(device);
+            newAccess.setUser(admin);
+            newAccess.setEnrollId(admin.getEnrollId());
+            newAccess.setEnabled(true);
+            newAccess.setSynced(false);           // 🔥 scheduler lo enviará
+            newAccess.setPendingDelete(false);
+            newAccess.setPendingNameSync(false);
+            newAccess.setPendingStateSync(false);
+
+            deviceUserAccessRepository.save(newAccess);
+
+            System.out.printf("✅ Admin %s asociado automáticamente al nuevo device=%s%n",
+                    admin.getName(), device.getSn());
+        }
+
+        if (admins.isEmpty()) {
+            System.out.println("ℹ️ No se encontraron admins para asociar automáticamente al dispositivo nuevo.");
+        }
+    }
+
 }
