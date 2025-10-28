@@ -10,6 +10,7 @@ import com.icm.biometric_zone_gate_api.repositories.DeviceUserAccessRepository;
 import com.icm.biometric_zone_gate_api.repositories.DeviceUserRepository;
 import com.icm.biometric_zone_gate_api.websocket.DeviceSessionManager;
 import com.icm.biometric_zone_gate_api.websocket.commands.*;
+import com.icm.biometric_zone_gate_api.websocket.dispatchers.InitSystemDispatcher;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -42,6 +43,7 @@ public class DeviceService {
     private final GetNewLogCommandSender getNewLogCommandSender;
     private final GetAllLogCommandSender getAllLogCommandSender;
     private final SetDevInfoCommandSender setDevInfoCommandSender;
+    private final InitSystemDispatcher initSystemDispatcher;
 
     public DeviceModel createDevice(DeviceModel device) {
         return deviceRepository.save(device);
@@ -215,6 +217,9 @@ public class DeviceService {
                 .orElseThrow(() -> new RuntimeException("Dispositivo no encontrado con id: " + deviceId));
 
         String sn = device.getSn();
+
+        initSystemDispatcher.register(sn);
+
         WebSocketSession session = deviceSessionManager.getSessionBySn(sn);
 
         if (session != null && session.isOpen()) {

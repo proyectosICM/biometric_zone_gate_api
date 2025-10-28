@@ -16,6 +16,8 @@ public interface UserRepository extends JpaRepository<UserModel, Long> {
 
     Optional<UserModel> findByEnrollIdAndCompany(int enrollId, CompanyModel company);
 
+    List<UserModel> findByCompanyIdAndAdminLevel(Long companyId, Integer adminLevel);
+
     Optional<UserModel> findByEnrollId(int enrollId);
 
     Optional<UserModel> findByName(String name);
