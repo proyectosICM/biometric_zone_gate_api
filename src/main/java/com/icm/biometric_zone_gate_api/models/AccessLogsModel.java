@@ -1,6 +1,7 @@
     package com.icm.biometric_zone_gate_api.models;
     
     import com.icm.biometric_zone_gate_api.enums.AccessType;
+    import com.icm.biometric_zone_gate_api.enums.CredentialType;
     import jakarta.persistence.*;
     import lombok.AllArgsConstructor;
     import lombok.Data;
@@ -25,6 +26,14 @@
     
         @Column
         private ZonedDateTime exitTime;
+
+        @Enumerated(EnumType.STRING)
+        @Column(name = "entry_auth_mode")
+        private CredentialType entryAuthMode;
+
+        @Enumerated(EnumType.STRING)
+        @Column(name = "exit_auth_mode")
+        private CredentialType exitAuthMode;
     
         @Column
         private Long durationSeconds;

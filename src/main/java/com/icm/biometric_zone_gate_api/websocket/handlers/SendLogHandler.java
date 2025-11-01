@@ -2,6 +2,7 @@ package com.icm.biometric_zone_gate_api.websocket.handlers;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.icm.biometric_zone_gate_api.enums.AccessType;
+import com.icm.biometric_zone_gate_api.enums.CredentialType;
 import com.icm.biometric_zone_gate_api.models.AccessLogsModel;
 import com.icm.biometric_zone_gate_api.models.DeviceModel;
 import com.icm.biometric_zone_gate_api.models.EventTypeModel;
@@ -59,6 +60,10 @@ public class SendLogHandler {
                 int enrollId = record.path("enrollid").asInt();
                 if (enrollId == 0) continue;
 
+                int mode = record.has("mode") ? record.path("mode").asInt()
+                        : record.path("attmode").asInt(record.path("verify").asInt(-1));
+                CredentialType authMode = mapLogModeToCredentialType(mode);
+
                 String timeStr = record.path("time").asText();
                 ZonedDateTime logTime = LocalDateTime.parse(timeStr, FORMATTER).atZone(ZoneId.systemDefault());
 
@@ -88,6 +93,7 @@ public class SendLogHandler {
                     entry.setEventType(eventTypeService.getEventTypeByCode(record.path("event").asInt()).orElse(null));
                     entry.setEntryTime(logTime);
                     entry.setAction(AccessType.ENTRY);
+                    entry.setEntryAuthMode(authMode);
                     entry.setSuccess(true);
                     accessLogsService.createLog(entry);
 
@@ -111,6 +117,7 @@ public class SendLogHandler {
                     entry.setExitTime(logTime);
                     entry.setDurationSeconds(diffSeconds);
                     entry.setAction(AccessType.EXIT);
+                    entry.setExitAuthMode(authMode != CredentialType.UNKNOWN ? authMode : entry.getEntryAuthMode());
                     accessLogsService.createLog(entry);
                 }
             }
@@ -124,6 +131,16 @@ public class SendLogHandler {
             try {
                 session.sendMessage(new TextMessage("{\"ret\":\"sendlog\",\"result\":false,\"reason\":1}"));
             } catch (Exception ignored) {}
+        }
+    }
+
+    private CredentialType mapLogModeToCredentialType(int mode) {
+        switch (mode) {
+            case 0:  return CredentialType.FINGERPRINT; // huella
+            case 1:  return CredentialType.CARD;        // tarjeta
+            case 2:  return CredentialType.PASSWORD;    // contraseña
+            case 8:  return CredentialType.PHOTO;       // rostro
+            default: return CredentialType.UNKNOWN;
         }
     }
 }

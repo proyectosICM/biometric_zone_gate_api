@@ -31,6 +31,10 @@ public class CompanyModel {
 
     @JsonIgnore
     @OneToMany(mappedBy = "company", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<AlertModel> alerts = new ArrayList<>();
+
+    @JsonIgnore
+    @OneToMany(mappedBy = "company", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<AccessLogsModel> accessLogs = new ArrayList<>();
 
     @Column(nullable = false, updatable = false)
