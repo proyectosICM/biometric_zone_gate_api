@@ -78,17 +78,20 @@ public class RegisterHandler {
                 }
 
                 if (inSyncWindow && mustSync ) {
-                    ZonedDateTime lastSync = device.getLastUserSync();
-                    boolean mustSync = (lastSync == null) ||
-                            Duration.between(lastSync, now.atZone(ZoneId.systemDefault())).toMinutes() >= MINUTES_BETWEEN_SYNC;
+                    deviceCommandScheduler.schedule(() -> {
+                        try {
+                            if (session != null && session.isOpen()) {
+                                getUserListCommandSender.sendGetUserListCommand(session, true);
 
-                    if (mustSync) {
-                        deviceCommandScheduler.schedule(() ->
-                                getUserListCommandSender.sendGetUserListCommand(session, true), 500
-                        );
-                        device.setLastUserSync(ZonedDateTime.now());
-                        deviceService.createDevice(device);
-                    }
+                                // ✅ Persistir SIEMPRE en UTC
+                                Instant ts = Instant.now();
+                                device.setLastUserSync(ZonedDateTime.ofInstant(ts, ZoneOffset.UTC));
+                                deviceService.createDevice(device); // usa un update real
+                            }
+                        } catch (Exception ex) {
+                            System.err.println("Error getuserlist: " + ex.getMessage());
+                        }
+                    }, 500);
                 }
 
             } else {
