@@ -73,4 +73,7 @@ public interface AccessLogsRepository extends JpaRepository<AccessLogsModel, Lon
                 LIMIT 1
             """)
     Optional<AccessLogsModel> findOpenLogByUserAndDevice(@Param("userId") Long userId, @Param("deviceId") Long deviceId);
+
+    List<AccessLogsModel> findByDeviceIdAndCreatedAtBetween(Long deviceId, ZonedDateTime from, ZonedDateTime to);
+    List<AccessLogsModel> findByCompanyIdAndCreatedAtBetween(Long companyId, ZonedDateTime from, ZonedDateTime to);
 }

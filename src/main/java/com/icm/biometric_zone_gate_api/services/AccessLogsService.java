@@ -6,12 +6,20 @@ import com.icm.biometric_zone_gate_api.models.DeviceModel;
 import com.icm.biometric_zone_gate_api.models.UserModel;
 import com.icm.biometric_zone_gate_api.repositories.AccessLogsRepository;
 import lombok.RequiredArgsConstructor;
+import org.apache.poi.ss.usermodel.Workbook;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import org.apache.poi.ss.usermodel.Sheet;
+import org.apache.poi.ss.usermodel.Row;
+import org.apache.poi.ss.usermodel.Cell;
+import org.apache.poi.ss.usermodel.CellStyle;
+import org.apache.poi.ss.usermodel.Font;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
+import java.io.ByteArrayOutputStream;
 import java.time.*;
 import java.util.List;
 import java.util.Optional;
@@ -115,4 +123,63 @@ public class AccessLogsService {
     public Optional<AccessLogsModel> getOpenLogForUserDevice(UserModel user, DeviceModel device) {
         return accessLogsRepository.findOpenLogByUserAndDevice(user.getId(), device.getId());
     }
+
+    public byte[] exportByDeviceBetween(Long deviceId, ZonedDateTime from, ZonedDateTime to) {
+        List<AccessLogsModel> logs = accessLogsRepository
+                .findByDeviceIdAndCreatedAtBetween(deviceId, from, to);
+        return buildExcel(logs, "Logs por Dispositivo");
+    }
+
+    public byte[] exportByCompanyBetween(Long companyId, ZonedDateTime from, ZonedDateTime to) {
+        List<AccessLogsModel> logs = accessLogsRepository
+                .findByCompanyIdAndCreatedAtBetween(companyId, from, to);
+        return buildExcel(logs, "Logs por Empresa");
+    }
+
+    private byte[] buildExcel(List<AccessLogsModel> logs, String sheetName) {
+        try (Workbook wb = new XSSFWorkbook(); ByteArrayOutputStream out = new ByteArrayOutputStream()) {
+            Sheet sheet = wb.createSheet(sheetName);
+
+            // estilos simples
+            CellStyle header = wb.createCellStyle();
+            Font headerFont = wb.createFont();
+            headerFont.setBold(true);
+            header.setFont(headerFont);
+
+            int r = 0;
+            Row h = sheet.createRow(r++);
+            String[] cols = {"ID","Usuario","Dispositivo","Empresa","Evento",
+                    "Entrada","Salida","Duración(s)","EPP Correcto","Éxito","Observación","Creado"};
+            for (int i=0;i<cols.length;i++){
+                Cell c = h.createCell(i);
+                c.setCellValue(cols[i]);
+                c.setCellStyle(header);
+            }
+
+            for (AccessLogsModel log : logs) {
+                Row row = sheet.createRow(r++);
+                int c = 0;
+                row.createCell(c++).setCellValue(log.getId() != null ? log.getId() : 0);
+                row.createCell(c++).setCellValue(log.getUser() != null ? nullSafe(log.getUser().getName()) : "—");
+                row.createCell(c++).setCellValue(log.getDevice() != null ? nullSafe(log.getDevice().getName()) : "—");
+                row.createCell(c++).setCellValue(log.getCompany() != null ? nullSafe(log.getCompany().getName()) : "—");
+                row.createCell(c++).setCellValue(log.getEventType() != null ? nullSafe(log.getEventType().getName()) : "—");
+                row.createCell(c++).setCellValue(log.getEntryTime() != null ? log.getEntryTime().toString() : "—");
+                row.createCell(c++).setCellValue(log.getExitTime() != null ? log.getExitTime().toString() : "—");
+                row.createCell(c++).setCellValue(log.getDurationSeconds() != null ? log.getDurationSeconds() : 0);
+                row.createCell(c++).setCellValue(Boolean.TRUE.equals(log.getCorrectEpp()) ? "Sí" : "No");
+                row.createCell(c++).setCellValue(Boolean.TRUE.equals(log.getSuccess()) ? "✔" : "✖");
+                row.createCell(c++).setCellValue(nullSafe(log.getObservation()));
+                row.createCell(c).setCellValue(log.getCreatedAt() != null ? log.getCreatedAt().toString() : "—");
+            }
+
+            for (int i=0;i<cols.length;i++) sheet.autoSizeColumn(i);
+            wb.write(out);
+            return out.toByteArray();
+        } catch (Exception e) {
+            throw new RuntimeException("Error creando Excel de logs", e);
+        }
+    }
+
+    private String nullSafe(String s){ return s == null ? "—" : s; }
 }

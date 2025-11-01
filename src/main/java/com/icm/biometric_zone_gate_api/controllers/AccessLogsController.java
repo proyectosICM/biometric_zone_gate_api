@@ -9,10 +9,16 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.http.ContentDisposition;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -22,6 +28,7 @@ import java.util.Optional;
 public class AccessLogsController {
 
     private final AccessLogsService accessLogsService;
+    private static final ZoneId LIMA = ZoneId.of("America/Lima");
 
     @GetMapping
     public ResponseEntity<List<AccessLogsModel>> getAllLogs() {
@@ -174,5 +181,43 @@ public class AccessLogsController {
     @GetMapping("/device/{deviceId}/latest")
     public List<AccessLogsModel> getLatestLogsTodayByDevice(@PathVariable Long deviceId) {
         return accessLogsService.getLatest4LogsByDeviceToday(deviceId);
+    }
+
+    @GetMapping("/xlsx/device/{deviceId}")
+    public ResponseEntity<byte[]> exportByDevice(
+            @PathVariable Long deviceId,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime from,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime to
+    ) {
+        var fromZ = ZonedDateTime.of(from, LIMA);
+        var toZ   = ZonedDateTime.of(to, LIMA);
+
+        byte[] bytes = accessLogsService.exportByDeviceBetween(deviceId, fromZ, toZ);
+        String filename = String.format("access-logs_device_%d_%s_a_%s.xlsx",
+                deviceId, from.toLocalDate(), to.toLocalDate());
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentDisposition(ContentDisposition.attachment().filename(filename).build());
+        headers.add(HttpHeaders.CONTENT_TYPE, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+        return new ResponseEntity<>(bytes, headers, HttpStatus.OK);
+    }
+
+    @GetMapping("/xlsx/company/{companyId}")
+    public ResponseEntity<byte[]> exportByCompany(
+            @PathVariable Long companyId,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime from,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime to
+    ) {
+        var fromZ = ZonedDateTime.of(from, LIMA);
+        var toZ   = ZonedDateTime.of(to, LIMA);
+
+        byte[] bytes = accessLogsService.exportByCompanyBetween(companyId, fromZ, toZ);
+        String filename = String.format("access-logs_company_%d_%s_a_%s.xlsx",
+                companyId, from.toLocalDate(), to.toLocalDate());
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentDisposition(ContentDisposition.attachment().filename(filename).build());
+        headers.add(HttpHeaders.CONTENT_TYPE, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+        return new ResponseEntity<>(bytes, headers, HttpStatus.OK);
     }
 }
