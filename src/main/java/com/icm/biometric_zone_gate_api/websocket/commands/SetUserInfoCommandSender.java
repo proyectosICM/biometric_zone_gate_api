@@ -43,7 +43,7 @@ public class SetUserInfoCommandSender {
 
             String message = String.format(
                     "{\"cmd\":\"setuserinfo\",\"enrollid\":%d,\"name\":\"%s\",\"backupnum\":%d,\"admin\":%d,\"record\":\"%s\"}",
-                    enrollId, name, backupNum, admin, record
+                    enrollId, name, backupNum, admin, recordField
             );
 
             System.out.println("Enviando comando SET USER INFO al dispositivo...");
