@@ -14,10 +14,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.socket.TextMessage;
 import org.springframework.web.socket.WebSocketSession;
 
-import java.time.Duration;
-import java.time.LocalDateTime;
-import java.time.ZoneId;
-import java.time.ZonedDateTime;
+import java.time.*;
 import java.time.format.DateTimeFormatter;
 import java.util.Optional;
 
@@ -66,7 +63,21 @@ public class RegisterHandler {
                 int minute = now.getMinute();
                 boolean inSyncWindow = (minute % 10 <= 8);
 
-                if (inSyncWindow) {
+                // ✅ Comparación SIEMPRE en UTC con Instant
+                Instant nowUtc  = Instant.now();
+                ZonedDateTime lastZ = device.getLastUserSync();            // puede venir con cualquier zona
+                Instant lastUtc = (lastZ == null) ? null : lastZ.toInstant();
+
+                boolean mustSync;
+                if (lastUtc == null) {
+                    mustSync = true;
+                } else {
+                    long deltaMin = Duration.between(lastUtc, nowUtc).toMinutes();
+                    // tolera skew: si last está "en el futuro" más de 1 minuto, fuerza sync
+                    mustSync = (deltaMin >= MINUTES_BETWEEN_SYNC) || (deltaMin < -1);
+                }
+
+                if (inSyncWindow && mustSync ) {
                     ZonedDateTime lastSync = device.getLastUserSync();
                     boolean mustSync = (lastSync == null) ||
                             Duration.between(lastSync, now.atZone(ZoneId.systemDefault())).toMinutes() >= MINUTES_BETWEEN_SYNC;
