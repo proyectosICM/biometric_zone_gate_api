@@ -56,16 +56,15 @@ public class RegisterHandler {
                 session.getAttributes().put("sn", sn);
                 deviceSessionManager.registerSession(sn, session);
 
-                // ✅ RESPONDEMOS SOLO UNA VEZ
                 String cloudTime = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
                 session.sendMessage(new TextMessage(
                         String.format("{\"ret\":\"reg\",\"result\":true,\"cloudtime\":\"%s\",\"nosenduser\":true}", cloudTime)
                 ));
 
-                // ✅ LUEGO evaluamos si se sincroniza
+                // LUEGO evaluamos si se sincroniza
                 LocalDateTime now = LocalDateTime.now();
                 int minute = now.getMinute();
-                boolean inSyncWindow = (minute % 10 <= 2);
+                boolean inSyncWindow = (minute % 10 <= 8);
 
                 if (inSyncWindow) {
                     ZonedDateTime lastSync = device.getLastUserSync();
