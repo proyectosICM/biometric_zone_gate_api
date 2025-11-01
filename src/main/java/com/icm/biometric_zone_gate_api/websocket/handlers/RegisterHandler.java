@@ -29,6 +29,8 @@ public class RegisterHandler {
     private final DeviceCommandScheduler deviceCommandScheduler;
 
     private static final int MINUTES_BETWEEN_SYNC = 10;
+    private static final ZoneId SERVER_TZ = ZoneId.of("America/Lima");
+    private static final DateTimeFormatter CLOUD_FMT = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
     public void handleRegister(JsonNode json, WebSocketSession session) {
         try {
@@ -47,35 +49,39 @@ public class RegisterHandler {
 
             Optional<DeviceModel> existingDeviceOpt = deviceService.getDeviceBySn(sn);
 
+            // Hora del servidor (SIEMPRE misma zona)
+            ZonedDateTime nowSrv = ZonedDateTime.now(SERVER_TZ);
+            String cloudTime = nowSrv.format(CLOUD_FMT);
+
             if (existingDeviceOpt.isPresent()) {
                 DeviceModel device = existingDeviceOpt.get();
                 deviceService.updateDeviceStatus(device.getId(), DeviceStatus.CONNECTED);
                 session.getAttributes().put("sn", sn);
                 deviceSessionManager.registerSession(sn, session);
 
-                String cloudTime = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
                 session.sendMessage(new TextMessage(
                         String.format("{\"ret\":\"reg\",\"result\":true,\"cloudtime\":\"%s\",\"nosenduser\":true}", cloudTime)
                 ));
 
                 // LUEGO evaluamos si se sincroniza
                 LocalDateTime now = LocalDateTime.now();
-                int minute = now.getMinute();
-                boolean inSyncWindow = (minute % 10 <= 8);
 
-                // ✅ Comparación SIEMPRE en UTC con Instant
-                Instant nowUtc  = Instant.now();
-                ZonedDateTime lastZ = device.getLastUserSync();            // puede venir con cualquier zona
-                Instant lastUtc = (lastZ == null) ? null : lastZ.toInstant();
+                // --- Comparación SOLO contra hora del servidor ---
+                ZonedDateTime lastZ = device.getLastUserSync();           // podría tener otra zona
+                ZonedDateTime lastSrv = (lastZ == null) ? null : lastZ.withZoneSameInstant(SERVER_TZ);
 
                 boolean mustSync;
-                if (lastUtc == null) {
+                if (lastSrv == null) {
                     mustSync = true;
                 } else {
-                    long deltaMin = Duration.between(lastUtc, nowUtc).toMinutes();
+                    long deltaMin = Duration.between(lastSrv, nowSrv).toMinutes();
                     // tolera skew: si last está "en el futuro" más de 1 minuto, fuerza sync
                     mustSync = (deltaMin >= MINUTES_BETWEEN_SYNC) || (deltaMin < -1);
                 }
+
+                // Ventana simple de 0..8 del decenio (opcional)
+                int minute = nowSrv.getMinute();
+                boolean inSyncWindow = (minute % 10 <= 8);
 
                 if (inSyncWindow && mustSync ) {
                     deviceCommandScheduler.schedule(() -> {
@@ -83,10 +89,8 @@ public class RegisterHandler {
                             if (session != null && session.isOpen()) {
                                 getUserListCommandSender.sendGetUserListCommand(session, true);
 
-                                // ✅ Persistir SIEMPRE en UTC
-                                Instant ts = Instant.now();
-                                device.setLastUserSync(ZonedDateTime.ofInstant(ts, ZoneOffset.UTC));
-                                deviceService.createDevice(device); // usa un update real
+                                device.setLastUserSync(ZonedDateTime.now(SERVER_TZ));
+                                deviceService.updateDevice(device.getId(), device);
                             }
                         } catch (Exception ex) {
                             System.err.println("Error getuserlist: " + ex.getMessage());
@@ -96,7 +100,7 @@ public class RegisterHandler {
 
             } else {
                 // ✅ El dispositivo NO EXISTE → igual respondemos SOLO UNA VEZ
-                String cloudTime = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
+                //String cloudTime = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
                 session.sendMessage(new TextMessage(
                         String.format("{\"ret\":\"reg\",\"result\":true,\"cloudtime\":\"%s\",\"nosenduser\":true}", cloudTime)
                 ));
