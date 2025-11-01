@@ -38,6 +38,7 @@ public class RegisterHandler {
             String sn = json.path("sn").asText(null);
             if (sn == null || sn.isEmpty()) {
                 session.sendMessage(new TextMessage("{\"ret\":\"reg\",\"result\":false,\"reason\":\"did not reg\"}"));
+                System.out.println("Sin SN");
                 return;
             }
 
@@ -97,6 +98,7 @@ public class RegisterHandler {
         } catch (Exception e) {
             try {
                 session.sendMessage(new TextMessage("{\"ret\":\"reg\",\"result\":false,\"reason\":\"did not reg\"}"));
+                System.out.println("Fallo critico de registro");
             } catch (Exception ignored) {}
         }
     }
