@@ -44,7 +44,9 @@ public class GetUserInfoResponseHandler {
             int backupNum = json.path("backupnum").asInt();
             int admin = json.path("admin").asInt();
             String name = json.path("name").asText();
-            String record = json.path("record").asText();
+            //String record = json.path("record").asText();
+
+            String record = extractRecord(json.get("record"), backupNum);
 
             System.out.printf("Respuesta GET USER INFO:\n EnrollId=%d, BackupNum=%d, Admin=%d, Name=%s, Record=%s%n",
                     enrollId, backupNum, admin, name, record);
@@ -188,5 +190,22 @@ public class GetUserInfoResponseHandler {
         if (backupNum == 11) return CredentialType.CARD;
         if (backupNum == 50) return CredentialType.PHOTO;
         return CredentialType.UNKNOWN;
+    }
+
+    private String extractRecord(JsonNode recordNode, int backupNum) {
+        if (recordNode == null || recordNode.isNull()) return "";
+
+        // PASSWORD
+        if (backupNum == 10) {
+            // Acepta número o texto; devuelve siempre dígitos sin espacios
+            String s = recordNode.isNumber() ? recordNode.asText() : recordNode.asText();
+            s = s.trim();
+            if (!s.chars().allMatch(Character::isDigit)) {
+                throw new IllegalArgumentException("Record PASSWORD no es numérico: " + s);
+            }
+            return s; // guardar como string de dígitos
+        }
+
+        return recordNode.asText();
     }
 }
