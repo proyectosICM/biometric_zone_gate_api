@@ -97,7 +97,7 @@ public class RegisterHandler {
                         }
                     }, 500);
                 }
-
+                //
             } else {
                 // ✅ El dispositivo NO EXISTE → igual respondemos SOLO UNA VEZ
                 //String cloudTime = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
