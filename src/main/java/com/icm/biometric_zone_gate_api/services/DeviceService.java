@@ -14,6 +14,7 @@ import com.icm.biometric_zone_gate_api.websocket.commands.*;
 import com.icm.biometric_zone_gate_api.websocket.dispatchers.CleanAdminDispatcher;
 import com.icm.biometric_zone_gate_api.websocket.dispatchers.CleanLogDispatcher;
 import com.icm.biometric_zone_gate_api.websocket.dispatchers.InitSystemDispatcher;
+import com.icm.biometric_zone_gate_api.websocket.dispatchers.SetTimeDispatcher;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -23,6 +24,7 @@ import org.springframework.web.socket.WebSocketSession;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Optional;
 
@@ -52,6 +54,9 @@ public class DeviceService {
     private final UserRepository userRepository;
     private final CleanLogDispatcher cleanLogDispatcher;
     private final CleanAdminDispatcher cleanAdminDispatcher;
+    private final SetTimeDispatcher setTimeDispatcher;
+
+    private static final DateTimeFormatter FMT = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
     private static final ZoneId SERVER_TZ = ZoneId.of("America/Lima");
 
@@ -290,31 +295,37 @@ public class DeviceService {
                 .orElseThrow(() -> new RuntimeException("Dispositivo no encontrado con id: " + deviceId));
 
         String sn = device.getSn();
+        String cloudTime = LocalDateTime.now().format(FMT);
+        setTimeDispatcher.registerOrUpdate(sn, cloudTime);
         WebSocketSession session = deviceSessionManager.getSessionBySn(sn);
 
         if (session != null && session.isOpen()) {
             try {
                 setTimeCommandSender.sendSetTimeCommand(session);
-                System.out.println("⏰ Comando SETTIME (hora actual del servidor) enviado al dispositivo " + sn);
+                setTimeDispatcher.markSent(sn);
+                System.out.println("Comando SETTIME (hora actual del servidor) enviado al dispositivo " + sn);
             } catch (Exception e) {
-                System.err.println("❌ Error al enviar SETTIME: " + e.getMessage());
+                System.err.println("Error al enviar SETTIME: " + e.getMessage());
             }
         } else {
-            System.out.println("⚠️ Dispositivo " + sn + " no conectado. Comando SETTIME pendiente.");
+            System.out.println("Dispositivo " + sn + " no conectado. Comando SETTIME pendiente.");
         }
     }
 
-    // 🕓 2. Sincroniza con una hora personalizada
+    // Sincroniza con una hora personalizada
     public void syncDeviceTimeCustom(Long deviceId, LocalDateTime customTime) {
         DeviceModel device = deviceRepository.findById(deviceId)
                 .orElseThrow(() -> new RuntimeException("Dispositivo no encontrado con id: " + deviceId));
 
         String sn = device.getSn();
+        String cloudTime = customTime.format(FMT);
+        setTimeDispatcher.registerOrUpdate(sn, cloudTime);
         WebSocketSession session = deviceSessionManager.getSessionBySn(sn);
 
         if (session != null && session.isOpen()) {
             try {
                 setTimeCommandSender.sendSetTimeCommand(session, customTime);
+                setTimeDispatcher.markSent(sn);
                 System.out.println("Comando SETTIME (hora personalizada) enviado al dispositivo " + sn);
             } catch (Exception e) {
                 System.err.println("Error al enviar SETTIME personalizado: " + e.getMessage());

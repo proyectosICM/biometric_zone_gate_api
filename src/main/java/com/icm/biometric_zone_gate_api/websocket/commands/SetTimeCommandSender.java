@@ -22,19 +22,8 @@ public class SetTimeCommandSender {
      * @param session sesión WebSocket activa con el dispositivo
      */
     public void sendSetTimeCommand(WebSocketSession session) {
-        try {
-            String cloudTime = LocalDateTime.now().format(FORMATTER);
-            String message = String.format("{\"cmd\":\"settime\",\"cloudtime\":\"%s\"}", cloudTime);
-
-            System.out.println("⏰ Enviando comando SETTIME al dispositivo...");
-            System.out.println(message);
-
-            session.sendMessage(new TextMessage(message));
-
-        } catch (Exception e) {
-            System.err.println("❌ Error al enviar settime: " + e.getMessage());
-            e.printStackTrace();
-        }
+        String cloudTime = LocalDateTime.now().format(FORMATTER);
+        sendSetTimeCommand(session, cloudTime);
     }
 
     /**
@@ -44,17 +33,18 @@ public class SetTimeCommandSender {
      * @param dateTime hora personalizada (por ejemplo, desde la API)
      */
     public void sendSetTimeCommand(WebSocketSession session, LocalDateTime dateTime) {
+        String cloudTime = dateTime.format(FORMATTER);
+        sendSetTimeCommand(session, cloudTime);
+    }
+
+    public void sendSetTimeCommand(WebSocketSession session, String cloudTime) {
         try {
-            String cloudTime = dateTime.format(FORMATTER);
             String message = String.format("{\"cmd\":\"settime\",\"cloudtime\":\"%s\"}", cloudTime);
-
-            System.out.println("⏰ Enviando comando SETTIME personalizado al dispositivo...");
+            System.out.println("Enviando comando SETTIME al dispositivo...");
             System.out.println(message);
-
             session.sendMessage(new TextMessage(message));
-
         } catch (Exception e) {
-            System.err.println("❌ Error al enviar settime personalizado: " + e.getMessage());
+            System.err.println("Error al enviar settime: " + e.getMessage());
             e.printStackTrace();
         }
     }

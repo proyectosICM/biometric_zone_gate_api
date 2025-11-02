@@ -84,7 +84,7 @@ public class DeviceMessageHandler extends TextWebSocketHandler {
 
                 case "cleanadmin" -> cleanAdminResponseHandler.handleCleanAdminResponse(json, session);
 
-                case "settime" -> setTimeResponseHandler.handleSetTimeResponse(json);
+                case "settime" -> setTimeResponseHandler.handleSetTimeResponse(json, session);
 
                 case "opendoor" -> openDoorResponseHandler.handleOpenDoorResponse(json, session);
 
