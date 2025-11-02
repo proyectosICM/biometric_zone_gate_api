@@ -19,6 +19,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.socket.WebSocketSession;
 
 import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -46,6 +48,8 @@ public class DeviceService {
     private final SetDevInfoCommandSender setDevInfoCommandSender;
     private final InitSystemDispatcher initSystemDispatcher;
     private final UserRepository userRepository;
+
+    private static final ZoneId SERVER_TZ = ZoneId.of("America/Lima");
 
     public DeviceModel createDevice(DeviceModel device) {
         DeviceModel saved = deviceRepository.save(device);
@@ -304,12 +308,12 @@ public class DeviceService {
         if (session != null && session.isOpen()) {
             try {
                 setTimeCommandSender.sendSetTimeCommand(session, customTime);
-                System.out.println("🕓 Comando SETTIME (hora personalizada) enviado al dispositivo " + sn);
+                System.out.println("Comando SETTIME (hora personalizada) enviado al dispositivo " + sn);
             } catch (Exception e) {
-                System.err.println("❌ Error al enviar SETTIME personalizado: " + e.getMessage());
+                System.err.println("Error al enviar SETTIME personalizado: " + e.getMessage());
             }
         } else {
-            System.out.println("⚠️ Dispositivo " + sn + " no conectado. Comando SETTIME personalizado pendiente.");
+            System.out.println("Dispositivo " + sn + " no conectado. Comando SETTIME personalizado pendiente.");
         }
     }
 
@@ -483,6 +487,13 @@ public class DeviceService {
         if (admins.isEmpty()) {
             System.out.println("ℹ️ No se encontraron admins para asociar automáticamente al dispositivo nuevo.");
         }
+    }
+
+    public void markLastUserSync(Long deviceId, ZonedDateTime when) {
+        DeviceModel dev = deviceRepository.findById(deviceId)
+                .orElseThrow(() -> new IllegalArgumentException("Device not found: " + deviceId));
+        dev.setLastUserSync(when.withZoneSameInstant(SERVER_TZ));
+        deviceRepository.save(dev);
     }
 
 }

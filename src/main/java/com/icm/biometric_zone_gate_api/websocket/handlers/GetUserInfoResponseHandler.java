@@ -7,13 +7,16 @@ import com.icm.biometric_zone_gate_api.repositories.DeviceRepository;
 import com.icm.biometric_zone_gate_api.repositories.DeviceUserAccessRepository;
 import com.icm.biometric_zone_gate_api.repositories.UserCredentialRepository;
 import com.icm.biometric_zone_gate_api.repositories.UserRepository;
+import com.icm.biometric_zone_gate_api.services.DeviceService;
 import com.icm.biometric_zone_gate_api.websocket.commands.SetUserInfoCommandSender;
 import com.icm.biometric_zone_gate_api.websocket.dispatchers.SetUserInfoReplicaDispatcher;
 import com.icm.biometric_zone_gate_api.websocket.dispatchers.SetUserNameReplicaDispatcher;
+import com.icm.biometric_zone_gate_api.websocket.sync.UserSyncRegistry;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 import org.springframework.web.socket.WebSocketSession;
 
+import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.Objects;
 import java.util.Optional;
@@ -30,6 +33,11 @@ public class GetUserInfoResponseHandler {
     private final SetUserInfoReplicaDispatcher replicaDispatcher;
     private final SetUserNameReplicaDispatcher   nameReplicaDispatcher;
 
+    private final DeviceService deviceService;
+    private final UserSyncRegistry userSyncRegistry;
+
+    private static final ZoneId SERVER_TZ = ZoneId.of("America/Lima");
+
     public void handleGetUserInfoResponse(JsonNode json, WebSocketSession session) {
         try {
             boolean result = json.path("result").asBoolean(false);
@@ -37,6 +45,16 @@ public class GetUserInfoResponseHandler {
             if (!result) {
                 int reason = json.path("reason").asInt();
                 System.out.println("Fallo GET USER INFO, reason=" + reason);
+                String snFail = (String) session.getAttributes().get("sn");
+                if (snFail != null) {
+                    finishIfDone(snFail);
+                }
+                return;
+            }
+
+            String sn = (String) session.getAttributes().get("sn");
+            if (sn == null) {
+                System.err.println("No se encontró SN asociado a la sesión: " + session.getId());
                 return;
             }
 
@@ -45,21 +63,15 @@ public class GetUserInfoResponseHandler {
             int admin = json.path("admin").asInt();
             String name = json.path("name").asText();
             //String record = json.path("record").asText();
-
             String record = extractRecord(json.get("record"), backupNum);
 
-            System.out.printf("Respuesta GET USER INFO:\n EnrollId=%d, BackupNum=%d, Admin=%d, Name=%s, Record=%s%n",
-                    enrollId, backupNum, admin, name, record);
-
-            String sn = (String) session.getAttributes().get("sn");
-            if (sn == null) {
-                System.err.println("No se encontró SN asociado a la sesión: " + session.getId());
-                return;
-            }
+            System.out.printf("GETUSERINFO OK → EnrollId=%d, BackupNum=%d, Admin=%d, Name=%s%n",
+                    enrollId, backupNum, admin, name);
 
             Optional<DeviceModel> deviceOpt = deviceRepository.findBySn(sn);
             if (deviceOpt.isEmpty()) {
                 System.err.println("Dispositivo no encontrado en BD para SN=" + sn);
+                finishIfDone(sn);
                 return;
             }
 
@@ -99,6 +111,7 @@ public class GetUserInfoResponseHandler {
                 access.setSynced(true);
                 deviceUserAccessRepository.save(access);
 
+                finishIfDone(sn);
                 return;
             }
 
@@ -163,9 +176,24 @@ public class GetUserInfoResponseHandler {
                     registerReplicaForOtherDevices(existingUser, sn, enrollId, backupNum);
                 }
             }
-
+            finishIfDone(sn);
         } catch (Exception e) {
             e.printStackTrace();
+        }
+    }
+
+    /** Decrementa el pendiente; si llega a 0 → cancela timeout, marca lastUserSync y limpia el registro. */
+    private void finishIfDone(String sn) {
+        boolean done = userSyncRegistry.decrementAndIsDone(sn);
+        if (done) {
+            var tracker = userSyncRegistry.get(sn);
+            if (tracker != null && tracker.timeoutFuture != null) {
+                tracker.timeoutFuture.cancel(false);
+            }
+            deviceRepository.findBySn(sn).ifPresent(dev ->
+                    deviceService.markLastUserSync(dev.getId(), ZonedDateTime.now(SERVER_TZ))
+            );
+            userSyncRegistry.clear(sn);
         }
     }
 
