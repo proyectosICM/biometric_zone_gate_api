@@ -34,9 +34,9 @@ public class PendingCleanScheduler {
             try {
                 cleanUserCommandSender.sendCleanUserCommand(session);
                 dispatcher.register(device.getSn());
-                System.out.printf("♻️ Reenviando CLEANUSER a %s%n", device.getSn());
+                System.out.printf("Reenviando CLEANUSER a %s%n", device.getSn());
             } catch (Exception e) {
-                System.err.printf("❌ Error reenviando CLEANUSER a %s: %s%n",
+                System.err.printf("Error reenviando CLEANUSER a %s: %s%n",
                         device.getSn(), e.getMessage());
             }
         }

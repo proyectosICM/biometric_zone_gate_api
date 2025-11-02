@@ -15,13 +15,13 @@ public class CleanLogCommandSender {
         try {
             String message = "{\"cmd\":\"cleanlog\"}";
 
-            System.out.println("🧹 Enviando comando CLEANLOG al dispositivo...");
+            System.out.println("Enviando comando CLEANLOG al dispositivo...");
             System.out.println(message);
 
             session.sendMessage(new TextMessage(message));
 
         } catch (Exception e) {
-            System.err.println("❌ Error al enviar CLEANLOG: " + e.getMessage());
+            System.err.println("Error al enviar CLEANLOG: " + e.getMessage());
             e.printStackTrace();
         }
     }

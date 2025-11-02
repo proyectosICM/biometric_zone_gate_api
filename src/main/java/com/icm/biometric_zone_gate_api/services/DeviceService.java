@@ -11,6 +11,7 @@ import com.icm.biometric_zone_gate_api.repositories.DeviceUserRepository;
 import com.icm.biometric_zone_gate_api.repositories.UserRepository;
 import com.icm.biometric_zone_gate_api.websocket.DeviceSessionManager;
 import com.icm.biometric_zone_gate_api.websocket.commands.*;
+import com.icm.biometric_zone_gate_api.websocket.dispatchers.CleanLogDispatcher;
 import com.icm.biometric_zone_gate_api.websocket.dispatchers.InitSystemDispatcher;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -48,6 +49,7 @@ public class DeviceService {
     private final SetDevInfoCommandSender setDevInfoCommandSender;
     private final InitSystemDispatcher initSystemDispatcher;
     private final UserRepository userRepository;
+    private final CleanLogDispatcher cleanLogDispatcher;
 
     private static final ZoneId SERVER_TZ = ZoneId.of("America/Lima");
 
@@ -249,12 +251,12 @@ public class DeviceService {
         if (session != null && session.isOpen()) {
             try {
                 rebootCommandSender.sendRebootCommand(session);
-                System.out.println("🧩 Comando REBOOT enviado al dispositivo " + sn);
+                System.out.println("Comando REBOOT enviado al dispositivo " + sn);
             } catch (Exception e) {
-                System.err.println("❌ Error al enviar REBOOT: " + e.getMessage());
+                System.err.println("Error al enviar REBOOT: " + e.getMessage());
             }
         } else {
-            System.out.println("⚠️ Dispositivo " + sn + " no conectado. Comando REBOOT pendiente.");
+            System.out.println("Dispositivo " + sn + " no conectado. Comando REBOOT pendiente.");
         }
     }
 
@@ -351,7 +353,7 @@ public class DeviceService {
                 System.err.println("❌ Error al enviar GETDEVINFO: " + e.getMessage());
             }
         } else {
-            System.out.println("⚠️ Dispositivo " + sn + " no conectado. Comando GETDEVINFO pendiente.");
+            System.out.println("Dispositivo " + sn + " no conectado. Comando GETDEVINFO pendiente.");
         }
     }
 
@@ -360,17 +362,19 @@ public class DeviceService {
                 .orElseThrow(() -> new RuntimeException("Dispositivo no encontrado con id: " + deviceId));
 
         String sn = device.getSn();
-        WebSocketSession session = deviceSessionManager.getSessionBySn(sn);
+        cleanLogDispatcher.register(sn);
 
+        WebSocketSession session = deviceSessionManager.getSessionBySn(sn);
         if (session != null && session.isOpen()) {
             try {
                 cleanLogCommandSender.sendCleanLogCommand(session);
-                System.out.println("🧹 Comando CLEANLOG enviado al dispositivo " + sn);
+                cleanLogDispatcher.markSent(sn);
+                System.out.println("Comando CLEANLOG enviado al dispositivo " + sn);
             } catch (Exception e) {
-                System.err.println("❌ Error al enviar CLEANLOG: " + e.getMessage());
+                System.err.println("Error al enviar CLEANLOG: " + e.getMessage());
             }
         } else {
-            System.out.println("⚠️ Dispositivo " + sn + " no conectado. Comando CLEANLOG pendiente.");
+            System.out.println("Dispositivo " + sn + " no conectado. Comando CLEANLOG pendiente.");
         }
     }
 
