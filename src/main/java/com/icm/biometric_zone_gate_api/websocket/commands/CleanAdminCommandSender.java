@@ -20,13 +20,13 @@ public class CleanAdminCommandSender {
         try {
             String message = "{\"cmd\":\"cleanadmin\"}";
 
-            System.out.println("🧹 Enviando comando CLEAN ADMIN al dispositivo...");
+            System.out.println("Enviando comando CLEAN ADMIN al dispositivo...");
             System.out.println(message);
 
             session.sendMessage(new TextMessage(message));
 
         } catch (Exception e) {
-            System.err.println("❌ Error al enviar cleanadmin: " + e.getMessage());
+            System.err.println("Error al enviar cleanadmin: " + e.getMessage());
             e.printStackTrace();
         }
     }
