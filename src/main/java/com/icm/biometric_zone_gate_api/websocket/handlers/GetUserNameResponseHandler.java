@@ -15,14 +15,14 @@ public class GetUserNameResponseHandler {
 
             if (result) {
                 String record = json.path("record").asText();
-                System.out.println("✅ Nombre de usuario obtenido desde el dispositivo: " + record);
+                System.out.println("Nombre de usuario obtenido desde el dispositivo: " + record);
             } else {
                 int reason = json.path("reason").asInt(-1);
-                System.out.println("⚠️ Falló GET USER NAME. Reason=" + reason);
+                System.out.println("Falló GET USER NAME. Reason=" + reason);
             }
 
         } catch (Exception e) {
-            System.err.println("❌ Error al procesar respuesta de getusername: " + e.getMessage());
+            System.err.println("Error al procesar respuesta de getusername: " + e.getMessage());
             e.printStackTrace();
         }
     }

@@ -24,7 +24,7 @@ public class GetUserNameCommandSender {
                     enrollId
             );
 
-            System.out.println("🧩 Enviando comando GET USER NAME al dispositivo...");
+            System.out.println("Enviando comando GET USER NAME al dispositivo...");
             System.out.println(message);
 
             session.sendMessage(new TextMessage(message));

@@ -81,9 +81,9 @@ public class RegisterHandler {
 
                 // Ventana simple de 0..8 del decenio (opcional)
                 int minute = nowSrv.getMinute();
-                boolean inSyncWindow = (minute % 10 <= 8);
-
-                if (inSyncWindow && mustSync ) {
+                //boolean inSyncWindow = (minute % 10 <= 8);
+                // inSyncWindow && mustSync
+                if (mustSync) {
                     deviceCommandScheduler.schedule(() -> {
                         try {
                             if (session != null && session.isOpen()) {
