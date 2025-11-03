@@ -96,7 +96,7 @@ public class DeviceMessageHandler extends TextWebSocketHandler {
 
                 case "getalllog" -> getAllLogResponseHandler.handleGetAllLogResponse(json, session);
 
-                case "setdevinfo" -> setDevInfoResponseHandler.handleSetDevInfoResponse(json);
+                case "setdevinfo" -> setDevInfoResponseHandler.handleSetDevInfoResponse(json, session);
 
                 case "setdevlock" -> setDevLockResponseHandler.handleSetDevLockResponse(json);
 

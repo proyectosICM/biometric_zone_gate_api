@@ -31,10 +31,20 @@ public class SetUserInfoReplicaDispatcher {
     }
 
     /** Sacar el siguiente pendiente FIFO */
-    public synchronized Optional<PendingReplica> poll(String sn) {
+    public synchronized Optional<PendingReplica> poll(String sn, int enrollId, int backupNum) {
         Queue<PendingReplica> q = queues.get(sn);
         if (q == null || q.isEmpty()) return Optional.empty();
-        return Optional.ofNullable(q.poll());
+
+        PendingReplica head = q.peek();
+        if (head == null) return Optional.empty();
+
+        if (head.getEnrollId() != enrollId || head.getBackupNum() != backupNum) {
+            return Optional.empty(); // no corresponde todavía
+        }
+
+        PendingReplica taken = q.poll();
+        if (q.isEmpty()) queues.remove(sn);
+        return Optional.ofNullable(taken);
     }
 
     /** Verificar si hay réplicas en espera */

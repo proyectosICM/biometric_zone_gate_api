@@ -7,6 +7,7 @@ import com.icm.biometric_zone_gate_api.services.DeviceService;
 import com.icm.biometric_zone_gate_api.websocket.DeviceSessionManager;
 import com.icm.biometric_zone_gate_api.websocket.commands.GetNewLogCommandSender;
 import com.icm.biometric_zone_gate_api.websocket.commands.GetUserListCommandSender;
+import com.icm.biometric_zone_gate_api.websocket.schedulers.DeviceSetUserScheduler;
 import com.icm.biometric_zone_gate_api.websocket.utils.DeviceCommandScheduler;
 import com.icm.biometric_zone_gate_api.websocket.utils.DeviceValidator;
 import lombok.RequiredArgsConstructor;
@@ -27,6 +28,7 @@ public class RegisterHandler {
     private final DeviceSessionManager deviceSessionManager;
     private final GetNewLogCommandSender getNewLogCommandSender;
     private final DeviceCommandScheduler deviceCommandScheduler;
+    private final DeviceSetUserScheduler deviceSetUserScheduler;
 
     private static final int MINUTES_BETWEEN_SYNC = 10;
     private static final ZoneId SERVER_TZ = ZoneId.of("America/Lima");
@@ -71,6 +73,9 @@ public class RegisterHandler {
                 ZonedDateTime lastSrv = (lastZ == null) ? null : lastZ.withZoneSameInstant(SERVER_TZ);
 
                 boolean mustSync;
+                int m = nowSrv.getMinute();
+                boolean inWindow = (m % 10 >= 4 && m % 10 <= 6);
+
                 if (lastSrv == null) {
                     mustSync = true;
                 } else {
@@ -88,7 +93,6 @@ public class RegisterHandler {
                         try {
                             if (session != null && session.isOpen()) {
                                 getUserListCommandSender.sendGetUserListCommand(session, true);
-
                                 device.setLastUserSync(ZonedDateTime.now(SERVER_TZ));
                                 deviceService.updateDevice(device.getId(), device);
                             }
@@ -96,6 +100,20 @@ public class RegisterHandler {
                             System.err.println("Error getuserlist: " + ex.getMessage());
                         }
                     }, 500);
+
+                    deviceCommandScheduler.schedule(() -> {
+                        try {
+                            if (inWindow) {
+                                deviceSetUserScheduler.triggerCatchUpForDevice(device, /*strictWindow*/ true);
+                            } else {
+                                // O mini-lote fuera de ventana:
+                                deviceSetUserScheduler.triggerCatchUpForDevice(device, /*strictWindow*/ false);
+                            }
+                        } catch (Exception ex) {
+                            System.err.println("Error catch-up users: " + ex.getMessage());
+                        }
+                    }, 800); // después del getuserlist, pequeño gap
+
                 }
                 //
             } else {

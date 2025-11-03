@@ -27,7 +27,7 @@ public class SetUserInfoResponseHandler {
 
             String sn = (String) session.getAttributes().get("sn");
             if (sn == null) {
-                System.err.println("❌ No SN en sesión para ACK setuserinfo");
+                System.err.println("No SN en sesión para ACK setuserinfo");
                 return;
             }
 
@@ -42,7 +42,7 @@ public class SetUserInfoResponseHandler {
             }
 
             // ✅ 1) ¿Este ACK corresponde a una réplica?
-            var replicaPending = replicaDispatcher.poll(sn);
+            var replicaPending = replicaDispatcher.poll(sn, enrollId, backupNum);
             if (replicaPending.isPresent()) {
                 var r = replicaPending.get();
                 System.out.printf("✅ ACK Replica confirmada (sn=%s, enroll=%d, backup=%d) [NO se marca synced]\n",
@@ -51,9 +51,10 @@ public class SetUserInfoResponseHandler {
             }
 
             // ✅ 2) Si no era réplica → flujo normal
-            var normalPending = dispatcher.ack(sn);
+            var normalPending = dispatcher.ack(sn, enrollId, backupNum);
             if (normalPending.isEmpty()) {
-                System.out.printf("⚠️ ACK recibido sin pending normal ni réplica (sn=%s, enrollId=%d)\n", sn, enrollId);
+                System.out.printf("⚠️ ACK recibido sin pending normal ni réplica (sn=%s, enrollId=%d, backup=%d)\n",
+                        sn, enrollId, backupNum);
                 return;
             }
 

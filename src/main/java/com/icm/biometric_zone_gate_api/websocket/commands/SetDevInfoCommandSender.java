@@ -15,6 +15,22 @@ public class SetDevInfoCommandSender {
 
     private final ObjectMapper objectMapper = new ObjectMapper();
 
+    /** Envía un payload ya armado (solo las claves presentes serán aplicadas). */
+    public void sendSetDevInfoCommand(WebSocketSession session, ObjectNode payload) {
+        try {
+            if (!payload.has("cmd")) payload.put("cmd", "setdevinfo");
+            String message = objectMapper.writeValueAsString(payload);
+
+            System.out.println("Enviando comando SETDEVINFO al dispositivo...");
+            System.out.println(message);
+
+            session.sendMessage(new TextMessage(message));
+        } catch (Exception e) {
+            System.err.println("Error al enviar SETDEVINFO: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+
     /**
      * Envía al dispositivo los parámetros recibidos (normalmente obtenidos desde getdevinfo).
      */
@@ -43,13 +59,13 @@ public class SetDevInfoCommandSender {
 
             String message = objectMapper.writeValueAsString(json);
 
-            System.out.println("📤 Enviando comando SETDEVINFO al dispositivo...");
+            System.out.println("Enviando comando SETDEVINFO al dispositivo...");
             System.out.println(message);
 
             session.sendMessage(new TextMessage(message));
 
         } catch (Exception e) {
-            System.err.println("❌ Error al enviar SETDEVINFO: " + e.getMessage());
+            System.err.println("Error al enviar SETDEVINFO: " + e.getMessage());
             e.printStackTrace();
         }
     }
