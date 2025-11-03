@@ -47,6 +47,20 @@ public class SetUserInfoReplicaDispatcher {
         return Optional.ofNullable(taken);
     }
 
+    public synchronized Optional<PendingReplica> poll(String sn) {
+        Queue<PendingReplica> q = queues.get(sn);
+        if (q == null || q.isEmpty()) return Optional.empty();
+        PendingReplica taken = q.poll();
+        if (q.isEmpty()) queues.remove(sn);
+        return Optional.ofNullable(taken);
+    }
+
+    public synchronized Optional<PendingReplica> peek(String sn) {
+        Queue<PendingReplica> q = queues.get(sn);
+        if (q == null || q.isEmpty()) return Optional.empty();
+        return Optional.ofNullable(q.peek());
+    }
+
     /** Verificar si hay réplicas en espera */
     public synchronized boolean hasPending(String sn) {
         Queue<PendingReplica> q = queues.get(sn);

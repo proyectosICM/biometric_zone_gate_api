@@ -55,7 +55,7 @@ public class DeviceUserReplicaScheduler {
                 continue; // no está conectado todavía, se reintentará
             }
 
-            Optional<PendingReplica> optPending = replicaDispatcher.poll(sn);
+            Optional<PendingReplica> optPending = replicaDispatcher.peek(sn);
             if (optPending.isEmpty()) continue;
 
             PendingReplica pending = optPending.get();
