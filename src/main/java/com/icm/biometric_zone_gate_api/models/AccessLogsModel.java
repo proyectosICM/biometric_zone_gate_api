@@ -43,7 +43,7 @@
         @JoinColumn(name = "event_type_id", nullable = false)
         private EventTypeModel eventType;
 
-        private Boolean correctEpp;
+        private Boolean correctEpp = true;
     
         @Column(nullable = false)
         private Boolean success;
