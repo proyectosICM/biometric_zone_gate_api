@@ -1,11 +1,13 @@
     package com.icm.biometric_zone_gate_api.models;
     
+    import com.fasterxml.jackson.annotation.JsonIgnore;
     import com.icm.biometric_zone_gate_api.enums.AccessType;
     import com.icm.biometric_zone_gate_api.enums.CredentialType;
     import jakarta.persistence.*;
     import lombok.AllArgsConstructor;
     import lombok.Data;
     import lombok.NoArgsConstructor;
+    import lombok.ToString;
     import org.hibernate.annotations.CreationTimestamp;
     import org.hibernate.annotations.UpdateTimestamp;
     
@@ -44,7 +46,13 @@
         private EventTypeModel eventType;
 
         private Boolean correctEpp = true;
-    
+
+        @Lob
+        @Basic(fetch = FetchType.LAZY)
+        @Column(columnDefinition = "MEDIUMTEXT")
+        //@ToString.Exclude
+        private String entryEppPhotoB64;
+
         @Column(nullable = false)
         private Boolean success;
     

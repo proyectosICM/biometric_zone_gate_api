@@ -1,10 +1,12 @@
 package com.icm.biometric_zone_gate_api.services;
 
+import com.icm.biometric_zone_gate_api.dto.AccessLogEppPatchDTO;
 import com.icm.biometric_zone_gate_api.enums.AccessType;
 import com.icm.biometric_zone_gate_api.models.AccessLogsModel;
 import com.icm.biometric_zone_gate_api.models.DeviceModel;
 import com.icm.biometric_zone_gate_api.models.UserModel;
 import com.icm.biometric_zone_gate_api.repositories.AccessLogsRepository;
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
@@ -21,6 +23,7 @@ import org.springframework.stereotype.Service;
 
 import java.io.ByteArrayOutputStream;
 import java.time.*;
+import java.util.Base64;
 import java.util.List;
 import java.util.Optional;
 
@@ -29,6 +32,8 @@ import java.util.Optional;
 public class AccessLogsService {
 
     private final AccessLogsRepository accessLogsRepository;
+
+    private static final int MEDIUMTEXT_MAX_BYTES = 16_777_215;
 
     public List<AccessLogsModel> getAllLogs() {
         return accessLogsRepository.findAll();
@@ -51,6 +56,64 @@ public class AccessLogsService {
             log.setObservation(observation);
             return accessLogsRepository.save(log);
         });
+    }
+
+    @Transactional
+    public Optional<AccessLogsModel> patchEpp(Long id, AccessLogEppPatchDTO dto) {
+        return accessLogsRepository.findById(id).map(log -> {
+
+            // 1) correctEpp (si viene null, no tocar)
+            if (dto.getCorrectEpp() != null) {
+                log.setCorrectEpp(dto.getCorrectEpp());
+            }
+
+            // 2) entryEppPhotoB64 (si viene null, no tocar; si es "", borrar)
+            if (dto.getEntryEppPhotoB64() != null) {
+                String raw = dto.getEntryEppPhotoB64().trim();
+                if (raw.isEmpty()) {
+                    // borrar foto
+                    log.setEntryEppPhotoB64(null);
+                } else {
+                    // normalizar: quitar prefijo dataURL si viene
+                    String normalized = stripDataUrlPrefix(raw);
+
+                    // validación básica de Base64 y tamaño
+                    validateBase64Approx(normalized);
+
+                    log.setEntryEppPhotoB64(normalized);
+                }
+            }
+
+            return accessLogsRepository.save(log);
+        });
+    }
+
+    /** Quita "data:image/jpeg;base64," si viene con prefijo. */
+    private String stripDataUrlPrefix(String s) {
+        int comma = s.indexOf(',');
+        if (s.startsWith("data:") && comma >= 0) {
+            return s.substring(comma + 1);
+        }
+        return s;
+    }
+
+    /**
+     * Valida que el string sea Base64 y que no exceda MEDIUMTEXT.
+     * (Decodifica solo para validar; si te preocupa performance, puedes
+     *  estimar el tamaño: bytes ≈ base64.length * 3 / 4)
+     */
+    private void validateBase64Approx(String base64) {
+        // tamaño estimado de texto en la columna (el propio Base64):
+        if (base64.length() > MEDIUMTEXT_MAX_BYTES) {
+            throw new IllegalArgumentException("La foto en Base64 excede el tamaño permitido (MEDIUMTEXT).");
+        }
+
+        // validación de formato Base64 (lanza IllegalArgumentException si no es válido)
+        try {
+            Base64.getDecoder().decode(base64);
+        } catch (IllegalArgumentException ex) {
+            throw new IllegalArgumentException("Formato Base64 inválido para la foto.", ex);
+        }
     }
 
     public boolean deleteLog(Long id) {

@@ -1,5 +1,6 @@
 package com.icm.biometric_zone_gate_api.controllers;
 
+import com.icm.biometric_zone_gate_api.dto.AccessLogEppPatchDTO;
 import com.icm.biometric_zone_gate_api.enums.AccessType;
 import com.icm.biometric_zone_gate_api.models.AccessLogsModel;
 import com.icm.biometric_zone_gate_api.services.AccessLogsService;
@@ -72,6 +73,14 @@ public class AccessLogsController {
         return updatedLog
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
+    }
+
+    @PatchMapping("/{id}/epp")
+    public ResponseEntity<AccessLogsModel> patchEpp(@PathVariable Long id,
+                                                    @RequestBody AccessLogEppPatchDTO dto) {
+        return accessLogsService.patchEpp(id, dto)
+                .map(ResponseEntity::ok)                      // ← method reference
+                .orElseGet(() -> ResponseEntity.notFound().build());
     }
 
     @DeleteMapping("/{id}")
