@@ -35,6 +35,8 @@ public class AccessLogsService {
 
     private static final int MEDIUMTEXT_MAX_BYTES = 16_777_215;
 
+    private static final long MAX_EPP_PATCH_MINUTES = 10;
+
     public List<AccessLogsModel> getAllLogs() {
         return accessLogsRepository.findAll();
     }
@@ -58,6 +60,7 @@ public class AccessLogsService {
         });
     }
 
+    /*
     @Transactional
     public Optional<AccessLogsModel> patchEpp(Long id, AccessLogEppPatchDTO dto) {
         return accessLogsRepository.findById(id).map(log -> {
@@ -81,6 +84,59 @@ public class AccessLogsService {
                     validateBase64Approx(normalized);
 
                     log.setEntryEppPhotoB64(normalized);
+                }
+            }
+
+            return accessLogsRepository.save(log);
+        });
+    }
+     */
+
+    @Transactional
+    public Optional<AccessLogsModel> patchEpp(Long id, AccessLogEppPatchDTO dto) {
+        return accessLogsRepository.findById(id).map(log -> {
+
+            ZonedDateTime now = ZonedDateTime.now();
+            // Si quieres basarte en la hora de entrada:
+            if (log.getEntryTime() != null) {
+                long diffMinutes = Duration.between(log.getEntryTime(), now).toMinutes();
+                if (diffMinutes > MAX_EPP_PATCH_MINUTES) {
+                    // aquí puedes lanzar excepción o simplemente no guardar cambios
+                    throw new IllegalStateException(
+                            "No se puede actualizar EPP de un registro con más de " + MAX_EPP_PATCH_MINUTES + " minutos."
+                    );
+                }
+            }
+
+            // Opcional: no permitir cambios si ya está cerrado hace rato
+            if (log.getExitTime() != null) {
+                long diffMinutesSinceExit = Duration.between(log.getExitTime(), now).toMinutes();
+                if (diffMinutesSinceExit > 0) {
+                    throw new IllegalStateException("No se puede actualizar EPP de un registro ya cerrado.");
+                }
+            }
+
+            // 1) correctEpp (si viene null, no tocar)
+            if (dto.getCorrectEpp() != null) {
+                log.setCorrectEpp(dto.getCorrectEpp());
+            }
+
+            // 2) entryEppPhotoB64 (si viene null, no tocar; si es "", borrar)
+            if (dto.getEntryEppPhotoB64() != null) {
+                String raw = dto.getEntryEppPhotoB64().trim();
+                if (raw.isEmpty()) {
+                    log.setEntryEppPhotoB64(null);
+                } else {
+                    String normalized = stripDataUrlPrefix(raw);
+                    validateBase64Approx(normalized);
+
+                    // Opcional: si ya tiene foto, podrías decidir no sobreescribir
+                    if (log.getEntryEppPhotoB64() == null) {
+                        log.setEntryEppPhotoB64(normalized);
+                    } else {
+                        // o log.warn / ignorar / permitir overwrite según lo que tú quieras
+                        log.setEntryEppPhotoB64(normalized);
+                    }
                 }
             }
 

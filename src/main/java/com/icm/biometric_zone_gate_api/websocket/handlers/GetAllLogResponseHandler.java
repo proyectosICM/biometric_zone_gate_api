@@ -37,7 +37,7 @@ public class GetAllLogResponseHandler {
 
     private final ConcurrentHashMap<String, Boolean> finishedSessions = new ConcurrentHashMap<>();
     private static final DateTimeFormatter FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
-    private static final int MIN_SECONDS_BETWEEN_EVENTS = 5;
+    private static final int MIN_SECONDS_BETWEEN_EVENTS = 120;
 
     public void handleGetAllLogResponse(JsonNode json, WebSocketSession session) {
         try {
