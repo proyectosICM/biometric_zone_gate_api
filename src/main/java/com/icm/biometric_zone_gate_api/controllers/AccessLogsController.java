@@ -117,22 +117,22 @@ public class AccessLogsController {
         return ResponseEntity.ok(accessLogsService.getLogsByDevice(deviceId));
     }
 
-    @GetMapping("/device/{deviceId}/page")
-    public ResponseEntity<Page<AccessLogsModel>> getLogsByDevicePage(
-            @PathVariable Long deviceId,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size,
-            @RequestParam(required = false) String sortBy,
-            @RequestParam(defaultValue = "asc") String direction
-    ) {
-        Pageable pageable = (sortBy != null && !sortBy.isEmpty())
-                ? PageRequest.of(page, size, direction.equalsIgnoreCase("desc")
-                ? Sort.by(sortBy).descending()
-                : Sort.by(sortBy).ascending())
-                : PageRequest.of(page, size);
+        @GetMapping("/device/{deviceId}/page")
+        public ResponseEntity<Page<AccessLogsModel>> getLogsByDevicePage(
+                @PathVariable Long deviceId,
+                @RequestParam(defaultValue = "0") int page,
+                @RequestParam(defaultValue = "10") int size,
+                @RequestParam(required = false) String sortBy,
+                @RequestParam(defaultValue = "asc") String direction
+        ) {
+            Pageable pageable = (sortBy != null && !sortBy.isEmpty())
+                    ? PageRequest.of(page, size, direction.equalsIgnoreCase("desc")
+                    ? Sort.by(sortBy).descending()
+                    : Sort.by(sortBy).ascending())
+                    : PageRequest.of(page, size);
 
-        return ResponseEntity.ok(accessLogsService.getLogsByDevice(deviceId, pageable));
-    }
+            return ResponseEntity.ok(accessLogsService.getLogsByDevice(deviceId, pageable));
+        }
 
     @GetMapping("/company/{companyId}")
     public ResponseEntity<List<AccessLogsModel>> getLogsByCompany(@PathVariable Long companyId) {

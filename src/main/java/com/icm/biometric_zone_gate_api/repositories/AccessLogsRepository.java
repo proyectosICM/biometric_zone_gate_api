@@ -18,6 +18,14 @@ import java.util.Optional;
 public interface AccessLogsRepository extends JpaRepository<AccessLogsModel, Long> {
 
     @Query("""
+           SELECT l
+           FROM AccessLogsModel l
+           WHERE l.exitTime IS NULL
+             AND l.entryTime <= :limit
+           """)
+    List<AccessLogsModel> findOpenLogsOlderThan(@Param("limit") ZonedDateTime limit);
+
+    @Query("""
                 SELECT a FROM AccessLogsModel a
                 WHERE a.user.id = :userId
                   AND a.device.id = :deviceId

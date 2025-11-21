@@ -164,6 +164,41 @@ public class AccessLogsService {
         return accessLogsRepository.findByAction(action, pageable);
     }
 
+    @Transactional
+    public void autoCloseOldOpenLogs(int minutes, String systemObservation) {
+        ZonedDateTime now = ZonedDateTime.now(ZoneId.systemDefault());
+        ZonedDateTime limit = now.minusMinutes(minutes);
+
+        List<AccessLogsModel> staleLogs = accessLogsRepository.findOpenLogsOlderThan(limit);
+        if (staleLogs.isEmpty()) return;
+
+        for (AccessLogsModel log : staleLogs) {
+            // Para consistencia: salida exactamente 30 minutos después de la entrada
+            ZonedDateTime exitTime = log.getEntryTime().plusMinutes(minutes);
+            if (exitTime.isAfter(now)) {
+                // Por si el scheduler corre muy seguido y agarra uno “justo al límite”
+                exitTime = now;
+            }
+
+            long durationSeconds = Duration.between(log.getEntryTime(), exitTime).getSeconds();
+
+            log.setExitTime(exitTime);
+            log.setDurationSeconds(durationSeconds);
+            log.setAction(AccessType.EXIT);
+
+            // Mantener el mismo auth mode de entrada, o setear algo especial si tienes
+            if (log.getExitAuthMode() == null) {
+                log.setExitAuthMode(log.getEntryAuthMode());
+            }
+
+            // Aquí asumo que el campo se llama observation / observacion / notes
+            log.setObservation("cerrado por el sistema");
+
+            // Si tu createLog() hace save(), puedes usarlo. Si no, usa repository.save()
+            accessLogsRepository.save(log);
+        }
+    }
+
     public long countLogsByDeviceAndDay(Long deviceId, LocalDate date) {
         ZonedDateTime startOfDay = date.atStartOfDay(ZoneId.systemDefault());
         ZonedDateTime endOfDay = date.atTime(LocalTime.MAX).atZone(ZoneId.systemDefault());
